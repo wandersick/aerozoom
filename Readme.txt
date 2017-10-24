@@ -1,8 +1,8 @@
 
 
-                    [ AeroZoom 3.2a with AeroSnip ]
+                     [ AeroZoom 3.3 with AeroSnip ]
   
-     A smooth wheel-zoom, easy-snip and accessible mouse-enhancing panel
+        The smooth wheel-zooming and snipping mouse-enhancing panel
 
   
   #  AeroZoom enhances upon the smooth Magnifier in Windows 7 to magnify
@@ -14,7 +14,7 @@
      ZoomIt Panel, Custom Hotkeys, support for Windows 7 Standard User
      accounts w/o UAC, or partially with UAC, Vista and XP.
 
-  #  See bottom for what's updated in latest version 3.2a.
+  #  See bottom for what's updated in latest version 3.3.
 
 
      [ AeroZoom Panel ]
@@ -85,33 +85,24 @@
 
      [ More Features from v3 ]
 
-  #  Custom Hotkeys -- 30+ mouse-utilizing hotkeys and functions
-
-  #  Support for Win 7 limited accounts, partially with UAC, Vista & XP
-
-  #  Configuration import and export (auto-backup on exit)
-
-  #  Access Windows and misc tools from AeroZoom Panel
-
-  #  Workaround of Windows Media Center, WizMouse. See [Compatibility]
-  
-  #  Now compatible with AeroShake (Won't shake away stuff anymore)
+  .  Custom Hotkeys -- 30+ mouse-utilizing hotkeys and functions
+  .  Support for Win 7 limited accounts, partially with UAC, Vista & XP
+  .  Configuration import and export (auto-backup on exit)
+  .  Access Windows and misc tools from AeroZoom Panel
+  .  Workaround of Windows Media Center, WizMouse. See [Compatibility]
+  .  Now compatible with AeroShake (Won't shake away stuff anymore)
 
 
-     [ Features from v2 ]
+     [ Old Features from v2 ]
    
   #  Keyboard and mouse buttons as modifiers, just as Mac/Linux
-
      - Ctrl, Alt, Win, Shift, Middle, Back, Forward (and Left, Right)
-
      - Lefthanders don't need to run a separate program anymore.
   
-   #  Misclick-Preventing Pad avoids sending clicks to apps behind.
-
+  #  Misclick-Preventing Pad avoids sending clicks to apps behind.
      - Powerpointing while live-zooming with AeroZoom is now possible.
 	 
   #  'Middle button modifier' mode achieves one-button zoom
-
      - Press and hold the Middle button down while scrolling the same
        button to zoom.
   
@@ -122,23 +113,17 @@
   #  Preview Full Screen quickly jumps anywhere else while zoomed in:
 
   #  Holding middle mouse button as an action trigger 
-
      -  While zoomed in, activates a full screen preview
-  
      -  While unzoomed, starts a new snip
     
   #  Tool menu contains many useful accessories, e.g.
-  
      -  Run on Startup: Run AeroZoom without screen-dimming UAC prompt
-    
      -  Always-on-Top: Applies to AZ Panel and tools started from it
-  
      -  Advanced Options: Customizations for tweakers
   
   #  Access settings of Magnifier/Snipping Tool/ZoomIt all from Panel
   
   #  Lots of keyboard and mouse shortcuts. See [Quick Instructions].
-     
      -  For example, a hotkey to invert screen color like Mac/Linux.
   
   #  Portable and installable [silently]. See [Special Installation].
@@ -237,6 +222,7 @@
      that AeroZoom applies its wheel-Zoom support on Sysinternals
      ZoomIt.
 
+  3. Windows 8 beta support has been added unofficially since v3.3.
 
      [ Compatibility ]
 
@@ -304,46 +290,53 @@
      You may have to set 'Operation delay' in 'Tool > Preferences
      > Advanced Options' to a higher value for your system.
 
+	 
+     [ Version 3 Release History ]
 
-     [ Version History - 3.2a - 2012/05 ]
+  #  2012/05/26 - 3.3
 
-  #  Fixed menu separator bug and various improvements.
+		- Fixed the problem of holding middle button action being
+		  triggered very easily.
+		- Improved look of elements under basic theme.
+		- Added a restart option to Tray and Az menu.
+		- Double-click panel to switch between ZoomIt/Magnifier
+		  panels; middle-double-click to restart.
+		- Improved tips and tricks.
+		- More use of OSD. Various bug fixes.
+		- First unofficial support for Windows 8 Consumer Preview.
+	 
+  #  2012/05/09 - 3.2a
 
+     -  Fixed menu separator bug and various improvements.
 
-     [ Version History - 3.2 - 2012/05 ]
+  #  2012/05/05 - 3.2 
 
-  #  Many subtle UI improvements, e.g. Menu separator,
+     -  Many subtle UI improvements, e.g. Menu separator.
+     -  Right-clicking the Panel switches between Modern/Classic.
+     -  Single-clicking the tray icon or the 'off' button on AZ Panel
+        turns off/on AeroZoom temporarily in an easy way.
+     -  Non-admins can now have their configs auto backed up.
+     -  Fixed a Custom Hotkeys bug that exclusively takes over hotkeys.
+        (Now compatible with the Firefox add-on Image Zoom.)
+     -  More use of the OSD. Custom Hotkeys can be dis/enabled in sets.
+     -  Latest AutoHotkey_L version (1.1.7.3).
 
-  #  Right-clicking the Panel switches between Modern/Classic modes,
-
-  #  Single-clicking the tray icon or the 'off' button on AZ Panel turns
-     off/on AeroZoom temporarily in an easy way.
-
-  #  Non-admins can now have their configs auto backed up.
-
-  #  Fixed a bug of Custom Hotkeys that exclusively takes over hotkeys.
-     (Now compatible with the Firefox add-on Image Zoom.)
-
-  #  More use of the OSD. Custom Hotkeys can be dis/enabled in sets.
-
-  #  Latest AutoHotkey_L version.
-
-
-     [ Version History - 3.1 - 2012/01 ]
+  #  2012/01/10 - 3.1
        
-  #  Snipping with middle button no longer leaves a mark in captures
+     -  Snipping with middle button no longer leaves a mark in captures
+     -  Negative offset values can be set in Advanced Option
+     -  'Run on Startup' in zh-CN systems (in fact, a schtasks bug) 
 
-  #  Negative offset values can be set in Advanced Option
+  #  For older versions, visit the URL at the bottom.
 
-  #  'Run on Startup' in zh-CN systems (in fact, a schtasks bug) 
-
-
+  
      [ Credits / Attributions ]
   
   #  AutoHotkey and AutoIt
   
   #  Windows Magnifier, Snipping Tool, Sysinternals ZoomIt, NirCmd
-     (AeroZoom is proudly based on these excellent solutions)
+     - AeroZoom is proudly based on these excellent solutions but it's
+	   not affilated with any of them)
   
   #  Thanks to all who sent me suggestions and bug reports that made
      what AeroZoom is today.

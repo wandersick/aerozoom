@@ -3,7 +3,10 @@
 ; This is the Setup. See main script for more.
 ;
 
-verAZ = 3.2a
+#SingleInstance Force
+#NoTrayIcon
+
+verAZ = 3.3
 	
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
@@ -46,11 +49,11 @@ IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom ; Check if a portable copy is runn
 	ExistAZ=1
 ; Install / Unisntall
 regKey=SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AeroZoom
-IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
+IfNotExist, %targetDir%\wandersick\AeroZoom\AeroZoom.exe
 {
 	IfNotEqual, unattendAZ, 1
 	{
-		MsgBox, 262180, AeroZoom Installer , Install AeroZoom in the following location?`n`n%targetDir%\WanderSick\AeroZoom`n`nNote:`n - For portable use, just run AeroZoom.exe. Setup is unneeded.`n - To install silently or to all users, run Setup.exe /? to see how.`n - To remove a copy that was installed to all users, run Setup.exe /programfiles
+		MsgBox, 262180, AeroZoom Installer , Install AeroZoom in the following location?`n`n%targetDir%\wandersick\AeroZoom`n`nNote:`n - For portable use, just run AeroZoom.exe. Setup is unneeded.`n - To install silently or to all users, run Setup.exe /? to see how.`n - To remove a copy that was installed to all users, run Setup.exe /programfiles
 		IfMsgBox No
 		{
 			Exitapp
@@ -58,26 +61,26 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 	}
 	Gosub, KillProcess
 	; Remove existing directory
-	FileRemoveDir, %targetDir%\WanderSick\AeroZoom\Data, 1
-	FileRemoveDir, %targetDir%\WanderSick\AeroZoom, 1
+	FileRemoveDir, %targetDir%\wandersick\AeroZoom\Data, 1
+	FileRemoveDir, %targetDir%\wandersick\AeroZoom, 1
 	; Copy AeroZoom to %targetDir%
 
-	FileCreateDir, %targetDir%\WanderSick\AeroZoom
-	; RunWait, 7z.exe -y x AeroZoom.7z -o"%targetDir%\WanderSick\",%A_ScriptDir%
-	FileCopyDir, %A_WorkingDir%, %targetDir%\WanderSick\AeroZoom, 1
+	FileCreateDir, %targetDir%\wandersick\AeroZoom
+	; RunWait, 7z.exe -y x AeroZoom.7z -o"%targetDir%\wandersick\",%A_ScriptDir%
+	FileCopyDir, %A_WorkingDir%, %targetDir%\wandersick\AeroZoom, 1
 
 	; Create shortcut to Start Menu (Current User)
-	IfExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
+	IfExist, %targetDir%\wandersick\AeroZoom\AeroZoom.exe
 	{
 		If setupAllUsers
 		{
-			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_ProgramsCommon%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
-			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_DesktopCommon%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
+			FileCreateShortcut, %targetDir%\wandersick\AeroZoom\AeroZoom.exe, %A_ProgramsCommon%\AeroZoom.lnk, %targetDir%\wandersick\AeroZoom\,, AeroZoom`, the smooth wheel-zooming and snipping mouse-enhancing panel,,
+			FileCreateShortcut, %targetDir%\wandersick\AeroZoom\AeroZoom.exe, %A_DesktopCommon%\AeroZoom.lnk, %targetDir%\wandersick\AeroZoom\,, AeroZoom`, the smooth wheel-zooming and snipping mouse-enhancing panel,,
 		}
 		Else
 		{
-			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_Programs%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
-			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_Desktop%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
+			FileCreateShortcut, %targetDir%\wandersick\AeroZoom\AeroZoom.exe, %A_Programs%\AeroZoom.lnk, %targetDir%\wandersick\AeroZoom\,, AeroZoom`, the smooth wheel-zooming and snipping mouse-enhancing panel,,
+			FileCreateShortcut, %targetDir%\wandersick\AeroZoom\AeroZoom.exe, %A_Desktop%\AeroZoom.lnk, %targetDir%\wandersick\AeroZoom\,, AeroZoom`, the smooth wheel-zooming and snipping mouse-enhancing panel,,
 		}
 	}
 	; if a shortcut is in startup, re-create it to ensure its not linked to the portable version's path
@@ -87,8 +90,8 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 	{
 		FileSetAttrib, -R, %A_Startup%\*AeroZoom*.*
 		FileDelete, %A_Startup%\*AeroZoom*.*
-		;IfExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
-		;	FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_Startup%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
+		;IfExist, %targetDir%\wandersick\AeroZoom\AeroZoom.exe
+		;	FileCreateShortcut, %targetDir%\wandersick\AeroZoom\AeroZoom.exe, %A_Startup%\AeroZoom.lnk, %targetDir%\wandersick\AeroZoom\,, AeroZoom`, the smooth wheel-zooming and snipping mouse-enhancing panel,,
 	}
 	if A_IsAdmin
 	{
@@ -96,8 +99,8 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 		{
 			FileSetAttrib, -R, %A_StartupCommon%\*AeroZoom*.*
 			FileDelete, %A_StartupCommon%\*AeroZoom*.*
-			;IfExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
-			;	FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_StartupCommon%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
+			;IfExist, %targetDir%\wandersick\AeroZoom\AeroZoom.exe
+			;	FileCreateShortcut, %targetDir%\wandersick\AeroZoom\AeroZoom.exe, %A_StartupCommon%\AeroZoom.lnk, %targetDir%\wandersick\AeroZoom\,, AeroZoom`, the smooth wheel-zooming and snipping mouse-enhancing panel,,
 		}
 	}
 	if A_IsAdmin
@@ -111,12 +114,12 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 				RunWait, "%TaskPath%\AeroZoom_Task.bat" /cretask /localappdata,"%A_WorkingDir%\",min
 			}
 			if (errorlevel=3) {
-				RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, RunOnStartup, 1
+				RegWrite, REG_SZ, HKCU, Software\wandersick\AeroZoom, RunOnStartup, 1
 			}
 		}
 	}
 	; Write uninstall entry to registry 
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, DisplayIcon, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe,0
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, DisplayIcon, %targetDir%\wandersick\AeroZoom\AeroZoom.exe,0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, DisplayName, AeroZoom %verAZ%
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, InstallDate, %A_YYYY%%A_MM%%A_DD%
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, HelpLink, http://wandersick.blogspot.com
@@ -129,20 +132,20 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 	
 	
 	If setupAllUsers
-		RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, UninstallString, %targetDir%\WanderSick\AeroZoom\setup.exe /unattendAZ=2 /programfiles
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, UninstallString, %targetDir%\wandersick\AeroZoom\setup.exe /unattendAZ=2 /programfiles
 	Else
-		RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, UninstallString, %targetDir%\WanderSick\AeroZoom\setup.exe /unattendAZ=2
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, InstallLocation, %targetDir%\WanderSick\AeroZoom
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, UninstallString, %targetDir%\wandersick\AeroZoom\setup.exe /unattendAZ=2
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, InstallLocation, %targetDir%\wandersick\AeroZoom
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, DisplayVersion, %verAZ%
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, Publisher, a wandersick
 	; Calc folder size
 	; SetBatchLines, -1  ; Make the operation run at maximum speed.
 	EstimatedSize = 0
-	Loop, %targetDir%\WanderSick\AeroZoom\*.*, , 1
+	Loop, %targetDir%\wandersick\AeroZoom\*.*, , 1
 	EstimatedSize += %A_LoopFileSize%
 	EstimatedSize /= 1024
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, %regKey%, EstimatedSize, %EstimatedSize%
-	IfExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
+	IfExist, %targetDir%\wandersick\AeroZoom\AeroZoom.exe
 	{
 		IfEqual, unattendAZ, 1
 		{
@@ -154,14 +157,14 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 		{
 			ExitApp, 1
 		}
-		Msgbox, 262192, AeroZoom, Installation failed.`n`nPlease ensure this folder is accessible:`n`n%targetDir%\WanderSick\AeroZoom
+		Msgbox, 262192, AeroZoom, Installation failed.`n`nPlease ensure this folder is accessible:`n`n%targetDir%\wandersick\AeroZoom
 	}
 } else {
 	; if unattend switch is on, skip the check since user must be running the uninstaller from control panel
 	; not from AeroZoom program
 	IfNotEqual, unattendAZ, 1
 	{
-		MsgBox, 262180, AeroZoom Uninstaller , Uninstall AeroZoom and delete its perferences from the following location?`n`n%targetDir%\WanderSick\AeroZoom
+		MsgBox, 262180, AeroZoom Uninstaller , Uninstall AeroZoom and delete its perferences from the following location?`n`n%targetDir%\wandersick\AeroZoom
 		IfMsgBox No
 		{
 			Exitapp
@@ -189,12 +192,12 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 		RunWait, "%TaskPath%\AeroZoom_Task.bat" /deltask,"%A_WorkingDir%\",min
 		RunWait, "%TaskPath%\AeroZoom_Task.bat" /check,"%A_WorkingDir%\",min
 		if (errorlevel=5) {
-			RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, RunOnStartup, 0
+			RegWrite, REG_SZ, HKCU, Software\wandersick\AeroZoom, RunOnStartup, 0
 		}
 	}
 	; remove reg keys
 	RegDelete, HKEY_CURRENT_USER, %regKey%
-	RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom
+	RegDelete, HKEY_CURRENT_USER, Software\wandersick\AeroZoom
 ;	 RButton
 ;	 MButton
 ;	 X1
@@ -205,7 +208,7 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 ;	 ZoomIt
 ;	 lastPosX
 ;	 lastPosY and more
-	;FileMove, %targetDir%\WanderSick\AeroZoom\Data\uninstall.bat, %temp%, 1 ; prevent deletion of this as it will be used
+	;FileMove, %targetDir%\wandersick\AeroZoom\Data\uninstall.bat, %temp%, 1 ; prevent deletion of this as it will be used
 	FileSetAttrib, -R, %A_Programs%\AeroZoom.lnk 
 	FileDelete, %A_Programs%\AeroZoom.lnk ; normally this is the only shortcut that has to be deleted
 	FileSetAttrib, -R, %A_ProgramsCommon%\AeroZoom.lnk
@@ -214,23 +217,23 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 	FileDelete, %A_Desktop%\AeroZoom.lnk
 	FileSetAttrib, -R, %A_DesktopCommon%\AeroZoom.lnk
 	FileDelete, %A_DesktopCommon%\AeroZoom.lnk
-	FileSetAttrib, -R, %targetDir%\WanderSick\AeroZoom\*.*
-	FileRemoveDir, %targetDir%\WanderSick\AeroZoom\Data, 1
-	FileRemoveDir, %targetDir%\WanderSick\AeroZoom, 1
-	FileCreateDir, %targetDir%\WanderSick\AeroZoom\Data
-	;FileMove, %temp%\uninstall.bat, %targetDir%\WanderSick\AeroZoom\Data\, 1 ; prevent deletion of this as it will be used to schedule deletion of this setup.exe with AT
+	FileSetAttrib, -R, %targetDir%\wandersick\AeroZoom\*.*
+	FileRemoveDir, %targetDir%\wandersick\AeroZoom\Data, 1
+	FileRemoveDir, %targetDir%\wandersick\AeroZoom, 1
+	FileCreateDir, %targetDir%\wandersick\AeroZoom\Data
+	;FileMove, %temp%\uninstall.bat, %targetDir%\wandersick\AeroZoom\Data\, 1 ; prevent deletion of this as it will be used to schedule deletion of this setup.exe with AT
 	;IfEqual, unattendAZ, 2
 	;	Sleep, 1000
-	IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe ; i.e. if the removal was successful
+	IfNotExist, %targetDir%\wandersick\AeroZoom\AeroZoom.exe ; i.e. if the removal was successful
 	{
 		;IfEqual, unattendAZ, 2 ; schedule to delete this setup.exe (and uninstall.bat) in a few mins since it cant delete itself
 		;{
 		;	if A_IsAdmin
 		;	{
 		;		If setupAllUsers
-		;			Run, "%comspec%" /c uninstall.bat /schedule /programfiles,%targetDir%\WanderSick\AeroZoom\Data ; abort if non-admin as at.exe requires admin right
+		;			Run, "%comspec%" /c uninstall.bat /schedule /programfiles,%targetDir%\wandersick\AeroZoom\Data ; abort if non-admin as at.exe requires admin right
 		;		Else
-		;			Run, "%comspec%" /c uninstall.bat /schedule,%targetDir%\WanderSick\AeroZoom\Data ; abort if non-admin as at.exe requires admin right
+		;			Run, "%comspec%" /c uninstall.bat /schedule,%targetDir%\wandersick\AeroZoom\Data ; abort if non-admin as at.exe requires admin right
 		;	}
 		;}
 		IfEqual, unattendAZ, 1
@@ -248,7 +251,7 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 		{
 			ExitApp, 1
 		}
-		Msgbox, 262192, AeroZoom, Uninstalled partially.`n`nPlease remove this folder manually:`n`n%targetDir%\WanderSick\AeroZoom
+		Msgbox, 262192, AeroZoom, Uninstalled partially.`n`nPlease remove this folder manually:`n`n%targetDir%\wandersick\AeroZoom
 	}
 }
 
@@ -320,9 +323,9 @@ return
 	; goto :EOF
 
 	; 4. AHK content: This file and uncomment the following line in around line 53
-	; RunWait, 7z.exe -y x AeroZoom.7z -o"%localappdata%\WanderSick\",%A_ScriptDir%
+	; RunWait, 7z.exe -y x AeroZoom.7z -o"%localappdata%\wandersick\",%A_ScriptDir%
 	; Comment the following line around line 54
-	; FileCopyDir, %A_WorkingDir%, %localappdata%\WanderSick\AeroZoom, 1
+	; FileCopyDir, %A_WorkingDir%, %localappdata%\wandersick\AeroZoom, 1
 	
 	; 5. Use Exe To Msi Converter Free (1.0) by QwertyLabs to convert.
 	; Specify no switch
