@@ -19,7 +19,8 @@ If exist "AeroZoom_Task_Body.xml" (
 )
 
 if /i "%~1"=="/cretask" goto :createtask
-
+:: to fix a bug of zh-CN\schtasks.exe.mui in Windows 7 Simplified Chinese http://t.co/EmSj8w1
+chcp 437
 schtasks /query | find /i "AeroZoom_%Username%"
 :: if exist, delete it and exit with code 2
 if %errorlevel% NEQ 0 (

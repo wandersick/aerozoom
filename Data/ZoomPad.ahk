@@ -8,7 +8,7 @@ Menu, Tray, Icon, %A_WorkingDir%\Data\AeroZoom.ico
 RegRead,padTrans,HKCU,Software\WanderSick\AeroZoom,padTrans
 if errorlevel
 {
-	padTrans=30
+	padTrans=1
 }
 RegRead,padX,HKCU,Software\WanderSick\AeroZoom,padX
 if errorlevel
@@ -23,17 +23,17 @@ if errorlevel
 RegRead,padH,HKCU,Software\WanderSick\AeroZoom,padH
 if errorlevel
 {
-	padH=455
+	padH=475
 }
 RegRead,padW,HKCU,Software\WanderSick\AeroZoom,padW
 if errorlevel
 {
-	padW=455
+	padW=475
 }
 RegRead,padBorder,HKCU,Software\WanderSick\AeroZoom,padBorder
 if errorlevel
 {
-	padBorder=1
+	padBorder=2
 }
 RegRead,padStayTime,HKCU,Software\WanderSick\AeroZoom,padStayTime
 if errorlevel
@@ -49,10 +49,11 @@ else
 MouseGetPos, xPos, yPos
 xPos2 := xPos - padX
 yPos2 := yPos - padY
-Gui, %padCaption% -Maximize -Minimize %onTop% +ToolWindow -Theme;
+Gui, %padCaption% +LastFound -MaximizeBox -MinimizeBox +AlwaysOnTop +ToolWindow
+Gui, Color, EEAA99 ; any color
+WinSet, TransColor, EEAA99 %padTrans% ; this is better than doing a winset after gui show which causes a short 'ghost frame'
 Gui, Add, Text, w%padW% h%padH% gUiMove,
 Gui, Show, w%padW% h%padH% x%xPos2% y%yPos2%, AeroZoom Pad
-WinSet, Transparent, %padTrans%, AeroZoom Pad
 ; if any of these buttons are not held anymore, close ZoomPad
 Loop
 {

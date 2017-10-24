@@ -1,27 +1,38 @@
-; AeroZoom by WanderSick | http://wandersick.blogspot.com
+; (c) Copyright 2009-2011 AeroZoom by wandersick | http://wandersick.blogspot.com
 
-; Sorry for the bad/messy commenting in advance.
-; Some codes may be duplicated. They are better put in a subroutine. Maybe next version.
-; If you have any questions, email me at wandersick@gmail.com
+; Sorry for the bad/messy commenting in advance. As my purpose is to contribute as much as possible,
+; the source is released. I hope it, sas a bad example, helps you write your scripts better.
 
-; * For each modifier.ahk, add panel launching, e.g. in Ctrl.ahk, add ^RButton:: ... (Search 'undocumented') if not x1 or x2, remove: Gosub, ZoomPad
-; * For middle.ahk, uncomment mbutton & rbutton, mbutton & lbutton.
+; If you have any questions, corrections or suggestions, you may also send to wandersick@gmail.com or my blog
+; I speak English and Chinese(Cantonese). (For those who understand: Zhong Wen is okay!)
+
+; ------------------------------------------
+; Some unorganized notes for internal use:
+; * For each modifier.ahk, search for '~LButton &' and replace it with '~RButton &' '~MButton &' '~XButton1 &' '~XButton2 &'  '!' '#' '^'
+; * For middle.ahk, uncomment mbutton & rbutton
 ;   replace mbutton:: with ~MButton & LButton:: and delete some lines there
-;   disable 'hold middle to snip/still zoom' by uncommenting line 134x
-; * For x1.ahk and x2.ahk, uncomment the huge commented block (search for ;;) change x2 to x1 or x1 to x2 for some bits
-;   in x1/x2 the undocumented part must contain: Gosub, ZoomPad (rename x1 to x2 if needed, and vice versa)
+; * Search ;; for X1 and X2, but theres no need to do anything on them now. they are the same as others
+; * For each modifier except MButton, due to the zoom has taken mod+wup/wdown and mod+mbutton, the hotkey customization bit is not usable. remove the duplicated modifier.
+;   e.g. in Ctrl ahk, remove the ~^Wheelup and ~^Wheeldown for hotkey customization (~^LButton and ~^RButton can be kept though)
+; * in LButton and RButton ahk, remove as well the mod+mbutton (since Custom Hotkey for Left/Right supports the Mbutton)
+;   e.g. In RButton ahk, comment "~RButton & MButton::, uncomment "~LButton & MButton::"
+;        In all other ahk except LButton/RButton, uncomment both
 
 ; Before release
 ; - Set read-only flag for Readme and Tips, bat vbs
 ; - Delete wget.gid
 ; - Be sure to update the updater.bat search terms
-; - Check setup.ahk for more things
+; - Check setup.ahk for more things (e.g. update verAZ)
 ; - Update Product version in .ahk.ini
+; - Update src (Readme, etc.) in ahk.7z
+; - Empty configbackup folder
+; - Delete ZoomIt.exe, NirCmd.exe
 
 ; Remember to create separate x64 executables (note: .ahk and _x64.ahk are exactly the same scripts. just compile them with different compilers)
-; _x64.ahk.ini aren't used because Compile AHK II doesnt seem to support 64bit AutoHotkey_L
+; _x64.ahk.ini aren't used because Compile AHK II doesnt seem to support 64bit AutoHotkey_L (or 32bit AutoHotkey_L)
 ; Compile x64 executables with AutoHotkey_L (Installation being Unicode 64bit)
-; Compile x84 with AutoHotkey (old version) to keep size small...
+; Compile x86 main files with AutoHotkey_L (unicode) in order to google in Chinese
+; Compile only ZoomPad, OpenTray, Setup, AeroZoom.exe with old AutoHotkey (with Compile AHK II for setting metadata) to keep size small...
 
 #Persistent
 #SingleInstance force
@@ -30,8 +41,8 @@ SetBatchLines -1 ; run at fastest speed before init
 IfEqual, unattendAZ, 1
 	goto Install
 
-verAZ = 2.0a
-paused = 0
+verAZ = 3.0
+paused = 
 
 ; Working directory check
 IfNotExist, %A_WorkingDir%\Data
@@ -41,19 +52,140 @@ IfNotExist, %A_WorkingDir%\Data
 }
 
 RegRead,OSver,HKLM,SOFTWARE\Microsoft\Windows NT\CurrentVersion,CurrentVersion
-if (OSver<6.1) {
-	Msgbox, 262144, AeroZoom, You're using an OS earlier than Windows 7. Expect abnormal behaviors.
+if (OSver<5.1) { ; if older than xp
+	RegRead,oldOSwarning,HKCU,Software\WanderSick\AeroZoom,oldOSwarning
+	if errorlevel
+		Msgbox, 262192, This message will be shown once only, You're using an OS earlier than Windows XP. Expect abnormal behaviors.
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, oldOSwarning, 1
 } else if (OSver>6.1) {
 	RegRead,newOSwarning,HKCU,Software\WanderSick\AeroZoom,newOSwarning
 	if errorlevel
 	{
-		Msgbox, 262144, This message will be shown once only, You're using an newer operating system AeroZoom may not totally support.`n`nPlease check http://wandersick.blogspot.com if there's a new version available.
+		Msgbox, 262144, This message will be shown once only, You're using an newer operating system AeroZoom may not totally support.`n`nPlease urges wandersick or check http://wandersick.blogspot.com for a new version.
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, newOSwarning, 1
 	}
 }
 
-; if not A_IsAdmin
-; {
+if (OSver>=6.1) { ; win7's mag cant be terminated by users with standard UAC on, unlike vista or xp
+	RegRead,EnableLUA,HKLM,SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System,EnableLUA
+	if EnableLUA {
+		if not A_IsAdmin
+		{
+			RegRead,limitedAcc,HKCU,Software\WanderSick\AeroZoom,limitedAcc
+			if errorlevel
+			{
+				Msgbox, 262180, This message will be shown once only, You're using a Limited User Account with User Account Control (UAC) on under Windows 7. Some functions of AeroZoom does not work under this condition. Please disable UAC or run AeroZoom as Administrator; otherwise AeroZoom will run in a limited functionality mode.`n`nClick 'Yes to disable UAC (Requires admin rights).`nClick 'No' to continue AeroZoom in limited mode.
+				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, limitedAcc, 1
+				IfMsgBox Yes
+				{
+					RunWait, *Runas "%A_WorkingDir%\Data\DisableUAC.exe" ; disable UAC
+					If (errorlevel=100) { ; if success and reboot is pending
+						Exitapp
+					}
+				}
+			}
+		}
+	}
+}
+
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
+	RegRead,limitedAcc2,HKCU,Software\WanderSick\AeroZoom,limitedAcc2
+	if errorlevel
+	{
+		Msgbox,262208,This message will be shown once only,You can return AeroZoom to full functionality mode anytime at 'Az > Switch to Full Functionality Mode' or 'Az > Switch off User Account Control'.
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, limitedAcc2, 1
+	}
+}
+
+if (OSver>=6.0) { ; vista or later includes editions
+	RegRead,EditionID,HKLM,SOFTWARE\Microsoft\Windows NT\CurrentVersion,EditionID
+}
+if (OSver>=6.1) { ; win 7 start/home basic doesnt support aero and snipping tool
+	If (EditionID="Starter") {
+		RegRead,EditionMsg,HKCU,Software\WanderSick\AeroZoom,EditionMsg
+		if errorlevel
+		{
+			Msgbox,262208,This message will be shown once only,You are using Windows 7 Starter which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only the Print Screen button is enhanced to save captures automatically to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures to Disk' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EditionMsg, 1
+		}
+	} else if (EditionID="HomeBasic") {
+		RegRead,EditionMsg2,HKCU,Software\WanderSick\AeroZoom,EditionMsg2
+		if errorlevel
+		{
+			Msgbox,262208,This message will be shown once only,You are using Windows 7 Home Basic which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it if a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to save captures automatically to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures to Disk' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EditionMsg2, 1
+		}
+	}
+}
+
+; enable live zoom for vista or win 7 home basic and starter
+RegRead,zoomitLive,HKCU,Software\WanderSick\AeroZoom,zoomitLive
+if errorlevel
+{
+	if (OSver>=6.1 AND (EditionID="HomeBasic" OR EditionID="Starter")) {
+		zoomitLive=1
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLive, 1
+	}
+}
+
+if (OSver>=6) { ; xp uses still zoom automatically
+	RegRead,zoomitStill,HKCU,Software\WanderSick\AeroZoom,zoomitStill
+	If (OSver>=6.1) { ; under win 7, if both still and live are on, live will take precedence unless the following is done
+		If zoomitStill
+			zoomitLive=
+	}
+}
+
+if (OSver=6.0) { ; vista msg
+	zoomitLive=1 ; forced to use Live Zoom on Vista
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLive, 1
+	If (EditionID="Starter") {
+		zoomitStill=1 ; ZoomIt requires Aero for Live Zoom to work under Vista (Win7 is OK) but Vista Home Basic/Starter does not have Aero, so only Still Zoom is used.
+		RegRead,VistaMsg,HKCU,Software\WanderSick\AeroZoom,VistaMsg
+		if errorlevel
+		{
+			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Starter which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically save captures to disk, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, VistaMsg, 1
+		}
+	} else if (EditionID="HomeBasic") {
+		zoomitStill=1 ; ZoomIt requires Aero for Live Zoom to work under Vista (Win7 is OK) but Vista Home Basic/Starter does not have Aero, so only Still Zoom is used.
+		RegRead,VistaMsg2,HKCU,Software\WanderSick\AeroZoom,VistaMsg2
+		if errorlevel
+		{
+			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Home Basic which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically save captures to disk, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, VistaMsg2, 1
+		}
+	} else {
+		RegRead,VistaMsg3,HKCU,Software\WanderSick\AeroZoom,VistaMsg3
+		if errorlevel
+		{
+			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista which does not support full-screen zoom.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nOn the other hand, AeroSnip enhances Snipping Tool and the Print Screen button to automatically save captures to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures to Disk' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, VistaMsg3, 1
+		}
+	}
+}
+
+;if (OSver<6) OR (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+;	zoomitLive= ; safety measure for win7 non-basic os (if the aerozoom settings were imported from another version of windows)
+;}
+
+if (OSver<6.0) { ; xp msg
+	RegRead,XPmsg,HKCU,Software\WanderSick\AeroZoom,XPmsg
+	if errorlevel
+	{
+		Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above, but you are an earlier OS that does not support full-screen zoom. As a workaround, AeroZoom adds wheel-zoom capability to the zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. (Note: Zoom is only still on this OS, as live zooming requires Vista or later.)`n`nAlso, AeroSnip requires Windows Vista Home Premium or later, so only the Print Screen button is enhanced to save captures automatically to disk, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, XPmsg, 1
+	}
+}
+
+IfExist, %windir%\system32\SnippingTool.exe
+{
+	If (EditionID<>"HomeBasic" AND EditionID<>"Starter") {
+		SnippingToolExists=1
+	}
+}
+
+;{
 ;   DllCall("shell32\ShellExecuteA", uint, 0, str, "RunAs", str, A_AhkPath
 ;      , str, """" . A_ScriptFullPath . """", str, A_WorkingDir, int, 1)  ; Last parameter: SW_SHOWNORMAL = 1
 ;   ExitApp
@@ -64,6 +196,476 @@ menu, tray, add
 menu, tray, add, Show/hide Panel, showPanel
 menu, tray, Default, Show/Hide Panel
 Menu, Tray, Icon, %A_WorkingDir%\Data\AeroZoom.ico
+
+; disable Magnifier warning in XP
+if (OSver<6) { 
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Magnify, ShowWarning, 0x0
+}
+
+; for Snipping Tool to work or work better (does this only once at fresh run)
+if not Welcome
+{
+	RegRead,AutoCopyToClipboard,HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool,AutoCopyToClipboard
+	If not (AutoCopyToClipboard=0x1)
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool, AutoCopyToClipboard, 0x1
+
+	RegRead,PromptToSave,HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool,PromptToSave
+	If (PromptToSave=0x1 OR !PromptToSave)
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool, PromptToSave, 0x0
+}
+
+; Change calc class
+
+If (OSver>=6.1) {
+	calcClass=CalcFrame
+} Else {
+	calcClass=SciCalc
+}
+
+
+; Snipping Tool init - START
+
+RegRead,PrintScreenEnhanceCheckbox,HKCU,Software\WanderSick\AeroZoom,PrintScreenEnhanceCheckbox
+if errorlevel 
+{
+	PrintScreenEnhanceCheckbox=1
+}
+
+If !SnippingToolExists ; force this to be on. for system without snipping tools, it doesnt need to decide between snipping or normal capturing
+	PrintScreenEnhanceCheckbox=1
+
+RegRead,SnipSaveFormatNo,HKCU,Software\WanderSick\AeroZoom,SnipSaveFormatNo
+If errorlevel
+	SnipSaveFormatNo=5
+; 1 .bmp, 2 .gif, 3 .jpg, 4 .tiff, 5 .png (default)
+
+If (SnipSaveFormatNo=1) {
+	SnipSaveFormat=bmp
+} else if (SnipSaveFormatNo=2) {
+	SnipSaveFormat=gif
+} else if (SnipSaveFormatNo=3) {
+	SnipSaveFormat=jpg
+} else if (SnipSaveFormatNo=4) {
+	SnipSaveFormat=tiff
+} else {
+	SnipSaveFormat=png
+}
+
+RegRead,SnipSaveDir,HKCU,Software\WanderSick\AeroZoom,SnipSaveDir
+IfNotExist, %SnipSaveDir%
+	SnipSaveDir=%A_Desktop%
+	
+RegRead,SnipWin,HKCU,Software\WanderSick\AeroZoom,SnipWin
+If errorlevel
+	SnipWin=3 ; default: show.  minimize better if user use the snip in apps other than snipping tool
+; 1 = hide  2 = min  3 = show
+
+RegRead,SnipRunBeforeCommandCheckbox,HKCU,Software\WanderSick\AeroZoom,SnipRunBeforeCommandCheckbox
+RegRead,SnipRunBeforeCommand,HKCU,Software\WanderSick\AeroZoom,SnipRunBeforeCommand
+RegRead,SnipRunCommandCheckbox,HKCU,Software\WanderSick\AeroZoom,SnipRunCommandCheckbox
+RegRead,SnipRunCommand,HKCU,Software\WanderSick\AeroZoom,SnipRunCommand
+if errorlevel 
+{
+	SnipRunCommand=mspaint
+}
+RegRead,SnipPasteCheckbox,HKCU,Software\WanderSick\AeroZoom,SnipPasteCheckbox
+if errorlevel 
+{
+	SnipPasteCheckbox=1
+}
+RegRead,SnipDelay,HKCU,Software\WanderSick\AeroZoom,SnipDelay
+
+;RegRead,SnipToClipboard,HKCU,Software\WanderSick\AeroZoom,SnipToClipboard
+;If errorlevel
+;	SnipToClipboard=1
+
+; 1 = free-form  2 = rectangular  3 = window  4 = full-screen
+RegRead,SnipMode,HKCU,Software\WanderSick\AeroZoom,SnipMode
+If errorlevel
+	SnipMode=2
+	
+; Snipping Tool init - END
+	
+RegRead,padBorder,HKCU,Software\WanderSick\AeroZoom,padBorder
+if errorlevel
+{
+	padBorder=2 ; no
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, padBorder, 2
+}
+RegRead,padTrans,HKCU,Software\WanderSick\AeroZoom,padTrans
+if errorlevel
+{
+	padTrans=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, padTrans, 1
+}
+RegRead,zoomitColor,HKCU,Software\WanderSick\AeroZoom,ZoomitColor
+RegRead,zoomitPanel,HKCU,Software\WanderSick\AeroZoom,ZoomitPanel
+RegRead,zoomItGuidance,HKCU,Software\WanderSick\AeroZoom,ZoomItGuidance
+RegRead,killGuidance,HKCU,Software\WanderSick\AeroZoom,killGuidance
+RegRead,configGuidance,HKCU,Software\WanderSick\AeroZoom,configGuidance
+
+; for customizing google url
+RegRead,GoogleUrl,HKCU,Software\WanderSick\AeroZoom,GoogleUrl
+if errorlevel
+{
+	GoogleUrl=google.com
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, GoogleUrl, google.com
+}
+
+
+RegRead,OSD,HKCU,Software\WanderSick\AeroZoom,OSD
+if errorlevel
+{
+	OSD=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, OSD, 1
+}
+
+
+; required by the Customizable hotkeys (esp the back/forward buttons)
+RegRead,padStayTime,HKCU,Software\WanderSick\AeroZoom,padStayTime
+if errorlevel
+{
+	padStayTime=150
+}
+
+; for Customize Left/Right Buttons
+RegRead,CustomLeftMiddlePath,HKCU,Software\WanderSick\AeroZoom,CustomLeftMiddlePath
+if errorlevel 
+{
+	CustomLeftMiddlePath=! Select 'Custom (define)' !
+}
+RegRead,CustomLeftRightPath,HKCU,Software\WanderSick\AeroZoom,CustomLeftRightPath
+RegRead,CustomLeftWupPath,HKCU,Software\WanderSick\AeroZoom,CustomLeftWupPath
+RegRead,CustomLeftWdownPath,HKCU,Software\WanderSick\AeroZoom,CustomLeftWdownPath
+RegRead,CustomRightLeftPath,HKCU,Software\WanderSick\AeroZoom,CustomRightLeftPath
+RegRead,CustomRightMiddlePath,HKCU,Software\WanderSick\AeroZoom,CustomRightMiddlePath
+RegRead,CustomRightWupPath,HKCU,Software\WanderSick\AeroZoom,CustomRightWupPath
+RegRead,CustomRightWdownPath,HKCU,Software\WanderSick\AeroZoom,CustomRightWdownPath
+RegRead,LeftMiddleAction,HKCU,Software\WanderSick\AeroZoom,LeftMiddleAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	LeftMiddleAction=41
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, LeftMiddleAction, 41
+}
+RegRead,LeftRightAction,HKCU,Software\WanderSick\AeroZoom,LeftRightAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	LeftRightAction=38 ; showHidePanel
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, LeftRightAction, 38
+}
+
+
+RegRead,LeftWupAction,HKCU,Software\WanderSick\AeroZoom,LeftWupAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	LeftWupAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, LeftWupAction, 37
+}
+RegRead,LeftWdownAction,HKCU,Software\WanderSick\AeroZoom,LeftWdownAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	LeftWdownAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, LeftWdownAction, 37
+}
+
+
+RegRead,RightLeftAction,HKCU,Software\WanderSick\AeroZoom,RightLeftAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	RightLeftAction=38 ; showHidePanel
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RightLeftAction, 38
+}
+RegRead,RightMiddleAction,HKCU,Software\WanderSick\AeroZoom,RightMiddleAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	RightMiddleAction=41
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RightMiddleAction, 41
+}
+
+RegRead,RightWupAction,HKCU,Software\WanderSick\AeroZoom,RightWupAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	RightWupAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RightWupAction, 37
+}
+RegRead,RightWdownAction,HKCU,Software\WanderSick\AeroZoom,RightWdownAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	RightWdownAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RightWdownAction, 37
+}
+
+
+; for Customize XButton
+RegRead,CustomBackLeftPath,HKCU,Software\WanderSick\AeroZoom,CustomBackLeftPath
+if errorlevel 
+{
+	CustomBackLeftPath=! Select 'Custom (define)' !
+}
+RegRead,CustomBackRightPath,HKCU,Software\WanderSick\AeroZoom,CustomBackRightPath
+RegRead,CustomBackWupPath,HKCU,Software\WanderSick\AeroZoom,CustomBackWupPath
+RegRead,CustomBackWdownPath,HKCU,Software\WanderSick\AeroZoom,CustomBackWdownPath
+RegRead,CustomForwardLeftPath,HKCU,Software\WanderSick\AeroZoom,CustomForwardLeftPath
+RegRead,CustomForwardRightPath,HKCU,Software\WanderSick\AeroZoom,CustomForwardRightPath
+RegRead,CustomForwardWupPath,HKCU,Software\WanderSick\AeroZoom,CustomForwardWupPath
+RegRead,CustomForwardWdownPath,HKCU,Software\WanderSick\AeroZoom,CustomForwardWdownPath
+RegRead,BackLeftAction,HKCU,Software\WanderSick\AeroZoom,BackLeftAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	BackLeftAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, BackLeftAction, 37
+}
+RegRead,BackRightAction,HKCU,Software\WanderSick\AeroZoom,BackRightAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	BackRightAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, BackRightAction, 37
+}
+
+
+RegRead,BackWupAction,HKCU,Software\WanderSick\AeroZoom,BackWupAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	BackWupAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, BackWupAction, 37
+}
+RegRead,BackWdownAction,HKCU,Software\WanderSick\AeroZoom,BackWdownAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	BackWdownAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, BackWdownAction, 37
+}
+
+
+RegRead,ForwardLeftAction,HKCU,Software\WanderSick\AeroZoom,ForwardLeftAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	ForwardLeftAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ForwardLeftAction, 37
+}
+RegRead,ForwardRightAction,HKCU,Software\WanderSick\AeroZoom,ForwardRightAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	ForwardRightAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ForwardRightAction, 37
+}
+
+RegRead,ForwardWupAction,HKCU,Software\WanderSick\AeroZoom,ForwardWupAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	ForwardWupAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ForwardWupAction, 37
+}
+RegRead,ForwardWdownAction,HKCU,Software\WanderSick\AeroZoom,ForwardWdownAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	ForwardWdownAction=37
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ForwardWdownAction, 37
+}
+
+; for Customize Keys
+RegRead,template,HKCU,Software\WanderSick\AeroZoom,template
+RegRead,CustomCtrlLeftPath,HKCU,Software\WanderSick\AeroZoom,CustomCtrlLeftPath
+if template 
+{
+	CustomCtrlLeftPath="C:\Users\Public\Music\Sample Music\Sleep Away.mp3"
+}
+RegRead,CustomCtrlRightPath,HKCU,Software\WanderSick\AeroZoom,CustomCtrlRightPath
+if template 
+{
+	CustomCtrlRightPath=www.google.hk
+}
+RegRead,CustomCtrlWupPath,HKCU,Software\WanderSick\AeroZoom,CustomCtrlWupPath
+if template 
+{
+	CustomCtrlWupPath=::{645ff040-5081-101b-9f08-00aa002f954e}
+}
+RegRead,CustomCtrlWdownPath,HKCU,Software\WanderSick\AeroZoom,CustomCtrlWdownPath
+if template 
+{
+	CustomCtrlWdownPath=cmd /c start "" /min http://english-quotes.blogspot.com
+}
+RegRead,CustomAltLeftPath,HKCU,Software\WanderSick\AeroZoom,CustomAltLeftPath
+if errorlevel 
+{
+	CustomAltLeftPath=! Select 'Custom (define)' !
+}
+if template
+{
+	CustomAltLeftPath=cmd
+}
+RegRead,CustomAltRightPath,HKCU,Software\WanderSick\AeroZoom,CustomAltRightPath
+if template 
+{
+	CustomAltRightPath=*RunAs cmd
+}
+RegRead,CustomAltWupPath,HKCU,Software\WanderSick\AeroZoom,CustomAltWupPath
+if template 
+{
+	CustomAltWupPath=mspaint
+}
+RegRead,CustomAltWdownPath,HKCU,Software\WanderSick\AeroZoom,CustomAltWdownPath
+if template 
+{
+	CustomAltWdownPath=wmplayer
+}
+RegRead,CustomShiftLeftPath,HKCU,Software\WanderSick\AeroZoom,CustomShiftLeftPath
+if template 
+{
+	CustomShiftLeftPath=mailto:wandersick@gmail.com
+}
+RegRead,CustomShiftRightPath,HKCU,Software\WanderSick\AeroZoom,CustomShiftRightPath
+if template 
+{
+	CustomShiftRightPath=cmd /c echo `%date`% `%time`%&pause
+}
+RegRead,CustomShiftWupPath,HKCU,Software\WanderSick\AeroZoom,CustomShiftWupPath
+if template 
+{
+	CustomShiftWupPath=http://wandersick.blogspot.com
+}
+RegRead,CustomShiftWdownPath,HKCU,Software\WanderSick\AeroZoom,CustomShiftWdownPath
+if template 
+{
+	CustomShiftWdownPath=properties c:
+}
+RegRead,CustomWinLeftPath,HKCU,Software\WanderSick\AeroZoom,CustomWinLeftPath
+if template 
+{
+	CustomWinLeftPath=explore c:\
+}
+RegRead,CustomWinRightPath,HKCU,Software\WanderSick\AeroZoom,CustomWinRightPath
+if template 
+{
+	CustomWinRightPath=find c:
+}
+RegRead,CustomWinWupPath,HKCU,Software\WanderSick\AeroZoom,CustomWinWupPath
+if template 
+{
+	CustomWinWupPath=edit "%A_WorkingDir%\Readme.txt"
+}
+RegRead,CustomWinWdownPath,HKCU,Software\WanderSick\AeroZoom,CustomWinWdownPath
+if template 
+{
+	CustomWinWdownPath=[REMOVE] print "%A_WorkingDir%\Readme.txt"
+}
+RegRead,CtrlLeftAction,HKCU,Software\WanderSick\AeroZoom,CtrlLeftAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	CtrlLeftAction=41 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CtrlLeftAction, 41
+}
+RegRead,CtrlRightAction,HKCU,Software\WanderSick\AeroZoom,CtrlRightAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	CtrlRightAction=41 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CtrlRightAction, 41
+}
+RegRead,CtrlWupAction,HKCU,Software\WanderSick\AeroZoom,CtrlWupAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	CtrlWupAction=39 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CtrlWupAction, 39
+}
+RegRead,CtrlWdownAction,HKCU,Software\WanderSick\AeroZoom,CtrlWdownAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	CtrlWdownAction=39 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CtrlWdownAction, 39
+}
+RegRead,AltLeftAction,HKCU,Software\WanderSick\AeroZoom,AltLeftAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	AltLeftAction=41 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, AltLeftAction, 41
+}
+RegRead,AltRightAction,HKCU,Software\WanderSick\AeroZoom,AltRightAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	AltRightAction=41 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, AltRightAction, 41
+}
+RegRead,AltWupAction,HKCU,Software\WanderSick\AeroZoom,AltWupAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	AltWupAction=39 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, AltWupAction, 39
+}
+RegRead,AltWdownAction,HKCU,Software\WanderSick\AeroZoom,AltWdownAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	AltWdownAction=39 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, AltWdownAction, 39
+}
+RegRead,ShiftLeftAction,HKCU,Software\WanderSick\AeroZoom,ShiftLeftAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	ShiftLeftAction=41 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ShiftLeftAction, 41
+}
+RegRead,ShiftRightAction,HKCU,Software\WanderSick\AeroZoom,ShiftRightAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	ShiftRightAction=41 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ShiftRightAction, 41
+}
+RegRead,ShiftWupAction,HKCU,Software\WanderSick\AeroZoom,ShiftWupAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	ShiftWupAction=39 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ShiftWupAction, 39
+}
+RegRead,ShiftWdownAction,HKCU,Software\WanderSick\AeroZoom,ShiftWdownAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	ShiftWdownAction=39 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ShiftWdownAction, 39
+}
+RegRead,WinLeftAction,HKCU,Software\WanderSick\AeroZoom,WinLeftAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	WinLeftAction=41 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WinLeftAction, 41
+}
+RegRead,WinRightAction,HKCU,Software\WanderSick\AeroZoom,WinRightAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	WinRightAction=41 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WinRightAction, 41
+}
+RegRead,WinWupAction,HKCU,Software\WanderSick\AeroZoom,WinWupAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	WinWupAction=39 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WinWupAction, 39
+}
+RegRead,WinWdownAction,HKCU,Software\WanderSick\AeroZoom,WinWdownAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	WinWdownAction=39 ; none by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WinWdownAction, 39
+}
+
+
+; for Customize MButton
+RegRead,CustomMiddlePath,HKCU,Software\WanderSick\AeroZoom,CustomMiddlePath
+if errorlevel 
+{
+	CustomMiddlePath=Run a command, program or web
+}
+RegRead,MiddleButtonAction,HKCU,Software\WanderSick\AeroZoom,MiddleButtonAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	MiddleButtonAction=1 ; snip by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MiddleButtonAction, 1
+}
+
+; Dynamic switching (simply choose None: Dynamic. No need for this)
+RegRead,DisableZoomItMiddle,HKCU,Software\WanderSick\AeroZoom,DisableZoomItMiddle
+if errorlevel {
+	DisableZoomItMiddle=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, DisableZoomItMiddle, 1
+}
 
 ; Retrieve hold middle setting
 	
@@ -77,11 +679,78 @@ if errorlevel ; if the key is never created, i.e. first-run
 ; RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,Invert
 ; If last set, reflect color inversion immediately
 
-; Whether to use Zoom Increment slider or Magnification slider
-RegRead,SwitchZoomInc,HKCU,Software\WanderSick\AeroZoom,SwitchZoomInc
+; Whether to use -1- Zoom Increment slider -2- or Magnification slider -3- or Snipping slider -4- or older OS slider
+RegRead,SwitchSlider,HKCU,Software\WanderSick\AeroZoom,SwitchSlider
 if errorlevel
-	SwitchZoomInc=1
-	
+{
+	If (OSver>=6.1) {
+		If SnippingToolExists
+		{
+			SwitchSlider=3
+		}
+		Else
+		{
+			If (!A_IsAdmin AND EnableLUA) { ; zoom inc slider involves killing mag process which is impossible under limited acc with uac
+				SwitchSlider=2
+			} else {
+				SwitchSlider=1
+			}
+		}
+	} else if (OSver=6) {
+		If SnippingToolExists
+			SwitchSlider=3
+	} else {
+		SwitchSlider=4
+	}
+}
+
+; Ensure SwitchSlider settings work across Windows versions
+
+If (OSver>=6.1) {
+	If (SwitchSlider=4) { ; 4 is reserved for vista home basic/starter and xp
+		If SnippingToolExists
+		{
+			SwitchSlider=3
+		}
+		Else
+		{
+			If (!A_IsAdmin AND EnableLUA) { ; zoom inc slider involves killing mag process which is impossible under win 7 limited acc with uac
+				SwitchSlider=2
+			} else {
+				SwitchSlider=1
+			}
+		}
+	} else if (SwitchSlider=3) {
+		If !SnippingToolExists
+		{
+			If (!A_IsAdmin AND EnableLUA) { ; zoom inc slider involves killing mag process which is impossible under win 7 limited acc with uac
+				SwitchSlider=2
+			} else {
+				SwitchSlider=1
+			}
+		}
+	} else if (SwitchSlider=1) {
+		If (!A_IsAdmin AND EnableLUA) { ; zoom inc slider involves killing mag process which is impossible under win 7 limited acc with uac
+			SwitchSlider=2
+		}
+	}
+} else if (OSver=6) {
+	If (EditionID="Starter" OR EditionID="HomeBasic")
+	{
+		If (SwitchSlider<>4) { ; 4 is the only slider that can be used for vista home basic. (4 is an unknown tool as of this moment)
+			SwitchSlider=4
+		}
+	} else {
+		If (SwitchSlider<>3) { ; snipping tool (3) is available
+			SwitchSlider=3
+		}
+	}
+} else if (OSver<6) {
+	If (SwitchSlider<>4) { ; 4 is the only slider that can be used for xp
+		SwitchSlider=4
+	}
+}
+
 ; Whether to use Mini mode or Normal mode
 RegRead,SwitchMiniMode,HKCU,Software\WanderSick\AeroZoom,SwitchMiniMode
 
@@ -121,6 +790,17 @@ if errorlevel ; if the key is never created, i.e. first-run
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomPad, 1
 }
 
+RegRead,EnableAutoBackup,HKCU,Software\WanderSick\AeroZoom,EnableAutoBackup
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	EnableAutoBackup=1 ; on by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EnableAutoBackup, 1
+}
+If not A_IsAdmin ; requires regedit.exe which requires admin rights.
+	EnableAutoBackup=0
+
+RegRead,NirCmd,HKCU,Software\WanderSick\AeroZoom,NirCmd
+
 
 ; Retrieve Sysinternals ZoomIt preference from Registry
 ; REG_SZ. 1 = enhance with ZoomIt. Otherwise, use Win 7 tools
@@ -131,7 +811,7 @@ if (zoomit=1) {
 	If (errorlevel=0) {
 		IfExist, %A_WorkingDir%\Data\ZoomIt.exe
 		{
-			Run, %A_WorkingDir%\Data\ZoomIt.exe
+			Run, "%A_WorkingDir%\Data\ZoomIt.exe"
 		}
 	}
 }
@@ -144,43 +824,65 @@ RegRead,chkModRaw,HKCU,Software\WanderSick\AeroZoom,Modifier
 if (chkModRaw=0x1) {
 	chkCtrl=Checked
 	chkMod=1
+	;chkModRaw=1
 	modDisp=Ctrl key
+	modDispAlt=Ctrl
 } else if (chkModRaw=0x2) {
 	chkAlt=Checked
 	chkMod=2
+	;chkModRaw=2
 	modDisp=Alt key
+	modDispAlt=Alt
 } else if (chkModRaw=0x3) {
 	chkShift=Checked
 	chkMod=3
+	;chkModRaw=3
 	modDisp=Shift key
+	modDispAlt=Shift
 } else if (chkModRaw=0x4) {
 	chkWin=Checked
 	chkMod=4
+	;chkModRaw=4
 	modDisp=Windows key
+	modDispAlt=Win
 } else if (chkModRaw=0x5) {
 	chkMouseL=Checked
 	chkMod=5
-	modDisp=Left mouse button
+	;chkModRaw=5
+	modDisp=Left mouse click
+	modDispAlt=Left
 } else if (chkModRaw=0x6) {
 	chkMouseR=Checked
 	chkMod=6
-	modDisp=Right mouse button
+	;chkModRaw=6
+	modDisp=Right mouse click
+	modDispAlt=Right
 } else if (chkModRaw=0x7) {
 	chkMouseM=Checked
 	chkMod=7
-	modDisp=Middle mouse button
+	;chkModRaw=7
+	modDisp=Middle mouse click
+	modDispAlt=Middle
 } else if (chkModRaw=0x8) {
 	chkMouseX1=Checked
 	chkMod=8
+	;chkModRaw=8
 	modDisp=Forward (Special)
+	modDispAlt=Fwd
+	modDispReverse=Back
 } else if (chkModRaw=0x9) {
 	chkMouseX2=Checked
 	chkMod=9
+	;chkModRaw=9
 	modDisp=Back (Special)
+	modDispAlt=Back
+	modDispReverse=Fwd
 } else {
 	chkMouseL=Checked
 	chkMod=5
-	modDisp=Left mouse button
+	;chkModRaw=5
+	modDisp=Left mouse click
+	modDispAlt=Left
 }
 ; ----------------------------------------------------- Radio Button 1 of 3 END
 
@@ -210,18 +912,19 @@ if errorlevel
 }
 RegRead,stillZoomDelay,HKCU,Software\WanderSick\AeroZoom,stillZoomDelay
 if errorlevel
-	stillZoomDelay=650
-RegRead,stillZoomDelayPrev,HKCU,Software\WanderSick\AeroZoom,stillZoomDelay
-if errorlevel
-	stillZoomDelayPrev=650 ; Prev is for Advanced Options
+	stillZoomDelay=750
+;Unnecessary
+;RegRead,stillZoomDelayPrev,HKCU,Software\WanderSick\AeroZoom,stillZoomDelay
+;if errorlevel
+;	stillZoomDelayPrev=750 ; Prev is for Advanced Options
 	
 
 RegRead,delayButton,HKCU,Software\WanderSick\AeroZoom,delayButton
 if errorlevel
 	delayButton=100
-RegRead,delayButtonPrev,HKCU,Software\WanderSick\AeroZoom,delayButton
-if errorlevel
-	delayButtonPrev=100 ; Prev is for Advanced Options
+;RegRead,delayButtonPrev,HKCU,Software\WanderSick\AeroZoom,delayButton
+;if errorlevel
+;	delayButtonPrev=100 ; Prev is for Advanced Options
 	
 RegRead,customEdCheckbox,HKCU,Software\WanderSick\AeroZoom,customEdCheckbox
 RegRead,customEdPath,HKCU,Software\WanderSick\AeroZoom,customEdPath
@@ -237,25 +940,46 @@ RegRead,customCalcPath,HKCU,Software\WanderSick\AeroZoom,customCalcPath
 ; advantages:  Magnifier does not show anymore on first zoom, and no more Ease
 ;              Of Access Center pop-ups thanks to this design.
 
-Process, Exist, magnify.exe
-if not errorlevel
+RegRead,RunMagOnStart,HKCU,Software\WanderSick\AeroZoom,RunMagOnStart
+If errorlevel ; if first-run
 {
-	Run,"%windir%\system32\magnify.exe",,Min ; Min does not work for magnify.exe, hence the below
-	if not (hideOrMin=3) ; if hideOrMin=3, dont hide or minimize
-	{	
-			WinWait, ahk_class MagUIClass,,5 ; Loop to hide Windows Magnifier
-			if not ErrorLevel
-			{
-				if (hideOrMin=1) {
-					WinMinimize, ahk_class MagUIClass ; minimize before hiding to remove the floating magnifier glass
-					WinHide, ahk_class MagUIClass ; Winhide seems to cause weird issues, experimental only
-				} else if (hideOrMin=2) {					
-					WinMinimize, ahk_class MagUIClass
-				}
-			}
-		
+	if (OSver<6.1 OR EditionID="Starter" OR EditionID="HomeBasic") { ; Old magnifier only supports docked view which is undesirable to launch with it at start / Home Basic or Starter of Win 7 only can use docked view due to lack of Aero
+		RunMagOnStart=0
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RunMagOnStart, %RunMagOnStart%
+	} else {
+		RunMagOnStart=1
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RunMagOnStart, %RunMagOnStart%
 	}
 }
+
+; Ensure setting imported works across Windows versions
+if (OSver<6.1 OR EditionID="Starter" OR EditionID="HomeBasic") {
+	RunMagOnStart=0
+}
+
+if (RunMagOnStart=1) {
+	Process, Exist, magnify.exe
+	if not errorlevel
+	{
+		Run,"%windir%\system32\magnify.exe",,Min ; Min does not work for magnify.exe, hence the below
+		If (OSver>6) {
+			if not (hideOrMin=3) ; if hideOrMin=3, dont hide or minimize
+			{	
+				WinWait, ahk_class MagUIClass,,5 ; Loop to hide Windows Magnifier
+				if not ErrorLevel
+				{
+					if (hideOrMin=1) {
+						WinMinimize, ahk_class MagUIClass ; minimize before hiding to remove the floating magnifier glass
+						WinHide, ahk_class MagUIClass ; Winhide seems to cause weird issues, experimental only
+					} else if (hideOrMin=2) {					
+						WinMinimize, ahk_class MagUIClass
+					}
+				}
+			}
+		}
+	}
+}
+
 SetBatchLines, 10ms
 
 RegRead,reload,HKCU,Software\WanderSick\AeroZoom,reload
@@ -270,8 +994,8 @@ if not errorlevel
 RegRead,Welcome,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,Welcome
 if not Welcome
 {
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Welcome, 1
-	Msgbox, 262148, AeroZoom %verAZ% Welcome, Welcome to the new AeroZoom!`n`nThere're quite a few improvements in this release. For example:`n - New mouse enhancements for Magnifier/Snipping Tool/ZoomIt (opt)`n - Mac OS X zoom, single-finger zoom, sliders, holding Middle button as trigger`n - Zoom one-handed in PowerPoint live without misclicking on slides.`n - Quickly preview full screen and move to other areas without zoom-out.`n - Mouse drag to capture regions of screen for annotation.`n`nTo learn all about the features, visit 'AeroZoom on the Web' via the help menu.`n`nWould you like to learn about AeroZoom and receive tips on start?
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Welcome, 1 ; do not set welcome=1 as the 'zoomit EULA message' check for first-run with this var not defined
+	Msgbox, 262148, AeroZoom %verAZ% Welcome, Welcome to AeroZoom!`n`nNew in this release:`n`n - AeroSnip captures regions/PrintScrn to disk/clipboard by hotkey`n - Elastic Zoom quickly zooms in and out with one press`n - ZoomIt Panel powers up and simplifies Sysinternals ZoomIt`n - Do anything with 30+ custom hotkeys and 30+ built-in functions`n - Support for Win 7 standard user accounts, Vista and XP patially`n`n[Other features] Config import/export (with auto backup), misc tools, keyboard-modifier wheel-zoom, one-click zoom (middle button), zoom-speed slider, misclick preventer, full screen preview.`n`nTo learn all about the features, visit 'AeroZoom on the Web' via ? menu.`n`nWould you like help on getting started and receive tips on start?
 	IfMsgBox, No
 	{
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, TipDisabled, 1 ; disabled bit is used so when enabled will continue where users left off
@@ -317,6 +1041,8 @@ if not TipDisabled
 
 skipTips:
 
+RegRead,GuideDisabled,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,GuideDisabled
+
 ; --------------- Hotkey monitoring starts here
 
 ; if lastPosY and lastPosX are not 0 or undefined, use it as the last position
@@ -339,23 +1065,234 @@ IfWinActive, ahk_class ZoomitClass
 	Process, Close, zoomit64.exe
 	IfExist, %A_WorkingDir%\Data\ZoomIt.exe
 		Sleep, 250
-		Run, %A_WorkingDir%\Data\ZoomIt.exe
+		Run, "%A_WorkingDir%\Data\ZoomIt.exe"
 	return
 }
 return
 
-; Update panel's magnification sldier while using keyboard to zoom
+;; elastic zoom
 
-~#NumpadAdd::
-~#NumpadSub::
-~#-::
+^CapsLock::
+if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) { ; elastic zoom with zoomit live zoom
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	IfWinExist, ahk_class MagnifierClass ; ZoomIt Live Zoom
+	{
+		sendinput ^{Up} ; zoom deeper if already in live zoom
+	} else {
+		sendinput ^4
+	}
+		KeyWait Ctrl
+		sendinput ^4
+} else if (OSver<6 OR zoomitStill) { ; elastic zoom with zoomit still zoom
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	IfWinExist, ahk_class ZoomitClass ; ZoomIt Still Zoom
+	{
+		sendinput {esc} ; exit if already in zoom
+	} else {
+		;process, close, zoompad.exe ; although this shouldnt be needed here
+		process, close, osd.exe ; prevent osd from showing in 'picture'
+		WinHide, AeroZoom Panel
+		sendinput ^1
+		WinWait, ahk_class ZoomitClass,,5
+		gosub, ZoomItColor
+		KeyWait Ctrl
+		sendinput {esc}
+		WinShow, AeroZoom Panel
+	}
+} else if (OSver>6) {
+	SendInput #{NumpadAdd} ; elastic zoom with win 7 magnifier
+	KeyWait Ctrl
+	SendInput #{NumpadSub}
+}
+return
+
++CapsLock::
+; elastic zoom with zoomit still zoom
+Process, Exist, zoomit.exe
+If not errorlevel
+{
+	Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+	return
+}
+IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+	goto, zoomit
+IfWinExist, ahk_class ZoomitClass ; ZoomIt Still Zoom
+{
+	sendinput {esc} ; exit if already in zoom
+} else {
+	;process, close, zoompad.exe ; although this shouldnt be needed here
+	process, close, osd.exe ; prevent osd from showing in 'picture'
+	WinHide, AeroZoom Panel
+	sendinput ^1
+	WinWait, ahk_class ZoomitClass,,5
+	gosub, ZoomItColor
+	KeyWait Shift
+	sendinput {esc}
+	WinShow, AeroZoom Panel
+}
+return
+
+; Make color slider function work for ZoomIt hotkeys
+
+~^1::
+~^2::
+~^3::
+;process, close, zoompad.exe ; although this shouldnt be needed here <--- must not use process close here or it wont work at all
+;process, close, osd.exe ; prevent osd from showing in 'picture' <---
+WinHide, AeroZoom Panel
+WinWait, ahk_class ZoomitClass,,5
+gosub, ZoomItColor
+WinWaitClose, ahk_class ZoomitClass
+WinShow, AeroZoom Panel
+return
+
+~^4::
+goto, WorkaroundFullScrLiveZoom
+return
+
+; Update panel's magnification slider while using keyboard to zoom
+
 ; ~#+:: <<-- since there is no way to specify this in AHK
+~#NumpadAdd::
 ~LWin & ~+::
 ~RWin & ~+::
-If not SwitchZoomInc
+;process, close, zoompad.exe ; although this shouldnt be needed here
+process, close, osd.exe ; prevent osd from showing
+if (OSver=6) { ; use zoomit live zoom for vista
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	; Gosub, ZoomPad
+	IfWinExist, ahk_class MagnifierClass ; ZoomIt Live Zoom
+	{
+		sendinput ^{Up}
+	} else {
+		sendinput ^4
+		gosub, WorkaroundFullScrLiveZoom
+	}
+} else if (OSver<6) { ; use zoomit still zoom for xp
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	IfWinExist, ahk_class ZoomitClass
+	{
+		sendinput {Up}
+	} Else {
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		WinHide, AeroZoom Panel
+		sendinput ^1
+		WinWait, ahk_class ZoomitClass,,5
+		WinWaitClose, ahk_class ZoomitClass
+		WinShow, AeroZoom Panel
+	}
+} else {
+	If (SwitchSlider=2) ; update slider on gui (win7)
+	{
+		; originally the title was 'AeroZoom' and this was called: IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+		; but it doesn't work at times (e.g. under standard user account)
+		; then I found out I could use
+		; IfWinExist, ahk_class AutoHotkeyGUI
+		;     IfWinExist, AeroZoom
+		; as a workaround
+		; but it doesnt work for functions like winset (impossible to nest 2 winset's)
+		; so in the end I simply renamed the title to 'AeroZoom Panel'
+		IfWinExist, AeroZoom Panel
+			Gosub, ReadValueUpdatePanel ; this will update the slider on the panel in real-time
+	}
+}
+return
+
+~#NumpadSub::
+~#-::
+if (OSver=6) { ; use zoomit live zoom for vista
+	; Gosub, ZoomPad
+	IfWinExist, ahk_class MagnifierClass ; ZoomIt Live Zoom
+	{
+		sendinput ^{Down}
+	}
+} else if (OSver<6) { ; use zoomit still zoom for xp
+	IfWinExist, ahk_class ZoomitClass
+		sendinput {Down}
+} else {
+	If (SwitchSlider=2) ; update slider on gui (win7)
+	{
+		IfWinExist, AeroZoom Panel
+			Gosub, ReadValueUpdatePanel ; this will update the slider on the panel in real-time
+	}
+}
+return
+
+; Enhance print screen when NirCmd (Save Captures to Disk) is on
+~PrintScreen::
+If (!PrintScreenEnhanceCheckbox)
+	return
+Sleep, %delayButton%
+If NirCmd
 {
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-	Gosub, ReadValueUpdatePanel ; this will update the slider on the panel in real-time
+	IfExist, %A_WorkingDir%\Data\NirCmd.exe ; NirCmd is checked but could be missing
+		Run, "%A_WorkingDir%\Data\NirCmd.exe" clipboard saveimage "%SnipSaveDir%\Snip%A_YYYY%%A_MM%%A_DD%%A_Hour%%A_Min%%A_Sec%.%SnipSaveFormat%", ,min
+	Else
+		goto, NirCmdDownloadAlt
+}
+If (SnipRunCommandCheckbox AND SnipRunCommand)
+{
+	Process, WaitClose, NirCmd.exe, 5 ; ensure capture is complete before running a command
+	Run, %SnipRunCommand%,,,SnipCommandPID
+	If SnipPasteCheckbox
+	{
+		WinWait, ahk_pid %SnipCommandPID%,,10
+		WinActivate
+		sendinput ^v
+	}
+}
+return
+
+~!PrintScreen::
+If (!PrintScreenEnhanceCheckbox OR !NirCmd)
+	return
+Sleep, %delayButton%
+If NirCmd
+{
+	IfExist, %A_WorkingDir%\Data\NirCmd.exe ; NirCmd is checked but could be missing
+		Run, "%A_WorkingDir%\Data\NirCmd.exe" clipboard saveimage "%SnipSaveDir%\Snip%A_YYYY%%A_MM%%A_DD%%A_Hour%%A_Min%%A_Sec%.%SnipSaveFormat%", ,min
+	Else
+		goto, NirCmdDownloadAlt
+}
+If (SnipRunCommandCheckbox AND SnipRunCommand)
+{
+	Process, WaitClose, NirCmd.exe, 5 ; ensure capture is complete before running a command
+	Run, %SnipRunCommand%,,,SnipCommandPID
+	If SnipPasteCheckbox
+	{
+		WinWait, ahk_pid %SnipCommandPID%,,10
+		WinActivate
+		sendinput ^v
+	}
 }
 return
 
@@ -363,92 +1300,181 @@ return
 
 ; ZoomIncrement
 #!F1::
-zoomInc=1
-; update/refresh GUI with new slider setting
-GuiControl,, ZoomInc, 1
-goto, SliderX
+if (OSver>6) {
+	zoomInc=1
+	; update/refresh GUI with new slider setting
+	GuiControl,, ZoomInc, 1
+	goto, SliderX
+}
+return
 
 #!F2::
-zoomInc=2
-GuiControl,, ZoomInc, 2
-goto, SliderX
+if (OSver>6) {
+	zoomInc=2
+	GuiControl,, ZoomInc, 2
+	goto, SliderX
+}
+return
 
 #!F3::
-zoomInc=3
-GuiControl,, ZoomInc, 3
-goto, SliderX
+if (OSver>6) {
+	zoomInc=3
+	GuiControl,, ZoomInc, 3
+	goto, SliderX
+}
+return
 
 #!F4::
-zoomInc=4
-GuiControl,, ZoomInc, 4
-goto, SliderX
+if (OSver>6) {
+	zoomInc=4
+	GuiControl,, ZoomInc, 4
+	goto, SliderX
+}
+return
 
 #!F5::
-zoomInc=5
-GuiControl,, ZoomInc, 5
-goto, SliderX
+if (OSver>6) {
+	zoomInc=5
+	GuiControl,, ZoomInc, 5
+	goto, SliderX
+}
+return
 
 #!F6::
-zoomInc=6
-GuiControl,, ZoomInc, 6
-goto, SliderX
+if (OSver>6) {
+	zoomInc=6
+	GuiControl,, ZoomInc, 6
+	goto, SliderX
+}
+return
 
 ; Color
 #!I::
-goto, Color
+if (OSver>6) {
+	goto, ColorHK
+}
+return
 
 ; Mouse
 #!M::
-goto, Mouse
+if (OSver>6) {
+	goto, MouseHK
+}
+return
 
 ; Keyboard
 #!K::
-goto, Keyboard
+if (OSver>6) {
+	goto, KeyboardHK
+}
+return
 
 ; Text
 #!T::
-goto, Text
+if (OSver>6) {
+	goto, TextHK
+}
+return
 
 ; the following updates the viewsmenu on calling these hotkeys before executing them (~)
 ; View Full Screen
 ~^!F::
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-{
-	Menu, ViewsMenu, Check, &Full Screen`tCtrl+Alt+F
-	Menu, ViewsMenu, Uncheck, &Lens`tCtrl+Alt+L
-	Menu, ViewsMenu, Uncheck, &Docked`tCtrl+Alt+D
+If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+	IfWinExist, AeroZoom Panel
+	{
+		Menu, ViewsMenu, Check, &Full Screen`tCtrl+Alt+F
+		Menu, ViewsMenu, Uncheck, &Lens`tCtrl+Alt+L
+		Menu, ViewsMenu, Uncheck, &Docked`tCtrl+Alt+D
+	}
 }
 return
 
 ; View Lens
 ~^!L::
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-{
-	Menu, ViewsMenu, Uncheck, &Full Screen`tCtrl+Alt+F
-	Menu, ViewsMenu, Check, &Lens`tCtrl+Alt+L
-	Menu, ViewsMenu, Uncheck, &Docked`tCtrl+Alt+D
+If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+	IfWinExist, AeroZoom Panel
+	{
+		Menu, ViewsMenu, Uncheck, &Full Screen`tCtrl+Alt+F
+		Menu, ViewsMenu, Check, &Lens`tCtrl+Alt+L
+		Menu, ViewsMenu, Uncheck, &Docked`tCtrl+Alt+D
+	}
 }
 return
 
 ; View Docked
 ~^!D::
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-{
-	Menu, ViewsMenu, Uncheck, &Full Screen`tCtrl+Alt+F
-	Menu, ViewsMenu, Uncheck, &Lens`tCtrl+Alt+L
-	Menu, ViewsMenu, Check, &Docked`tCtrl+Alt+D
+If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+	IfWinExist, AeroZoom Panel
+	{
+		Menu, ViewsMenu, Uncheck, &Full Screen`tCtrl+Alt+F
+		Menu, ViewsMenu, Uncheck, &Lens`tCtrl+Alt+L
+		Menu, ViewsMenu, Check, &Docked`tCtrl+Alt+D
+	}
 }
 return
 
 ; ----------------------------------------------------- Left Button Assignment START
 
 +WheelUp::
-if not (paused=1) {
-	Gosub, ZoomPad
+if paused
+	return
+IfWinExist, ahk_class MagnifierClass  ; if zoomit is working, enhance it instead
+{
+	sendinput ^{Up}
+	return
+}
+IfWinExist, ahk_class ZoomitClass
+{
+	sendinput {Up}
+	return
+}
+if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	; Gosub, ZoomPad ; causes huge delay in W7HB. also I found out later there is no need for Zoompad while using Live Zoom or Still Zoom of ZoomIt
+	IfWinExist, ahk_class MagnifierClass  ; ZoomIt Live Zoom for vista and win7 home basic/starter
+	{
+		sendinput ^{Up}
+	} else {
+		sendinput ^4
+		gosub, WorkaroundFullScrLiveZoom
+	}
+} else if (OSver<6 OR zoomitStill) {  ; still zoom for xp
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	IfWinExist, ahk_class ZoomitClass
+	{
+		sendinput {Up}
+	} Else {
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+		Process, Close, ZoomPad.exe ; prevent zoompad frame from appearing in zoomit
+		process, close, osd.exe ; prevent osd from showing in 'picture'
+		sendinput ^1 ; here, do not send aerozoom panel to bottom and reactivate it later like others
+	}
+} else {
 	; send {LWin down}{NumpadAdd}{LWin up}
 	; the following is used instead instead of 'send' for better performance
+	Gosub, ZoomPad
 	sendinput #{NumpadAdd}
-	IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+	IfWinExist, AeroZoom Panel
 	{
 		Gosub, ReadValueUpdatePanel
 	}
@@ -456,13 +1482,41 @@ if not (paused=1) {
 return
 
 +WheelDown::
-if not (paused=1) {
+if paused
+	return
+IfWinExist, ahk_class MagnifierClass ; if zoomit is working, enhance it instead
+{
+	If (OSver>=6.1 AND (EditionID="Starter" OR EditionID="HomeBasic")) {
+		sendinput ^4 ; {Down} causes cursor to disappear in those OSes, so just quit. Live Zoom magnificartion level cant be tuned there anyway.
+		return
+	} else {
+		sendinput ^{Down}
+		return
+	}
+}
+IfWinExist, ahk_class ZoomitClass
+{
+	sendinput {Down}
+	return
+}
+if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
+	Gosub, ZoomPad
+	IfWinExist, ahk_class MagnifierClass ; ZoomIt Live Zoom for vista and win7 home basic/starter
+	{
+		sendinput ^{Down}
+	}
+} else if (OSver<6 OR zoomitStill) { ; still zoom for xp
+	IfWinExist, ahk_class ZoomitClass
+	{
+		sendinput {Down}
+	}
+} else {
 	; only enable zoompad when modifier is a mouse button
 	if (chkMod>4)
 	{	
 		if zoomPad ; if zoompad is NOT disabled
 		{
-			IfWinNotActive, ahk_class AutoHotkeyGUI, AeroZoom ;if current win is not the panel (zooming over the panel does not require zoompad)
+			IfWinNotActive, AeroZoom Panel ;if current win is not the panel (zooming over the panel does not require zoompad)
 			{
 				RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification ; when zooming out even if already unzoomed, do not activate zoompad
 				if not (MagnificationRaw=0x64)
@@ -478,7 +1532,7 @@ if not (paused=1) {
 		}
 	}
 	sendinput #{NumpadSub}
-	IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+	IfWinExist, AeroZoom Panel
 	{
 		Gosub, ReadValueUpdatePanel
 	}
@@ -487,24 +1541,44 @@ return
 
 ; Run,"%windir%\system32\reg.exe" add HKCU\Software\Microsoft\ScreenMagnifier /v Magnification /t REG_DWORD /d 0x64 /f,,Min
 
+; Help
+#!q::
+goto, Instruction
+return
+
 ; New snip
 
 #!s::
-Gosub, SnippingTool
+Goto, SnipScreen
+return
+
+#!w::
+Goto, SnipWin
+return
+
+#!r::
+Goto, SnipRect
+return
+
+#!f::
+Goto, SnipFree
 return
 
 ; Pause hotkeys
 
-#!o::
-; IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-; {
-;	Gui, Destroy
-; }
+#!h::
 goto, PauseScript
-; suspend was not used because panel cannot be activated by mouse
+
+; Suspend hotkeys
+#!+h::Suspend
+
+; Kill magnifier
+#+k::
+GoSub, CloseMagnifier
+return
 
 ; Reset magnifier
-#!r::
+#+r::
 ; dontHideMag = 1 ; dont hide magnifier window for keyboard shortcuts
 goto, default
 
@@ -512,6 +1586,11 @@ goto, default
 #!+r::
 CheckboxRestoreDefault=1
 goto, 3ButtonOK
+
+; Quit AeroZoom (this is a secret feature)
+#!+q::
+goto, ExitAZ
+
 
 ; Reset zoom
 #+-::
@@ -523,171 +1602,770 @@ goto, resetZoom
 goto, resetZoom
 
 +MButton::
-; dontHideMag = 0
-if not (paused=1) {
+if paused
+	return
+IfWinExist, ahk_class MagnifierClass ; if zoomit is working, enhance (stop) it instead
+{
+	Gosub, ZoomPad
+	sendinput ^4 ; Side-note: WinActivates unzooms Live Zoom too
+	return
+}
+IfWinExist, ahk_class ZoomitClass
+{
+	; Gosub, ZoomPad ; no need to use zoompad if under zoomit still zoom mode
+	sendinput ^1
+	return
+}
+if (OSver>=6.1) {
+	; dontHideMag = 0
 	Gosub, ZoomPad
 	goto, resetZoom
 }
+
 return
 
-; for Middle mode only:
+;; for Middle mode only:
 ;~MButton & RButton::
-;goto, resetZoom
+;if paused
+;	return
+;IfWinExist, ahk_class MagnifierClass ; if zoomit is working, enhance (stop) it instead
+;{
+;	sendinput ^4 ; Side-note: WinActivates unzooms Live Zoom too
+;	return
+;}
+;IfWinExist, ahk_class ZoomitClass
+;{
+;	sendinput ^1
+;	return
+;}
+;if (OSver>=6.1) {
+;	goto, resetZoom
+;}
+
+;return
 
 resetZoom:
-; check if a last magnifier window is available and record its status
-; so that after it restores it will remain hidden/minimized/normal
-
-; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
-; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
+IfWinExist, ahk_class MagnifierClass ; if zoomit is working, enhance (stop) it instead
+{
+	sendinput ^4
+	return
+}
+IfWinExist, ahk_class ZoomitClass
+{
+	sendinput {esc}
+	return
+}
+MagExists=
 Process, Exist, magnify.exe
 If errorlevel
 {
-	IfWinExist, ahk_class MagUIClass
-	{
-		WinGet, chkMin, MinMax, ahk_class MagUIClass
-		if (chkMin<0) { ; minimized
-			hideOrMinLast=2 ; minimized
-		} else {
-			hideOrMinLast=3 ; normal
-		}
-	} else {
-		hideOrMinLast=1 ; hidden
-	}
-} else {
-	hideOrMinLast= ; if not defined, use default settings
+	MagExists=1 ; only run magnifier later if exists
+	Gosub, MagWinBeforeRestore
 }
-Process, Close, magnify.exe
+GoSub, CloseMagnifier
 GuiControl,, Magnification, 1
-RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Magnification, 0x64
+If (OSver>=6.1)
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Magnification, 0x64
 sleep, %delayButton%
-Run,"%windir%\system32\magnify.exe",,Min
-
-	WinWait, ahk_class MagUIClass,,3 
-
-
-; Hide or minimize or normalize magnifier window
-If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-	if (hideOrMin=1) {
-		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-		WinHide, ahk_class MagUIClass
-	} else if (hideOrMin=2) {
-		WinMinimize, ahk_class MagUIClass
-	}
-} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-	WinMinimize, ahk_class MagUIClass
-	WinHide, ahk_class MagUIClass
-} else if (hideOrMinLast=2) {
-	WinMinimize, ahk_class MagUIClass
-}
+If MagExists
+	Run,"%windir%\system32\magnify.exe",,Min
+MagExists=
+Gosub, MagWinRestore
 return
 
 ~MButton:: ; in MButton ahk, this is changed to ~MButton & LButton::
 if not holdMiddle ; in MButton ahk, this is removed
 	return ; in MButton ahk, this is removed
-if not (paused=1) {
+if not paused {
 	MouseGetPos, oldX, oldY, ; in MButton ahk, this is removed
 	sleep %stillZoomDelay% ; in MButton ahk, this is removed
 	if GetKeyState("MButton") ; in MButton ahk, this is removed
 	{
 		Process, Exist, ZoomIt.exe
-		If errorlevel
+		If (errorlevel AND !DisableZoomItMiddle)
 		{
 			MouseGetPos, newX, newY,  ; in MButton ahk, this is removed
 			if Abs(newX - oldX) > 200 || Abs(newY - oldY) > 200  ; in MButton ahk, this is removed
 				return  ; in MButton ahk, this is removed
+			RegRead,MButtonMsg,HKCU,Software\WanderSick\AeroZoom,MButtonMsg
+			if errorlevel
+			{
+				Msgbox,262208,This message will be shown once only,You've just triggered the Middle button for the first time!`n`nHolding Middle button for a specified time ('0.7s' by default) launches a specified task ('New snip' by default). And if the screen is magnified, the same button will trigger a Full Screen Preview instead (for Windows 7 only).`n`nTo customize the action, go to 'Tool > Preferences > Custom Hotkeys > Hold Middle as Trigger'.`n`nTo enable/disable this function quickly in order to avoid mis-triggering, go to 'Tool > Hold Middle as Trigger'.
+				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MButtonMsg, 1
+			}
 			RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
 			if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
 				goto, ViewPreview
-			WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
+			if not zoomItGuidance
+				Gosub, ZoomItGuidance
+			;process, close, zoompad.exe ; although this shouldn't be required here
+			process, close, osd.exe ; prevent osd from showing in 'picture'
+			WinHide, AeroZoom Panel
 			sendinput ^1
 			WinWait, ahk_class ZoomitClass,,5
 			WinWaitClose, ahk_class ZoomitClass
-			If onTopBit
-				WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-			Else
-				WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+			WinShow, AeroZoom Panel
 		} else {
 			RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
 			if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
 				goto, ViewPreview
-			Gosub, SnippingTool
+			if (MiddleButtonAction=1) {
+				Gosub, SnippingTool
+			} else if (MiddleButtonAction=2) {
+				GoSub, KillMagnifierHK
+			} else if (MiddleButtonAction=3) {
+				Gosub, ColorHK
+			} else if (MiddleButtonAction=4) {
+				Gosub, MouseHK
+			} else if (MiddleButtonAction=5) {
+				Gosub, KeyboardHK
+			} else if (MiddleButtonAction=6) {
+				Gosub, TextHK
+			} else if (MiddleButtonAction=7) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewType
+			} else if (MiddleButtonAction=8) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewLiveZoom
+			} else if (MiddleButtonAction=9) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewStillZoom
+			} else if (MiddleButtonAction=10) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewDraw
+			} else if (MiddleButtonAction=11) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewBreakTimer
+			} else if (MiddleButtonAction=12) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewBlackBoard
+			} else if (MiddleButtonAction=13) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewWhiteBoard
+			} else if (MiddleButtonAction=14) {
+				goto, notepad
+			} else if (MiddleButtonAction=15) {
+				goto, wordpad
+			} else if (MiddleButtonAction=16) {
+				goto, mscalc
+			} else if (MiddleButtonAction=17) {
+				gosub, mspaint
+			} else if (MiddleButtonAction=18) {
+				goto, Google
+			} else if (MiddleButtonAction=19) {
+				goto, GoogleHighlight
+			} else if (MiddleButtonAction=20) {
+				goto, GoogleClipboard
+			} else if (MiddleButtonAction=21) {
+				goto, SpeakIt
+			} else if (MiddleButtonAction=22) {
+				goto, SpeakHighlight
+			} else if (MiddleButtonAction=23) {
+				goto, SpeakClipboard
+			} else if (MiddleButtonAction=24) {
+				goto, MonitorOff
+			} else if (MiddleButtonAction=25) {
+				goto, OpenTray
+			} else if (MiddleButtonAction=26) {
+				goto, AlwaysOnTop
+			} else if (MiddleButtonAction=27) {
+				goto, WebTimer
+			} else if (MiddleButtonAction=28) {
+				goto, TimerTab
+			} else if (MiddleButtonAction=29) {
+				goto, ZoomFaster
+			} else if (MiddleButtonAction=30) {
+				goto, ZoomSlower
+			} else if (MiddleButtonAction=31) {
+				hotkeyMod=MButton
+				goto, ElasticZoom
+			} else if (MiddleButtonAction=32) {				
+				hotkeyMod=MButton
+				goto, ElasticStillZoom
+			} else if (MiddleButtonAction=33) {				
+				goto, SnipFree
+			} else if (MiddleButtonAction=34) {				
+				goto, SnipRect
+			} else if (MiddleButtonAction=35) {				
+				goto, SnipWin
+			} else if (MiddleButtonAction=36) {				
+				goto, SnipScreen
+			} else if (MiddleButtonAction=37) {				
+				Gosub, ShowMagnifierHK ; show hide magnifier
+			} else if (MiddleButtonAction=38) {				
+				goto, showHidePanel
+			} else if (MiddleButtonAction=39) {
+				Run, %CustomMiddlePath% ; all of these SHOULD NOT BE double-quoted in order to allow users to run commands such as: cmd /k dir (if quotes, it would be "cmd /k /dir" which is wrong.
+			} else {
+				return ; this is unneeded
+			}
 		}
 	}
 }
 return
 
-;; the following only applies for X1 X2 modifiers and does not exist in other ahk
-;; except this one, rename others to XButton1 in X2.ahk and vice versa
-;~XButton2 & LButton:: ; this is the same as holding the Middle button except you dont need to hold it
-;if not (paused=1) {
-;	Process, Exist, ZoomIt.exe
-;	If errorlevel
-;	{
-;		RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
-;		if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
-;		{
-;			Gosub, ZoomPad
-;			goto, ViewPreview
-;		}
-;		WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
-;		sendinput ^1
-;		WinWait, ahk_class ZoomitClass,,5
-;		WinWaitClose, ahk_class ZoomitClass
-;		If onTopBit
-;			WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-;		Else
-;			WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
-;	} else {
-;		RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
-;		if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
-;		{
-;			Gosub, ZoomPad
-;			goto, ViewPreview
-;		}
-;		; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
-;		RegRead,padStayTime,HKCU,Software\WanderSick\AeroZoom,padStayTime
-;		if errorlevel
-;		{
-;			padStayTime=150
-;		}
-;		padStayTimeTemp:=padStayTime*2 ; *2 is needed. see zoompad.ahk
-;		Gosub, ZoomPad
-;		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
-;		Gosub, SnippingTool
-;	}
-;}
-;return
+;; -------- X1 and X2 START
 
-;~XButton1 & LButton:: ; Break Timer if ZoomIt is enabled; otherwise, toggle Color
-;if not (paused=1) {
-;	Process, Exist, ZoomIt.exe
-;	If errorlevel
-;	{	
-;		WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
-;		sendinput ^3
-;		WinWait, ahk_class ZoomitClass,,5
-;		WinWaitClose, ahk_class ZoomitClass
-;		If onTopBit
-;			WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-;		Else
-;			WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
-;	} else {
-;		Gosub, ZoomPad
-;		goto, Color
-;	}
-;}
-;return
+~XButton2 & LButton::
+if (BackLeftAction=37) { ; 37 = None for X1/X2
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (BackLeftAction<>34 AND BackLeftAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (BackLeftAction=1) { 
+		Gosub, SnippingTool
+	} else if (BackLeftAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (BackLeftAction=3) { 
+		Gosub, ColorHK
+	} else if (BackLeftAction=4) { 
+		Gosub, MouseHK
+	} else if (BackLeftAction=5) { 
+		Gosub, KeyboardHK
+	} else if (BackLeftAction=6) { 
+		Gosub, TextHK
+	} else if (BackLeftAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (BackLeftAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (BackLeftAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (BackLeftAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (BackLeftAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (BackLeftAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (BackLeftAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (BackLeftAction=14) { 
+		goto, notepad
+	} else if (BackLeftAction=15) { 
+		goto, wordpad
+	} else if (BackLeftAction=16) { 
+		goto, mscalc
+	} else if (BackLeftAction=17) { 
+		gosub, mspaint
+	} else if (BackLeftAction=18) { 
+		goto, GoogleClipboard
+	} else if (BackLeftAction=19) { 
+		goto, SpeakClipboard
+	} else if (BackLeftAction=20) { 
+		goto, MonitorOff
+	} else if (BackLeftAction=21) { 
+		goto, OpenTray
+	} else if (BackLeftAction=22) { 
+		goto, AlwaysOnTop
+	} else if (BackLeftAction=23) { 
+		goto, WebTimer
+	} else if (BackLeftAction=24) { 
+		goto, TimerTab
+	} else if (BackLeftAction=25) { 
+		goto, ZoomFaster
+	} else if (BackLeftAction=26) { 
+		goto, ZoomSlower
+	} else if (BackLeftAction=27) {
+		hotkeyMod=XButton2
+		goto, ElasticZoom
+	} else if (BackLeftAction=28) {	
+		hotkeyMod=XButton2
+		goto, ElasticStillZoom
+	} else if (BackLeftAction=29) {				
+		goto, SnipFree
+	} else if (BackLeftAction=30) {				
+		goto, SnipRect
+	} else if (BackLeftAction=31) {				
+		goto, SnipWin
+	} else if (BackLeftAction=32) {				
+		goto, SnipScreen
+	} else if (BackLeftAction=33) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (BackLeftAction=34) {				
+		goto, showHidePanel
+	} else if (BackLeftAction=35) { 
+		sendinput ^!{Space}
+	} else if (BackLeftAction=36) { 
+		Run, %CustomBackLeftPath% ; CustomForwardLeftPath
+	} else {
+		return ; this is unneeded
+	}
+}
+return
 
-;~XButton1 & MButton:: ; this resets the zoom increment only
-;if (paused=1)
+
+~XButton2 & RButton::
+if (BackRightAction=37) { ; 37 = None for X1/X2
+	return
+}
+if paused
+	return
+if (BackRightAction<>34 AND BackRightAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (BackRightAction=1) { 
+	Gosub, SnippingTool
+} else if (BackRightAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (BackRightAction=3) { 
+	Gosub, ColorHK
+} else if (BackRightAction=4) { 
+	Gosub, MouseHK
+} else if (BackRightAction=5) { 
+	Gosub, KeyboardHK
+} else if (BackRightAction=6) { 
+	Gosub, TextHK
+} else if (BackRightAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (BackRightAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (BackRightAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (BackRightAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (BackRightAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (BackRightAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (BackRightAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (BackRightAction=14) { 
+	goto, notepad
+} else if (BackRightAction=15) { 
+	goto, wordpad
+} else if (BackRightAction=16) { 
+	goto, mscalc
+} else if (BackRightAction=17) { 
+	gosub, mspaint
+} else if (BackRightAction=18) { 
+	goto, GoogleClipboard
+} else if (BackRightAction=19) { 
+	goto, SpeakClipboard
+} else if (BackRightAction=20) { 
+	goto, MonitorOff
+} else if (BackRightAction=21) { 
+	goto, OpenTray
+} else if (BackRightAction=22) { 
+	goto, AlwaysOnTop
+} else if (BackRightAction=23) { 
+	goto, WebTimer
+} else if (BackRightAction=24) { 
+	goto, TimerTab
+} else if (BackRightAction=25) { 
+	goto, ZoomFaster
+} else if (BackRightAction=26) { 
+	goto, ZoomSlower
+} else if (BackRightAction=27) {
+	hotkeyMod=XButton2
+	goto, ElasticZoom
+} else if (BackRightAction=28) {				
+	hotkeyMod=XButton2
+	goto, ElasticStillZoom
+} else if (BackRightAction=29) {				
+	goto, SnipFree
+} else if (BackRightAction=30) {				
+	goto, SnipRect
+} else if (BackRightAction=31) {				
+	goto, SnipWin
+} else if (BackRightAction=32) {				
+	goto, SnipScreen
+} else if (BackRightAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (BackRightAction=34) {				
+	goto, showHidePanel
+} else if (BackRightAction=35) { 
+	sendinput ^!{Space}
+} else if (BackRightAction=36) {
+	Run, %CustomBackRightPath% ; CustomForwardRightPath
+} else {
+	return ; this is unneeded
+}
+return
+
+~XButton1 & LButton::
+if (ForwardLeftAction=37) { ; 37 = None for X1/X2
+	return
+}
+if not paused {
+	if (ForwardLeftAction<>34 AND ForwardLeftAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (ForwardLeftAction=1) { 
+		Gosub, SnippingTool
+	} else if (ForwardLeftAction=2) {
+		GoSub, KillMagnifierHK
+	} else if (ForwardLeftAction=3) { 
+		Gosub, ColorHK
+	} else if (ForwardLeftAction=4) { 
+		Gosub, MouseHK
+	} else if (ForwardLeftAction=5) { 
+		Gosub, KeyboardHK
+	} else if (ForwardLeftAction=6) { 
+		Gosub, TextHK
+	} else if (ForwardLeftAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (ForwardLeftAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (ForwardLeftAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (ForwardLeftAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (ForwardLeftAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (ForwardLeftAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (ForwardLeftAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (ForwardLeftAction=14) { 
+		goto, notepad
+	} else if (ForwardLeftAction=15) { 
+		goto, wordpad
+	} else if (ForwardLeftAction=16) { 
+		goto, mscalc
+	} else if (ForwardLeftAction=17) { 
+		gosub, mspaint
+	} else if (ForwardLeftAction=18) { 
+		goto, GoogleClipboard
+	} else if (ForwardLeftAction=19) { 
+		goto, SpeakClipboard
+	} else if (ForwardLeftAction=20) { 
+		goto, MonitorOff
+	} else if (ForwardLeftAction=21) { 
+		goto, OpenTray
+	} else if (ForwardLeftAction=22) { 
+		goto, AlwaysOnTop
+	} else if (ForwardLeftAction=23) { 
+		goto, WebTimer
+	} else if (ForwardLeftAction=24) { 
+		goto, TimerTab
+	} else if (ForwardLeftAction=25) { 
+		goto, ZoomFaster
+	} else if (ForwardLeftAction=26) { 
+		goto, ZoomSlower	
+	} else if (ForwardLeftAction=27) {
+		hotkeyMod=XButton1
+		goto, ElasticZoom
+	} else if (ForwardLeftAction=28) {				
+		hotkeyMod=XButton1
+		goto, ElasticStillZoom
+	} else if (ForwardLeftAction=29) {				
+		goto, SnipFree
+	} else if (ForwardLeftAction=30) {				
+		goto, SnipRect
+	} else if (ForwardLeftAction=31) {				
+		goto, SnipWin
+	} else if (ForwardLeftAction=32) {				
+		goto, SnipScreen
+	} else if (ForwardLeftAction=33) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (ForwardLeftAction=34) {				
+		goto, showHidePanel
+	} else if (ForwardLeftAction=35) { 
+		sendinput ^!{Space}
+	} else if (ForwardLeftAction=36) { 
+		Run, %CustomForwardLeftPath% ; CustomBackLeftPath
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+;;~XButton1 & MButton:: ; this resets the zoom increment only
+;if paused
 ;	return
-
+;
 ;Gosub, ZoomPad
-
+;
 ;; check if a last magnifier window is available and record its status
 ;; so that after it restores it will remain hidden/minimized/normal
-
+;
 ;; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
 ;; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
 ;Process, Exist, magnify.exe
@@ -707,15 +2385,16 @@ return
 ;} else {
 ;	hideOrMinLast= ; if not defined, use default settings
 ;}
-;Process, Close, magnify.exe
+;GoSub, KillMagnifierHK
 ;GuiControl,, ZoomInc, 3
 ;RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
 ;sleep, %delayButton%
 ;Run,"%windir%\system32\magnify.exe",,Min
-
+;
+;If (OSver>6) {
 ;	WinWait, ahk_class MagUIClass,,3 
-
-
+;}
+;
 ;; Hide or minimize or normalize magnifier window
 ;If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
 ;	if (hideOrMin=1) {
@@ -732,184 +2411,826 @@ return
 ;}
 ;return
 
-;~XButton1 & RButton:: ; show magnifier
-;if (paused=1)
-;	return
-;Gosub, ZoomPad
-;sleep, 500 ; prevent zoompad from misplacing (workaround)
-;goto, ShowMagnifier
-;return
+~XButton1 & RButton:: ; show magnifier
+if (ForwardRightAction=37) { ; 37 = None for X1/X2
+	return
+}
+if paused
+	return
+if (ForwardRightAction<>34 AND ForwardRightAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (ForwardRightAction=1) { 
+	Gosub, SnippingTool
+} else if (ForwardRightAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (ForwardRightAction=3) { 
+	Gosub, ColorHK
+} else if (ForwardRightAction=4) { 
+	Gosub, MouseHK
+} else if (ForwardRightAction=5) { 
+	Gosub, KeyboardHK
+} else if (ForwardRightAction=6) { 
+	Gosub, TextHK
+} else if (ForwardRightAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (ForwardRightAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (ForwardRightAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (ForwardRightAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (ForwardRightAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (ForwardRightAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (ForwardRightAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (ForwardRightAction=14) { 
+	goto, notepad
+} else if (ForwardRightAction=15) { 
+	goto, wordpad
+} else if (ForwardRightAction=16) { 
+	goto, mscalc
+} else if (ForwardRightAction=17) { 
+	gosub, mspaint
+} else if (ForwardRightAction=18) { 
+	goto, GoogleClipboard
+} else if (ForwardRightAction=19) { 
+	goto, SpeakClipboard
+} else if (ForwardRightAction=20) { 
+	goto, MonitorOff
+} else if (ForwardRightAction=21) { 
+	goto, OpenTray
+} else if (ForwardRightAction=22) { 
+	goto, AlwaysOnTop
+} else if (ForwardRightAction=23) { 
+	goto, WebTimer
+} else if (ForwardRightAction=24) { 
+	goto, TimerTab
+} else if (ForwardRightAction=25) { 
+	goto, ZoomFaster
+} else if (ForwardRightAction=26) { 
+	goto, ZoomSlower
+} else if (ForwardRightAction=27) {
+	hotkeyMod=XButton1
+	goto, ElasticZoom
+} else if (ForwardRightAction=28) {				
+	hotkeyMod=XButton1
+	goto, ElasticStillZoom
+} else if (ForwardRightAction=29) {				
+	goto, SnipFree
+} else if (ForwardRightAction=30) {				
+	goto, SnipRect
+} else if (ForwardRightAction=31) {				
+	goto, SnipWin
+} else if (ForwardRightAction=32) {				
+	goto, SnipScreen
+} else if (ForwardRightAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (ForwardRightAction=34) {				
+	goto, showHidePanel
+} else if (ForwardRightAction=35) { 
+	sendinput ^!{Space}
+} else if (ForwardRightAction=36) { 
+	Run, %CustomForwardRightPath% ; CustomBackRightPath
+} else {
+	return ; this is unneeded
+}
+return
 
-;~XButton1 & Wheelup:: ; increase the zoom increment one step
-;if (paused=1)
-;	return
-;Gosub, ZoomPad
-;IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-;	ExistAZ=1
-;RegRead,zoomIncRaw,HKCU,Software\Microsoft\ScreenMagnifier,ZoomIncrement
-;if (zoomIncRaw=0x19) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 2
-;	zoomInc=2
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x32
-;} else if (zoomIncRaw=0x32) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 3
-;	zoomInc=3
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
-;} else if (zoomIncRaw=0x64) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 4
-;	zoomInc=4
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x96
-;} else if (zoomIncRaw=0x96) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 5
-;	zoomInc=5
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0xc8
-;} else if (zoomIncRaw=0xc8) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 6
-;	zoomInc=6
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x190
-;}
-;ExistAZ=
+~XButton2 & Wheelup::
+if (BackWupAction=37) { ; 37 = None for X1/X2
+	return
+}
+if paused
+	return
+if (BackWupAction<>34 AND BackWupAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (BackWupAction=1) { 
+	Gosub, SnippingTool
+} else if (BackWupAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (BackWupAction=3) { 
+	Gosub, ColorHK
+} else if (BackWupAction=4) { 
+	Gosub, MouseHK
+} else if (BackWupAction=5) { 
+	Gosub, KeyboardHK
+} else if (BackWupAction=6) { 
+	Gosub, TextHK
+} else if (BackWupAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (BackWupAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (BackWupAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (BackWupAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (BackWupAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (BackWupAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (BackWupAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (BackWupAction=14) { 
+	goto, notepad
+} else if (BackWupAction=15) { 
+	goto, wordpad
+} else if (BackWupAction=16) { 
+	goto, mscalc
+} else if (BackWupAction=17) { 
+	gosub, mspaint
+} else if (BackWupAction=18) { 
+	goto, GoogleClipboard
+} else if (BackWupAction=19) { 
+	goto, SpeakClipboard
+} else if (BackWupAction=20) { 
+	goto, MonitorOff
+} else if (BackWupAction=21) { 
+	goto, OpenTray
+} else if (BackWupAction=22) { 
+	goto, AlwaysOnTop
+} else if (BackWupAction=23) { 
+	goto, WebTimer
+} else if (BackWupAction=24) { 
+	goto, TimerTab
+} else if (BackWupAction=25) { 
+	goto, ZoomFaster
+} else if (BackWupAction=26) { 
+	goto, ZoomSlower
+} else if (BackWupAction=27) {
+	hotkeyMod=XButton2
+	goto, ElasticZoom
+} else if (BackWupAction=28) {				
+	hotkeyMod=XButton2
+	goto, ElasticStillZoom
+} else if (BackWupAction=29) {				
+	goto, SnipFree
+} else if (BackWupAction=30) {				
+	goto, SnipRect
+} else if (BackWupAction=31) {				
+	goto, SnipWin
+} else if (BackWupAction=32) {				
+	goto, SnipScreen
+} else if (BackWupAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (BackWupAction=34) {				
+	goto, showHidePanel	
+} else if (BackWupAction=35) { 
+	sendinput ^!{Space}
+} else if (BackWupAction=36) { 
+	Run, %CustomBackWupPath%
+} else {
+	return ; this is unneeded
+}
+return
 
-;; check if a last magnifier window is available and record its status
-;; so that after it restores it will remain hidden/minimized/normal
 
-;; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
-;; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
-;Process, Exist, magnify.exe
-;If errorlevel
-;{
-;	IfWinExist, ahk_class MagUIClass
-;	{
-;		WinGet, chkMin, MinMax, ahk_class MagUIClass
-;		if (chkMin<0) { ; minimized
-;			hideOrMinLast=2 ; minimized
-;		} else {
-;			hideOrMinLast=3 ; normal
-;		}
-;	} else {
-;		hideOrMinLast=1 ; hidden
-;	}
-;	Process, Close, magnify.exe ; !!!!!! If magnifier is running, rerun Magnifier to apply the setting
-;	sleep, %delayButton%
-;	Run,"%windir%\system32\magnify.exe",,Min
-;} else {
-;	hideOrMinLast= ; if not defined, use default settings
-;}
+~XButton2 & Wheeldown::
+if (BackWdownAction=37) { ; 37 = None for X1/X2
+	return
+}
+if paused
+	return
+if (BackWdownAction<>34 AND BackWdownAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (BackWdownAction=1) { 
+	Gosub, SnippingTool
+} else if (BackWdownAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (BackWdownAction=3) { 
+	Gosub, ColorHK
+} else if (BackWdownAction=4) { 
+	Gosub, MouseHK
+} else if (BackWdownAction=5) { 
+	Gosub, KeyboardHK
+} else if (BackWdownAction=6) { 
+	Gosub, TextHK
+} else if (BackWdownAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (BackWdownAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (BackWdownAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (BackWdownAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (BackWdownAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (BackWdownAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (BackWdownAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (BackWdownAction=14) { 
+	goto, notepad
+} else if (BackWdownAction=15) { 
+	goto, wordpad
+} else if (BackWdownAction=16) { 
+	goto, mscalc
+} else if (BackWdownAction=17) { 
+	gosub, mspaint
+} else if (BackWdownAction=18) { 
+	goto, GoogleClipboard
+} else if (BackWdownAction=19) { 
+	goto, SpeakClipboard
+} else if (BackWdownAction=20) { 
+	goto, MonitorOff
+} else if (BackWdownAction=21) { 
+	goto, OpenTray
+} else if (BackWdownAction=22) { 
+	goto, AlwaysOnTop
+} else if (BackWdownAction=23) { 
+	goto, WebTimer
+} else if (BackWdownAction=24) { 
+	goto, TimerTab
+} else if (BackWdownAction=25) { 
+	goto, ZoomFaster
+} else if (BackWdownAction=26) { 
+	goto, ZoomSlower
+} else if (BackWdownAction=27) {
+	hotkeyMod=XButton2
+	goto, ElasticZoom
+} else if (BackWdownAction=28) {				
+	hotkeyMod=XButton2
+	goto, ElasticStillZoom
+} else if (BackWdownAction=29) {				
+	goto, SnipFree
+} else if (BackWdownAction=30) {				
+	goto, SnipRect
+} else if (BackWdownAction=31) {				
+	goto, SnipWin
+} else if (BackWdownAction=32) {				
+	goto, SnipScreen
+} else if (BackWdownAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (BackWdownAction=34) {				
+	goto, showHidePanel
+} else if (BackWdownAction=35) { 
+	sendinput ^!{Space}
+} else if (BackWdownAction=36) { 
+	Run, %CustomBackWdownPath%
+} else {
+	return ; this is unneeded
+}
+return
 
-;	WinWait, ahk_class MagUIClass,,3 
+~XButton1 & Wheelup::
+if (ForwardWupAction=37) { ; 37 = None for X1/X2
+	return
+}
+if paused
+	return
+if (ForwardWupAction<>34 AND ForwardWupAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (ForwardWupAction=1) { 
+	Gosub, SnippingTool
+} else if (ForwardWupAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (ForwardWupAction=3) { 
+	Gosub, ColorHK
+} else if (ForwardWupAction=4) { 
+	Gosub, MouseHK
+} else if (ForwardWupAction=5) { 
+	Gosub, KeyboardHK
+} else if (ForwardWupAction=6) { 
+	Gosub, TextHK
+} else if (ForwardWupAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (ForwardWupAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (ForwardWupAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (ForwardWupAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (ForwardWupAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (ForwardWupAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (ForwardWupAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (ForwardWupAction=14) { 
+	goto, notepad
+} else if (ForwardWupAction=15) { 
+	goto, wordpad
+} else if (ForwardWupAction=16) { 
+	goto, mscalc
+} else if (ForwardWupAction=17) { 
+	gosub, mspaint
+} else if (ForwardWupAction=18) { 
+	goto, GoogleClipboard
+} else if (ForwardWupAction=19) { 
+	goto, SpeakClipboard
+} else if (ForwardWupAction=20) { 
+	goto, MonitorOff
+} else if (ForwardWupAction=21) { 
+	goto, OpenTray
+} else if (ForwardWupAction=22) { 
+	goto, AlwaysOnTop
+} else if (ForwardWupAction=23) { 
+	goto, WebTimer
+} else if (ForwardWupAction=24) { 
+	goto, TimerTab
+} else if (ForwardWupAction=25) { 
+	goto, ZoomFaster
+} else if (ForwardWupAction=26) { 
+	goto, ZoomSlower
+} else if (ForwardWupAction=27) {
+	hotkeyMod=XButton1
+	goto, ElasticZoom
+} else if (ForwardWupAction=28) {				
+	hotkeyMod=XButton1
+	goto, ElasticStillZoom
+} else if (ForwardWupAction=29) {				
+	goto, SnipFree
+} else if (ForwardWupAction=30) {				
+	goto, SnipRect
+} else if (ForwardWupAction=31) {				
+	goto, SnipWin
+} else if (ForwardWupAction=32) {				
+	goto, SnipScreen
+} else if (ForwardWupAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (ForwardWupAction=34) {				
+	goto, showHidePanel
+} else if (ForwardWupAction=35) { 
+	sendinput ^!{Space}
+} else if (ForwardWupAction=36) { 
+	Run, %CustomForwardWupPath%
+} else {
+	return ; this is unneeded
+}
+return
 
-;; Hide or minimize or normalize magnifier window
-;If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-;	if (hideOrMin=1) {
-;		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-;		WinHide, ahk_class MagUIClass
-;	} else if (hideOrMin=2) {
-;		WinMinimize, ahk_class MagUIClass
-;	}
-;} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-;	WinMinimize, ahk_class MagUIClass
-;	WinHide, ahk_class MagUIClass
-;} else if (hideOrMinLast=2) {
-;	WinMinimize, ahk_class MagUIClass
-;}
+~XButton1 & Wheeldown::
+if (ForwardWdownAction=37) { ; 37 = None for X1/X2
+	return
+}
+if paused
+	return
+if (ForwardWdownAction<>34 AND ForwardWdownAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (ForwardWdownAction=1) { 
+	Gosub, SnippingTool
+} else if (ForwardWdownAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (ForwardWdownAction=3) { 
+	Gosub, ColorHK
+} else if (ForwardWdownAction=4) { 
+	Gosub, MouseHK
+} else if (ForwardWdownAction=5) { 
+	Gosub, KeyboardHK
+} else if (ForwardWdownAction=6) { 
+	Gosub, TextHK
+} else if (ForwardWdownAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (ForwardWdownAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (ForwardWdownAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (ForwardWdownAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (ForwardWdownAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (ForwardWdownAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (ForwardWdownAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (ForwardWdownAction=14) { 
+	goto, notepad
+} else if (ForwardWdownAction=15) { 
+	goto, wordpad
+} else if (ForwardWdownAction=16) { 
+	goto, mscalc
+} else if (ForwardWdownAction=17) { 
+	gosub, mspaint
+} else if (ForwardWdownAction=18) { 
+	goto, GoogleClipboard
+} else if (ForwardWdownAction=19) { 
+	goto, SpeakClipboard
+} else if (ForwardWdownAction=20) { 
+	goto, MonitorOff
+} else if (ForwardWdownAction=21) { 
+	goto, OpenTray
+} else if (ForwardWdownAction=22) { 
+	goto, AlwaysOnTop
+} else if (ForwardWdownAction=23) { 
+	goto, WebTimer
+} else if (ForwardWdownAction=24) { 
+	goto, TimerTab
+} else if (ForwardWdownAction=25) { 
+	goto, ZoomFaster
+} else if (ForwardWdownAction=26) { 
+	goto, ZoomSlower
+} else if (ForwardWdownAction=27) {
+	hotkeyMod=XButton1
+	goto, ElasticZoom
+} else if (ForwardWdownAction=28) {				
+	hotkeyMod=XButton1
+	goto, ElasticStillZoom
+} else if (ForwardWdownAction=29) {				
+	goto, SnipFree
+} else if (ForwardWdownAction=30) {				
+	goto, SnipRect
+} else if (ForwardWdownAction=31) {				
+	goto, SnipWin
+} else if (ForwardWdownAction=32) {				
+	goto, SnipScreen
+} else if (ForwardWdownAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (ForwardWdownAction=34) {				
+	goto, showHidePanel
+} else if (ForwardWdownAction=35) { 
+	sendinput ^!{Space}
+} else if (ForwardWdownAction=36) {
+ 	Run, %CustomForwardWdownPath%
+} else {
+	return ; this is unneeded
+}
+return
 
-;return
-
-;~XButton1 & Wheeldown:: ; decrease the zoom increment one step
-;if (paused=1)
-;	return
-;Gosub, ZoomPad
-;IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-;	ExistAZ=1
-;	
-;	
-;RegRead,zoomIncRaw,HKCU,Software\Microsoft\ScreenMagnifier,ZoomIncrement
-;if (zoomIncRaw=0x32) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 1
-;	zoomInc=1
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x19
-;} else if (zoomIncRaw=0x64) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 2
-;	zoomInc=2
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x32
-;} else if (zoomIncRaw=0x96) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 3
-;	zoomInc=3
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
-;} else if (zoomIncRaw=0xc8) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 4
-;	zoomInc=4
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x96
-;} else if (zoomIncRaw=0x190) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 5
-;	zoomInc=5
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0xc8
-;}
-;ExistAZ=
-
-;; check if a last magnifier window is available and record its status
-;; so that after it restores it will remain hidden/minimized/normal
-
-;; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
-;; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
-;Process, Exist, magnify.exe
-;If errorlevel
-;{
-;	IfWinExist, ahk_class MagUIClass
-;	{
-;		WinGet, chkMin, MinMax, ahk_class MagUIClass
-;		if (chkMin<0) { ; minimized
-;			hideOrMinLast=2 ; minimized
-;		} else {
-;			hideOrMinLast=3 ; normal
-;		}
-;	} else {
-;		hideOrMinLast=1 ; hidden
-;	}
-;	Process, Close, magnify.exe ; !!!!!! If magnifier is running, rerun Magnifier to apply the setting
-;	sleep, %delayButton%
-;	Run,"%windir%\system32\magnify.exe",,Min
-;} else {
-;	hideOrMinLast= ; if not defined, use default settings
-;}
-
-;	WinWait, ahk_class MagUIClass,,3 
-
-;; Hide or minimize or normalize magnifier window
-;If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-;	if (hideOrMin=1) {
-;		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-;		WinHide, ahk_class MagUIClass
-;	} else if (hideOrMin=2) {
-;		WinMinimize, ahk_class MagUIClass
-;	}
-;} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-;	WinMinimize, ahk_class MagUIClass
-;	WinHide, ahk_class MagUIClass
-;} else if (hideOrMinLast=2) {
-;	WinMinimize, ahk_class MagUIClass
-;}
-
-;return
-
+;; -------- X1 and X2 END
 
 ; Show/hide magnifier by Win + Ctrl + ESC
 #+`::
-goto, ShowMagnifier
+goto, ShowMagnifierHK
 
 ; Show/hide panel by Win + Shift + ESC
 #+ESC::
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+IfWinExist, AeroZoom Panel
 {
 	Gui, Destroy
 	return
@@ -920,7 +3241,7 @@ goto, lastPos
 ; Show/hide panel by tray (center it)
 showPanel:
 centerPanel = 1
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+IfWinExist, AeroZoom Panel
 {
 	Gui, Destroy
 	return
@@ -929,39 +3250,4017 @@ IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
 goto, lastPos
 
 ; Normal way to launch AeroZoom panel (Right-handed)
-~LButton & RButton::
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-{
-	Gui, Destroy
-	return
-}
-;Gui, Destroy
-goto, lastPos
+; ~LButton & RButton::
+; goto, showHidePanel
 
 ; Normal way to launch AeroZoom panel (Left-handed)
+; ~RButton & LButton::
+; goto, showHidePanel
+
+showHidePanel:
+IfWinExist, AeroZoom Panel
+{
+	Gui, Destroy
+	return
+}
+goto, lastPos
+return
+
+;; Customize Key START
+
+~^LButton::
+if (CtrlLeftAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (CtrlLeftAction<>38 AND CtrlLeftAction<>26 AND CtrlLeftAction<>18 AND CtrlLeftAction<>19 AND CtrlLeftAction<>21 AND CtrlLeftAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (CtrlLeftAction=1) { 
+		Gosub, SnippingTool
+	} else if (CtrlLeftAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (CtrlLeftAction=3) { 
+		Gosub, ColorHK
+	} else if (CtrlLeftAction=4) { 
+		Gosub, MouseHK
+	} else if (CtrlLeftAction=5) { 
+		Gosub, KeyboardHK
+	} else if (CtrlLeftAction=6) { 
+		Gosub, TextHK
+	} else if (CtrlLeftAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (CtrlLeftAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (CtrlLeftAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (CtrlLeftAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (CtrlLeftAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (CtrlLeftAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (CtrlLeftAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (CtrlLeftAction=14) { 
+		goto, notepad
+	} else if (CtrlLeftAction=15) { 
+		goto, wordpad
+	} else if (CtrlLeftAction=16) { 
+		goto, mscalc
+	} else if (CtrlLeftAction=17) { 
+		gosub, mspaint
+	} else if (CtrlLeftAction=18) {
+		goto, Google
+	} else if (CtrlLeftAction=19) {
+		goto, GoogleHighlight
+	} else if (CtrlLeftAction=20) {
+		goto, GoogleClipboard
+	} else if (CtrlLeftAction=21) {
+		goto, SpeakIt
+	} else if (CtrlLeftAction=22) {
+		goto, SpeakHighlight
+	} else if (CtrlLeftAction=23) {
+		goto, SpeakClipboard
+	} else if (CtrlLeftAction=24) {
+		goto, MonitorOff
+	} else if (CtrlLeftAction=25) {
+		goto, OpenTray
+	} else if (CtrlLeftAction=26) {
+		goto, AlwaysOnTop
+	} else if (CtrlLeftAction=27) {
+		goto, WebTimer
+	} else if (CtrlLeftAction=28) {
+		goto, TimerTab
+	} else if (CtrlLeftAction=29) {
+		goto, ZoomFaster
+	} else if (CtrlLeftAction=30) {
+		goto, ZoomSlower
+	} else if (CtrlLeftAction=31) {
+		hotkeyMod=Ctrl
+		goto, ElasticZoom
+	} else if (CtrlLeftAction=32) {				
+		hotkeyMod=Ctrl
+		goto, ElasticStillZoom
+	} else if (CtrlLeftAction=33) {				
+		goto, SnipFree
+	} else if (CtrlLeftAction=34) {				
+		goto, SnipRect
+	} else if (CtrlLeftAction=35) {				
+		goto, SnipWin
+	} else if (CtrlLeftAction=36) {				
+		goto, SnipScreen
+	} else if (CtrlLeftAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (CtrlLeftAction=38) {				
+		goto, showHidePanel
+	} else if (CtrlLeftAction=39) {
+		sendinput ^!{Space}
+	} else if (CtrlLeftAction=40) {
+		Run, %CustomCtrlLeftPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+~^RButton::
+if (CtrlRightAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (CtrlRightAction<>38 AND CtrlRightAction<>26 AND CtrlRightAction<>18 AND CtrlRightAction<>19 AND CtrlRightAction<>21 AND CtrlRightAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (CtrlRightAction=1) { 
+		Gosub, SnippingTool
+	} else if (CtrlRightAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (CtrlRightAction=3) { 
+		Gosub, ColorHK
+	} else if (CtrlRightAction=4) { 
+		Gosub, MouseHK
+	} else if (CtrlRightAction=5) { 
+		Gosub, KeyboardHK
+	} else if (CtrlRightAction=6) { 
+		Gosub, TextHK
+	} else if (CtrlRightAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (CtrlRightAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (CtrlRightAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (CtrlRightAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (CtrlRightAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (CtrlRightAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (CtrlRightAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (CtrlRightAction=14) { 
+		goto, notepad
+	} else if (CtrlRightAction=15) { 
+		goto, wordpad
+	} else if (CtrlRightAction=16) { 
+		goto, mscalc
+	} else if (CtrlRightAction=17) { 
+		gosub, mspaint
+	} else if (CtrlRightAction=18) {
+		goto, Google
+	} else if (CtrlRightAction=19) {
+		goto, GoogleHighlight
+	} else if (CtrlRightAction=20) {
+		goto, GoogleClipboard
+	} else if (CtrlRightAction=21) {
+		goto, SpeakIt
+	} else if (CtrlRightAction=22) {
+		goto, SpeakHighlight
+	} else if (CtrlRightAction=23) {
+		goto, SpeakClipboard
+	} else if (CtrlRightAction=24) {
+		goto, MonitorOff
+	} else if (CtrlRightAction=25) {
+		goto, OpenTray
+	} else if (CtrlRightAction=26) {
+		goto, AlwaysOnTop
+	} else if (CtrlRightAction=27) {
+		goto, WebTimer
+	} else if (CtrlRightAction=28) {
+		goto, TimerTab
+	} else if (CtrlRightAction=29) {
+		goto, ZoomFaster
+	} else if (CtrlRightAction=30) {
+		goto, ZoomSlower
+	} else if (CtrlRightAction=31) {
+		hotkeyMod=Ctrl
+		goto, ElasticZoom
+	} else if (CtrlRightAction=32) {				
+		hotkeyMod=Ctrl
+		goto, ElasticStillZoom
+	} else if (CtrlRightAction=33) {				
+		goto, SnipFree
+	} else if (CtrlRightAction=34) {				
+		goto, SnipRect
+	} else if (CtrlRightAction=35) {				
+		goto, SnipWin
+	} else if (CtrlRightAction=36) {				
+		goto, SnipScreen
+	} else if (CtrlRightAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (CtrlRightAction=38) {				
+		goto, showHidePanel
+	} else if (CtrlRightAction=39) {
+		sendinput ^!{Space}
+	} else if (CtrlRightAction=40) {
+		Run, %CustomCtrlRightPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+~!LButton::
+if (AltLeftAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (AltLeftAction<>38 AND AltLeftAction<>26 AND AltLeftAction<>18 AND AltLeftAction<>19 AND AltLeftAction<>21 AND AltLeftAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (AltLeftAction=1) { 
+		Gosub, SnippingTool
+	} else if (AltLeftAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (AltLeftAction=3) { 
+		Gosub, ColorHK
+	} else if (AltLeftAction=4) { 
+		Gosub, MouseHK
+	} else if (AltLeftAction=5) { 
+		Gosub, KeyboardHK
+	} else if (AltLeftAction=6) { 
+		Gosub, TextHK
+	} else if (AltLeftAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (AltLeftAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (AltLeftAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (AltLeftAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (AltLeftAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (AltLeftAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (AltLeftAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (AltLeftAction=14) { 
+		goto, notepad
+	} else if (AltLeftAction=15) { 
+		goto, wordpad
+	} else if (AltLeftAction=16) { 
+		goto, mscalc
+	} else if (AltLeftAction=17) { 
+		gosub, mspaint
+	} else if (AltLeftAction=18) {
+		goto, Google
+	} else if (AltLeftAction=19) {
+		goto, GoogleHighlight
+	} else if (AltLeftAction=20) {
+		goto, GoogleClipboard
+	} else if (AltLeftAction=21) {
+		goto, SpeakIt
+	} else if (AltLeftAction=22) {
+		goto, SpeakHighlight
+	} else if (AltLeftAction=23) {
+		goto, SpeakClipboard
+	} else if (AltLeftAction=24) {
+		goto, MonitorOff
+	} else if (AltLeftAction=25) {
+		goto, OpenTray
+	} else if (AltLeftAction=26) {
+		goto, AlwaysOnTop
+	} else if (AltLeftAction=27) {
+		goto, WebTimer
+	} else if (AltLeftAction=28) {
+		goto, TimerTab
+	} else if (AltLeftAction=29) {
+		goto, ZoomFaster
+	} else if (AltLeftAction=30) {
+		goto, ZoomSlower
+	} else if (AltLeftAction=31) {
+		hotkeyMod=Alt
+		goto, ElasticZoom
+	} else if (AltLeftAction=32) {				
+		hotkeyMod=Alt
+		goto, ElasticStillZoom
+	} else if (AltLeftAction=33) {				
+		goto, SnipFree
+	} else if (AltLeftAction=34) {				
+		goto, SnipRect
+	} else if (AltLeftAction=35) {				
+		goto, SnipWin
+	} else if (AltLeftAction=36) {				
+		goto, SnipScreen
+	} else if (AltLeftAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (AltLeftAction=38) {				
+		goto, showHidePanel		
+	} else if (AltLeftAction=39) {
+		sendinput ^!{Space}
+	} else if (AltLeftAction=40) {
+		Run, %CustomAltLeftPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+~!RButton::
+if (AltRightAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (AltRightAction<>38 AND AltRightAction<>26 AND AltRightAction<>18 AND AltRightAction<>19 AND AltRightAction<>21 AND AltRightAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (AltRightAction=1) { 
+		Gosub, SnippingTool
+	} else if (AltRightAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (AltRightAction=3) { 
+		Gosub, ColorHK
+	} else if (AltRightAction=4) { 
+		Gosub, MouseHK
+	} else if (AltRightAction=5) { 
+		Gosub, KeyboardHK
+	} else if (AltRightAction=6) { 
+		Gosub, TextHK
+	} else if (AltRightAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (AltRightAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (AltRightAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (AltRightAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (AltRightAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (AltRightAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (AltRightAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (AltRightAction=14) { 
+		goto, notepad
+	} else if (AltRightAction=15) { 
+		goto, wordpad
+	} else if (AltRightAction=16) { 
+		goto, mscalc
+	} else if (AltRightAction=17) { 
+		gosub, mspaint
+	} else if (AltRightAction=18) {
+		goto, Google
+	} else if (AltRightAction=19) {
+		goto, GoogleHighlight
+	} else if (AltRightAction=20) {
+		goto, GoogleClipboard
+	} else if (AltRightAction=21) {
+		goto, SpeakIt
+	} else if (AltRightAction=22) {
+		goto, SpeakHighlight
+	} else if (AltRightAction=23) {
+		goto, SpeakClipboard
+	} else if (AltRightAction=24) {
+		goto, MonitorOff
+	} else if (AltRightAction=25) {
+		goto, OpenTray
+	} else if (AltRightAction=26) {
+		goto, AlwaysOnTop
+	} else if (AltRightAction=27) {
+		goto, WebTimer
+	} else if (AltRightAction=28) {
+		goto, TimerTab
+	} else if (AltRightAction=29) {
+		goto, ZoomFaster
+	} else if (AltRightAction=30) {
+		goto, ZoomSlower
+	} else if (AltRightAction=31) {
+		hotkeyMod=Alt
+		goto, ElasticZoom
+	} else if (AltRightAction=32) {				
+		hotkeyMod=Alt
+		goto, ElasticStillZoom
+	} else if (AltRightAction=33) {				
+		goto, SnipFree
+	} else if (AltRightAction=34) {				
+		goto, SnipRect
+	} else if (AltRightAction=35) {				
+		goto, SnipWin
+	} else if (AltRightAction=36) {				
+		goto, SnipScreen
+	} else if (AltRightAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (AltRightAction=38) {				
+		goto, showHidePanel
+	} else if (AltRightAction=39) {
+		sendinput ^!{Space}
+	} else if (AltRightAction=40) {
+		Run, %CustomAltRightPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+~+LButton::
+if (ShiftLeftAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (ShiftLeftAction<>38 AND ShiftLeftAction<>26 AND ShiftLeftAction<>18 AND ShiftLeftAction<>19 AND ShiftLeftAction<>21 AND ShiftLeftAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (ShiftLeftAction=1) { 
+		Gosub, SnippingTool
+	} else if (ShiftLeftAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (ShiftLeftAction=3) { 
+		Gosub, ColorHK
+	} else if (ShiftLeftAction=4) { 
+		Gosub, MouseHK
+	} else if (ShiftLeftAction=5) { 
+		Gosub, KeyboardHK
+	} else if (ShiftLeftAction=6) { 
+		Gosub, TextHK
+	} else if (ShiftLeftAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (ShiftLeftAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (ShiftLeftAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (ShiftLeftAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (ShiftLeftAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (ShiftLeftAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (ShiftLeftAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (ShiftLeftAction=14) { 
+		goto, notepad
+	} else if (ShiftLeftAction=15) { 
+		goto, wordpad
+	} else if (ShiftLeftAction=16) { 
+		goto, mscalc
+	} else if (ShiftLeftAction=17) { 
+		gosub, mspaint
+	} else if (ShiftLeftAction=18) {
+		goto, Google
+	} else if (ShiftLeftAction=19) {
+		goto, GoogleHighlight
+	} else if (ShiftLeftAction=20) {
+		goto, GoogleClipboard
+	} else if (ShiftLeftAction=21) {
+		goto, SpeakIt
+	} else if (ShiftLeftAction=22) {
+		goto, SpeakHighlight
+	} else if (ShiftLeftAction=23) {
+		goto, SpeakClipboard
+	} else if (ShiftLeftAction=24) {
+		goto, MonitorOff
+	} else if (ShiftLeftAction=25) {
+		goto, OpenTray
+	} else if (ShiftLeftAction=26) {
+		goto, AlwaysOnTop
+	} else if (ShiftLeftAction=27) {
+		goto, WebTimer
+	} else if (ShiftLeftAction=28) {
+		goto, TimerTab
+	} else if (ShiftLeftAction=29) {
+		goto, ZoomFaster
+	} else if (ShiftLeftAction=30) {
+		goto, ZoomSlower
+	} else if (ShiftLeftAction=31) {
+		hotkeyMod=Shift
+		goto, ElasticZoom
+	} else if (ShiftLeftAction=32) {				
+		hotkeyMod=Shift
+		goto, ElasticStillZoom
+	} else if (ShiftLeftAction=33) {				
+		goto, SnipFree
+	} else if (ShiftLeftAction=34) {				
+		goto, SnipRect
+	} else if (ShiftLeftAction=35) {				
+		goto, SnipWin
+	} else if (ShiftLeftAction=36) {				
+		goto, SnipScreen
+	} else if (ShiftLeftAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (ShiftLeftAction=38) {				
+		goto, showHidePanel
+	} else if (ShiftLeftAction=39) {
+		sendinput ^!{Space}
+	} else if (ShiftLeftAction=40) {
+		Run, %CustomShiftLeftPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+~+RButton::
+if (ShiftRightAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (ShiftRightAction<>38 AND ShiftRightAction<>26 AND ShiftRightAction<>18 AND ShiftRightAction<>19 AND ShiftRightAction<>21 AND ShiftRightAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (ShiftRightAction=1) { 
+		Gosub, SnippingTool
+	} else if (ShiftRightAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (ShiftRightAction=3) { 
+		Gosub, ColorHK
+	} else if (ShiftRightAction=4) { 
+		Gosub, MouseHK
+	} else if (ShiftRightAction=5) { 
+		Gosub, KeyboardHK
+	} else if (ShiftRightAction=6) { 
+		Gosub, TextHK
+	} else if (ShiftRightAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (ShiftRightAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (ShiftRightAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (ShiftRightAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (ShiftRightAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (ShiftRightAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (ShiftRightAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (ShiftRightAction=14) { 
+		goto, notepad
+	} else if (ShiftRightAction=15) { 
+		goto, wordpad
+	} else if (ShiftRightAction=16) { 
+		goto, mscalc
+	} else if (ShiftRightAction=17) { 
+		gosub, mspaint
+	} else if (ShiftRightAction=18) {
+		goto, Google
+	} else if (ShiftRightAction=19) {
+		goto, GoogleHighlight
+	} else if (ShiftRightAction=20) {
+		goto, GoogleClipboard
+	} else if (ShiftRightAction=21) {
+		goto, SpeakIt
+	} else if (ShiftRightAction=22) {
+		goto, SpeakHighlight
+	} else if (ShiftRightAction=23) {
+		goto, SpeakClipboard
+	} else if (ShiftRightAction=24) {
+		goto, MonitorOff
+	} else if (ShiftRightAction=25) {
+		goto, OpenTray
+	} else if (ShiftRightAction=26) {
+		goto, AlwaysOnTop
+	} else if (ShiftRightAction=27) {
+		goto, WebTimer
+	} else if (ShiftRightAction=28) {
+		goto, TimerTab
+	} else if (ShiftRightAction=29) {
+		goto, ZoomFaster
+	} else if (ShiftRightAction=30) {
+		goto, ZoomSlower
+	} else if (ShiftRightAction=31) {
+		hotkeyMod=Shift
+		goto, ElasticZoom
+	} else if (ShiftRightAction=32) {				
+		hotkeyMod=Shift
+		goto, ElasticStillZoom
+	} else if (ShiftRightAction=33) {				
+		goto, SnipFree
+	} else if (ShiftRightAction=34) {				
+		goto, SnipRect
+	} else if (ShiftRightAction=35) {				
+		goto, SnipWin
+	} else if (ShiftRightAction=36) {				
+		goto, SnipScreen
+	} else if (ShiftRightAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (ShiftRightAction=38) {				
+		goto, showHidePanel
+	} else if (ShiftRightAction=39) {
+		sendinput ^!{Space}
+	} else if (ShiftRightAction=40) {
+		Run, %CustomShiftRightPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+~#LButton::
+if (WinLeftAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (WinLeftAction<>38 AND WinLeftAction<>26 AND WinLeftAction<>18 AND WinLeftAction<>19 AND WinLeftAction<>21 AND WinLeftAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (WinLeftAction=1) { 
+		Gosub, SnippingTool
+	} else if (WinLeftAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (WinLeftAction=3) { 
+		Gosub, ColorHK
+	} else if (WinLeftAction=4) { 
+		Gosub, MouseHK
+	} else if (WinLeftAction=5) { 
+		Gosub, KeyboardHK
+	} else if (WinLeftAction=6) { 
+		Gosub, TextHK
+	} else if (WinLeftAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (WinLeftAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (WinLeftAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (WinLeftAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (WinLeftAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (WinLeftAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (WinLeftAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (WinLeftAction=14) { 
+		goto, notepad
+	} else if (WinLeftAction=15) { 
+		goto, wordpad
+	} else if (WinLeftAction=16) { 
+		goto, mscalc
+	} else if (WinLeftAction=17) { 
+		gosub, mspaint
+	} else if (WinLeftAction=18) {
+		goto, Google
+	} else if (WinLeftAction=19) {
+		goto, GoogleHighlight
+	} else if (WinLeftAction=20) {
+		goto, GoogleClipboard
+	} else if (WinLeftAction=21) {
+		goto, SpeakIt
+	} else if (WinLeftAction=22) {
+		goto, SpeakHighlight
+	} else if (WinLeftAction=23) {
+		goto, SpeakClipboard
+	} else if (WinLeftAction=24) {
+		goto, MonitorOff
+	} else if (WinLeftAction=25) {
+		goto, OpenTray
+	} else if (WinLeftAction=26) {
+		goto, AlwaysOnTop
+	} else if (WinLeftAction=27) {
+		goto, WebTimer
+	} else if (WinLeftAction=28) {
+		goto, TimerTab
+	} else if (WinLeftAction=29) {
+		goto, ZoomFaster
+	} else if (WinLeftAction=30) {
+		goto, ZoomSlower
+	} else if (WinLeftAction=31) {
+		hotkeyMod=LWin ; generic Win is unsupported
+		goto, ElasticZoom
+	} else if (WinLeftAction=32) {				
+		hotkeyMod=LWin
+		goto, ElasticStillZoom
+	} else if (WinLeftAction=33) {				
+		goto, SnipFree
+	} else if (WinLeftAction=34) {				
+		goto, SnipRect
+	} else if (WinLeftAction=35) {				
+		goto, SnipWin
+	} else if (WinLeftAction=36) {				
+		goto, SnipScreen
+	} else if (WinLeftAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (WinLeftAction=38) {				
+		goto, showHidePanel
+	} else if (WinLeftAction=39) {
+		sendinput ^!{Space}
+	} else if (WinLeftAction=40) {
+		Run, %CustomWinLeftPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+~#RButton::
+if (WinRightAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (WinRightAction<>38 AND WinRightAction<>26 AND WinRightAction<>18 AND WinRightAction<>19 AND WinRightAction<>21 AND WinRightAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (WinRightAction=1) { 
+		Gosub, SnippingTool
+	} else if (WinRightAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (WinRightAction=3) { 
+		Gosub, ColorHK
+	} else if (WinRightAction=4) { 
+		Gosub, MouseHK
+	} else if (WinRightAction=5) { 
+		Gosub, KeyboardHK
+	} else if (WinRightAction=6) { 
+		Gosub, TextHK
+	} else if (WinRightAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (WinRightAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (WinRightAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (WinRightAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (WinRightAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (WinRightAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (WinRightAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (WinRightAction=14) { 
+		goto, notepad
+	} else if (WinRightAction=15) { 
+		goto, wordpad
+	} else if (WinRightAction=16) { 
+		goto, mscalc
+	} else if (WinRightAction=17) { 
+		gosub, mspaint
+	} else if (WinRightAction=18) {
+		goto, Google
+	} else if (WinRightAction=19) {
+		goto, GoogleHighlight
+	} else if (WinRightAction=20) {
+		goto, GoogleClipboard
+	} else if (WinRightAction=21) {
+		goto, SpeakIt
+	} else if (WinRightAction=22) {
+		goto, SpeakHighlight
+	} else if (WinRightAction=23) {
+		goto, SpeakClipboard
+	} else if (WinRightAction=24) {
+		goto, MonitorOff
+	} else if (WinRightAction=25) {
+		goto, OpenTray
+	} else if (WinRightAction=26) {
+		goto, AlwaysOnTop
+	} else if (WinRightAction=27) {
+		goto, WebTimer
+	} else if (WinRightAction=28) {
+		goto, TimerTab
+	} else if (WinRightAction=29) {
+		goto, ZoomFaster
+	} else if (WinRightAction=30) {
+		goto, ZoomSlower
+	} else if (WinRightAction=31) {
+		hotkeyMod=LWin
+		goto, ElasticZoom
+	} else if (WinRightAction=32) {				
+		hotkeyMod=LWin
+		goto, ElasticStillZoom
+	} else if (WinRightAction=33) {				
+		goto, SnipFree
+	} else if (WinRightAction=34) {				
+		goto, SnipRect
+	} else if (WinRightAction=35) {				
+		goto, SnipWin
+	} else if (WinRightAction=36) {				
+		goto, SnipScreen
+	} else if (WinRightAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (WinRightAction=38) {				
+		goto, showHidePanel
+	} else if (WinRightAction=39) {
+		sendinput ^!{Space}
+	} else if (WinRightAction=40) {
+		Run, %CustomWinRightPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+;; Customize Keys END
+
+;; Customize Key WHEEL START
+
+~^WheelUp::
+if (CtrlWupAction=39) { ; 39 = None for Key Wheel
+	return
+}
+if not paused {
+	if (CtrlWupAction=1) { 
+		Gosub, SnippingTool
+	} else if (CtrlWupAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (CtrlWupAction=3) { 
+		Gosub, ColorHK
+	} else if (CtrlWupAction=4) { 
+		Gosub, MouseHK
+	} else if (CtrlWupAction=5) { 
+		Gosub, KeyboardHK
+	} else if (CtrlWupAction=6) { 
+		Gosub, TextHK
+	} else if (CtrlWupAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (CtrlWupAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (CtrlWupAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (CtrlWupAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (CtrlWupAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (CtrlWupAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (CtrlWupAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (CtrlWupAction=14) { 
+		goto, notepad
+	} else if (CtrlWupAction=15) { 
+		goto, wordpad
+	} else if (CtrlWupAction=16) { 
+		goto, mscalc
+	} else if (CtrlWupAction=17) { 
+		gosub, mspaint
+	} else if (CtrlWupAction=18) {
+		goto, GoogleHighlight
+	} else if (CtrlWupAction=19) {
+		goto, GoogleClipboard
+	} else if (CtrlWupAction=20) {
+		goto, SpeakHighlight
+	} else if (CtrlWupAction=21) {
+		goto, SpeakClipboard
+	} else if (CtrlWupAction=22) {
+		goto, MonitorOff
+	} else if (CtrlWupAction=23) {
+		goto, OpenTray
+	} else if (CtrlWupAction=24) {
+		goto, AlwaysOnTop
+	} else if (CtrlWupAction=25) {
+		goto, WebTimer
+	} else if (CtrlWupAction=26) {
+		goto, TimerTab
+	} else if (CtrlWupAction=27) {
+		goto, ZoomFaster
+	} else if (CtrlWupAction=28) {
+		goto, ZoomSlower
+	} else if (CtrlWupAction=29) {
+		hotkeyMod=Ctrl
+		goto, ElasticZoom
+	} else if (CtrlWupAction=30) {				
+		hotkeyMod=Ctrl
+		goto, ElasticStillZoom
+	} else if (CtrlWupAction=31) {				
+		goto, SnipFree
+	} else if (CtrlWupAction=32) {				
+		goto, SnipRect
+	} else if (CtrlWupAction=33) {				
+		goto, SnipWin
+	} else if (CtrlWupAction=34) {				
+		goto, SnipScreen
+	} else if (CtrlWupAction=35) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (CtrlWupAction=36) {				
+		goto, showHidePanel	
+	} else if (CtrlWupAction=37) {
+		sendinput ^!{Space}
+	} else if (CtrlWupAction=38) {
+		Run, %CustomCtrlWupPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+
+~^WheelDown::
+if (CtrlWdownAction=39) { ; 39 = None for Key Wheel
+	return
+}
+if not paused {
+	if (CtrlWdownAction=1) { 
+		Gosub, SnippingTool
+	} else if (CtrlWdownAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (CtrlWdownAction=3) { 
+		Gosub, ColorHK
+	} else if (CtrlWdownAction=4) { 
+		Gosub, MouseHK
+	} else if (CtrlWdownAction=5) { 
+		Gosub, KeyboardHK
+	} else if (CtrlWdownAction=6) { 
+		Gosub, TextHK
+	} else if (CtrlWdownAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (CtrlWdownAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (CtrlWdownAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (CtrlWdownAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (CtrlWdownAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (CtrlWdownAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (CtrlWdownAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (CtrlWdownAction=14) { 
+		goto, notepad
+	} else if (CtrlWdownAction=15) { 
+		goto, wordpad
+	} else if (CtrlWdownAction=16) { 
+		goto, mscalc
+	} else if (CtrlWdownAction=17) { 
+		gosub, mspaint
+	} else if (CtrlWdownAction=18) {
+		goto, GoogleHighlight
+	} else if (CtrlWdownAction=19) {
+		goto, GoogleClipboard
+	} else if (CtrlWdownAction=20) {
+		goto, SpeakHighlight
+	} else if (CtrlWdownAction=21) {
+		goto, SpeakClipboard
+	} else if (CtrlWdownAction=22) {
+		goto, MonitorOff
+	} else if (CtrlWdownAction=23) {
+		goto, OpenTray
+	} else if (CtrlWdownAction=24) {
+		goto, AlwaysOnTop
+	} else if (CtrlWdownAction=25) {
+		goto, WebTimer
+	} else if (CtrlWdownAction=26) {
+		goto, TimerTab
+	} else if (CtrlWdownAction=27) {
+		goto, ZoomFaster
+	} else if (CtrlWdownAction=28) {
+		goto, ZoomSlower
+	} else if (CtrlWdownAction=29) {
+		hotkeyMod=Ctrl
+		goto, ElasticZoom
+	} else if (CtrlWdownAction=30) {				
+		hotkeyMod=Ctrl
+		goto, ElasticStillZoom
+	} else if (CtrlWdownAction=31) {				
+		goto, SnipFree
+	} else if (CtrlWdownAction=32) {				
+		goto, SnipRect
+	} else if (CtrlWdownAction=33) {				
+		goto, SnipWin
+	} else if (CtrlWdownAction=34) {				
+		goto, SnipScreen
+	} else if (CtrlWdownAction=35) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (CtrlWdownAction=36) {				
+		goto, showHidePanel	
+	} else if (CtrlWdownAction=37) {
+		sendinput ^!{Space}
+	} else if (CtrlWdownAction=38) {
+		Run, %CustomCtrlWdownPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+~!WheelUp::
+if (AltWupAction=39) { ; 39 = None for Key Wheel
+	return
+}
+if not paused {
+	if (AltWupAction=1) { 
+		Gosub, SnippingTool
+	} else if (AltWupAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (AltWupAction=3) { 
+		Gosub, ColorHK
+	} else if (AltWupAction=4) { 
+		Gosub, MouseHK
+	} else if (AltWupAction=5) { 
+		Gosub, KeyboardHK
+	} else if (AltWupAction=6) { 
+		Gosub, TextHK
+	} else if (AltWupAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (AltWupAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (AltWupAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (AltWupAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (AltWupAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (AltWupAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (AltWupAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (AltWupAction=14) { 
+		goto, notepad
+	} else if (AltWupAction=15) { 
+		goto, wordpad
+	} else if (AltWupAction=16) { 
+		goto, mscalc
+	} else if (AltWupAction=17) { 
+		gosub, mspaint
+	} else if (AltWupAction=18) {
+		goto, GoogleHighlight
+	} else if (AltWupAction=19) {
+		goto, GoogleClipboard
+	} else if (AltWupAction=20) {
+		goto, SpeakHighlight
+	} else if (AltWupAction=21) {
+		goto, SpeakClipboard
+	} else if (AltWupAction=22) {
+		goto, MonitorOff
+	} else if (AltWupAction=23) {
+		goto, OpenTray
+	} else if (AltWupAction=24) {
+		goto, AlwaysOnTop
+	} else if (AltWupAction=25) {
+		goto, WebTimer
+	} else if (AltWupAction=26) {
+		goto, TimerTab
+	} else if (AltWupAction=27) {
+		goto, ZoomFaster
+	} else if (AltWupAction=28) {
+		goto, ZoomSlower
+	} else if (AltWupAction=29) {
+		hotkeyMod=Alt
+		goto, ElasticZoom
+	} else if (AltWupAction=30) {				
+		hotkeyMod=Alt
+		goto, ElasticStillZoom
+	} else if (AltWupAction=31) {
+		goto, SnipFree
+	} else if (AltWupAction=32) {				
+		goto, SnipRect
+	} else if (AltWupAction=33) {				
+		goto, SnipWin
+	} else if (AltWupAction=34) {				
+		goto, SnipScreen
+	} else if (AltWupAction=35) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (AltWupAction=36) {				
+		goto, showHidePanel		
+	} else if (AltWupAction=37) {
+		sendinput ^!{Space}
+	} else if (AltWupAction=38) {
+		Run, %CustomAltWupPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+
+~!WheelDown::
+if (AltWdownAction=39) { ; 39 = None for Key Wheel
+	return
+}
+if not paused {
+	if (AltWdownAction=1) { 
+		Gosub, SnippingTool
+	} else if (AltWdownAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (AltWdownAction=3) { 
+		Gosub, ColorHK
+	} else if (AltWdownAction=4) { 
+		Gosub, MouseHK
+	} else if (AltWdownAction=5) { 
+		Gosub, KeyboardHK
+	} else if (AltWdownAction=6) { 
+		Gosub, TextHK
+	} else if (AltWdownAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (AltWdownAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (AltWdownAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (AltWdownAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (AltWdownAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (AltWdownAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (AltWdownAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (AltWdownAction=14) { 
+		goto, notepad
+	} else if (AltWdownAction=15) { 
+		goto, wordpad
+	} else if (AltWdownAction=16) { 
+		goto, mscalc
+	} else if (AltWdownAction=17) { 
+		gosub, mspaint
+	} else if (AltWdownAction=18) {
+		goto, GoogleHighlight
+	} else if (AltWdownAction=19) {
+		goto, GoogleClipboard
+	} else if (AltWdownAction=20) {
+		goto, SpeakHighlight
+	} else if (AltWdownAction=21) {
+		goto, SpeakClipboard
+	} else if (AltWdownAction=22) {
+		goto, MonitorOff
+	} else if (AltWdownAction=23) {
+		goto, OpenTray
+	} else if (AltWdownAction=24) {
+		goto, AlwaysOnTop
+	} else if (AltWdownAction=25) {
+		goto, WebTimer
+	} else if (AltWdownAction=26) {
+		goto, TimerTab
+	} else if (AltWdownAction=27) {
+		goto, ZoomFaster
+	} else if (AltWdownAction=28) {
+		goto, ZoomSlower
+	} else if (AltWdownAction=29) {
+		hotkeyMod=Alt
+		goto, ElasticZoom
+	} else if (AltWdownAction=30) {				
+		hotkeyMod=Alt
+		goto, ElasticStillZoom
+	} else if (AltWdownAction=31) {				
+		goto, SnipFree
+	} else if (AltWdownAction=32) {				
+		goto, SnipRect
+	} else if (AltWdownAction=33) {				
+		goto, SnipWin
+	} else if (AltWdownAction=34) {				
+		goto, SnipScreen
+	} else if (AltWdownAction=35) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (AltWdownAction=36) {				
+		goto, showHidePanel	
+	} else if (AltWdownAction=37) {
+		sendinput ^!{Space}
+	} else if (AltWdownAction=38) {
+		Run, %CustomAltWdownPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+
+;~+WheelUp::
+;if (ShiftWupAction=39) { ; 39 = None for Key Wheel
+;	return
+;}
+;if not paused {
+;	if (ShiftWupAction=1) { 
+;		Gosub, SnippingTool
+;	} else if (ShiftWupAction=2) { 
+;		GoSub, KillMagnifierHK
+;	} else if (ShiftWupAction=3) { 
+;		Gosub, ColorHK
+;	} else if (ShiftWupAction=4) { 
+;		Gosub, MouseHK
+;	} else if (ShiftWupAction=5) { 
+;		Gosub, KeyboardHK
+;	} else if (ShiftWupAction=6) { 
+;		Gosub, TextHK
+;	} else if (ShiftWupAction=7) {
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewType
+;	} else if (ShiftWupAction=8) {
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewLiveZoom
+;	} else if (ShiftWupAction=9) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewStillZoom
+;	} else if (ShiftWupAction=10) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewDraw
+;	} else if (ShiftWupAction=11) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewBreakTimer
+;	} else if (ShiftWupAction=12) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewBlackBoard
+;	} else if (ShiftWupAction=13) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewWhiteBoard
+;	} else if (ShiftWupAction=14) { 
+;		goto, notepad
+;	} else if (ShiftWupAction=15) { 
+;		goto, wordpad
+;	} else if (ShiftWupAction=16) { 
+;		goto, mscalc
+;	} else if (ShiftWupAction=17) { 
+;		gosub, mspaint
+;	} else if (ShiftWupAction=18) {
+;		goto, GoogleHighlight
+;	} else if (ShiftWupAction=19) {
+;		goto, GoogleClipboard
+;	} else if (ShiftWupAction=20) {
+;		goto, SpeakHighlight
+;	} else if (ShiftWupAction=21) {
+;		goto, SpeakClipboard
+;	} else if (ShiftWupAction=22) {
+;		goto, MonitorOff
+;	} else if (ShiftWupAction=23) {
+;		goto, OpenTray
+;	} else if (ShiftWupAction=24) {
+;		goto, AlwaysOnTop
+;	} else if (ShiftWupAction=25) {
+;		goto, WebTimer
+;	} else if (ShiftWupAction=26) {
+;		goto, TimerTab
+;	} else if (ShiftWupAction=27) {
+;		goto, ZoomFaster
+;	} else if (ShiftWupAction=28) {
+;		goto, ZoomSlower
+;	} else if (ShiftWupAction=29) {
+;		hotkeyMod=Shift
+;		goto, ElasticZoom
+;	} else if (ShiftWupAction=30) {				
+;		hotkeyMod=Shift
+;		goto, ElasticStillZoom
+;	} else if (ShiftWupAction=31) {				
+;		goto, SnipFree
+;	} else if (ShiftWupAction=32) {				
+;		goto, SnipRect
+;	} else if (ShiftWupAction=33) {				
+;		goto, SnipWin
+;	} else if (ShiftWupAction=34) {				
+;		goto, SnipScreen
+;	} else if (ShiftWupAction=35) {				
+;		Gosub, ShowMagnifierHK ; show hide magnifier
+;	} else if (ShiftWupAction=36) {				
+;		goto, showHidePanel	
+;	} else if (ShiftWupAction=37) {
+;		sendinput ^!{Space}
+;	} else if (ShiftWupAction=38) {
+;		Run, %CustomShiftWupPath%
+;	} else {
+;		return ; this is unneeded
+;	}
+;}
+;return
+
+
+;~+WheelDown::
+;if (ShiftWdownAction=39) { ; 39 = None for Key Wheel
+;	return
+;}
+;if not paused {
+;	if (ShiftWdownAction=1) { 
+;		Gosub, SnippingTool
+;	} else if (ShiftWdownAction=2) { 
+;		GoSub, KillMagnifierHK
+;	} else if (ShiftWdownAction=3) { 
+;		Gosub, ColorHK
+;	} else if (ShiftWdownAction=4) { 
+;		Gosub, MouseHK
+;	} else if (ShiftWdownAction=5) { 
+;		Gosub, KeyboardHK
+;	} else if (ShiftWdownAction=6) { 
+;		Gosub, TextHK
+;	} else if (ShiftWdownAction=7) {
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewType
+;	} else if (ShiftWdownAction=8) {
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewLiveZoom
+;	} else if (ShiftWdownAction=9) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewStillZoom
+;	} else if (ShiftWdownAction=10) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewDraw
+;	} else if (ShiftWdownAction=11) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewBreakTimer
+;	} else if (ShiftWdownAction=12) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewBlackBoard
+;	} else if (ShiftWdownAction=13) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewWhiteBoard
+;	} else if (ShiftWdownAction=14) { 
+;		goto, notepad
+;	} else if (ShiftWdownAction=15) { 
+;		goto, wordpad
+;	} else if (ShiftWdownAction=16) { 
+;		goto, mscalc
+;	} else if (ShiftWdownAction=17) { 
+;		gosub, mspaint
+;	} else if (ShiftWdownAction=18) {
+;		goto, GoogleHighlight
+;	} else if (ShiftWdownAction=19) {
+;		goto, GoogleClipboard
+;	} else if (ShiftWdownAction=20) {
+;		goto, SpeakHighlight
+;	} else if (ShiftWdownAction=21) {
+;		goto, SpeakClipboard
+;	} else if (ShiftWdownAction=22) {
+;		goto, MonitorOff
+;	} else if (ShiftWdownAction=23) {
+;		goto, OpenTray
+;	} else if (ShiftWdownAction=24) {
+;		goto, AlwaysOnTop
+;	} else if (ShiftWdownAction=25) {
+;		goto, WebTimer
+;	} else if (ShiftWdownAction=26) {
+;		goto, TimerTab
+;	} else if (ShiftWdownAction=27) {
+;		goto, ZoomFaster
+;	} else if (ShiftWdownAction=28) {
+;		goto, ZoomSlower
+;	} else if (ShiftWdownAction=29) {
+;		hotkeyMod=Shift
+;		goto, ElasticZoom
+;	} else if (ShiftWdownAction=30) {				
+;		hotkeyMod=Shift
+;		goto, ElasticStillZoom
+;	} else if (ShiftWdownAction=31) {				
+;		goto, SnipFree
+;	} else if (ShiftWdownAction=32) {				
+;		goto, SnipRect
+;	} else if (ShiftWdownAction=33) {				
+;		goto, SnipWin
+;	} else if (ShiftWdownAction=34) {				
+;		goto, SnipScreen
+;	} else if (ShiftWdownAction=35) {				
+;		Gosub, ShowMagnifierHK ; show hide magnifier
+;	} else if (ShiftWdownAction=36) {				
+;		goto, showHidePanel
+;	} else if (ShiftWdownAction=37) {
+;		sendinput ^!{Space}
+;	} else if (ShiftWdownAction=38) {
+;		Run, %CustomShiftWdownPath%
+;	} else {
+;		return ; this is unneeded
+;	}
+;}
+;return
+
+
+~#WheelUp::
+if (WinWupAction=39) { ; 39 = None for Key Wheel
+	return
+}
+if not paused {
+	if (WinWupAction=1) { 
+		Gosub, SnippingTool
+	} else if (WinWupAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (WinWupAction=3) { 
+		Gosub, ColorHK
+	} else if (WinWupAction=4) { 
+		Gosub, MouseHK
+	} else if (WinWupAction=5) { 
+		Gosub, KeyboardHK
+	} else if (WinWupAction=6) { 
+		Gosub, TextHK
+	} else if (WinWupAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (WinWupAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (WinWupAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (WinWupAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (WinWupAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (WinWupAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (WinWupAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (WinWupAction=14) { 
+		goto, notepad
+	} else if (WinWupAction=15) { 
+		goto, wordpad
+	} else if (WinWupAction=16) { 
+		goto, mscalc
+	} else if (WinWupAction=17) { 
+		gosub, mspaint
+	} else if (WinWupAction=18) {
+		goto, GoogleHighlight
+	} else if (WinWupAction=19) {
+		goto, GoogleClipboard
+	} else if (WinWupAction=20) {
+		goto, SpeakHighlight
+	} else if (WinWupAction=21) {
+		goto, SpeakClipboard
+	} else if (WinWupAction=22) {
+		goto, MonitorOff
+	} else if (WinWupAction=23) {
+		goto, OpenTray
+	} else if (WinWupAction=24) {
+		goto, AlwaysOnTop
+	} else if (WinWupAction=25) {
+		goto, WebTimer
+	} else if (WinWupAction=26) {
+		goto, TimerTab
+	} else if (WinWupAction=27) {
+		goto, ZoomFaster
+	} else if (WinWupAction=28) {
+		goto, ZoomSlower
+	} else if (WinWupAction=29) {
+		hotkeyMod=LWin
+		goto, ElasticZoom
+	} else if (WinWupAction=30) {				
+		hotkeyMod=LWin
+		goto, ElasticStillZoom
+	} else if (WinWupAction=31) {				
+		goto, SnipFree
+	} else if (WinWupAction=32) {				
+		goto, SnipRect
+	} else if (WinWupAction=33) {				
+		goto, SnipWin
+	} else if (WinWupAction=34) {				
+		goto, SnipScreen
+	} else if (WinWupAction=35) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (WinWupAction=36) {				
+		goto, showHidePanel
+	} else if (WinWupAction=37) {
+		sendinput ^!{Space}
+	} else if (WinWupAction=38) {
+		Run, %CustomWinWupPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+
+~#WheelDown::
+if (WinWdownAction=39) { ; 39 = None for Key Wheel
+	return
+}
+if not paused {
+	if (WinWdownAction=1) { 
+		Gosub, SnippingTool
+	} else if (WinWdownAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (WinWdownAction=3) { 
+		Gosub, ColorHK
+	} else if (WinWdownAction=4) { 
+		Gosub, MouseHK
+	} else if (WinWdownAction=5) { 
+		Gosub, KeyboardHK
+	} else if (WinWdownAction=6) { 
+		Gosub, TextHK
+	} else if (WinWdownAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (WinWdownAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (WinWdownAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (WinWdownAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (WinWdownAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (WinWdownAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (WinWdownAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (WinWdownAction=14) { 
+		goto, notepad
+	} else if (WinWdownAction=15) { 
+		goto, wordpad
+	} else if (WinWdownAction=16) { 
+		goto, mscalc
+	} else if (WinWdownAction=17) { 
+		gosub, mspaint
+	} else if (WinWdownAction=18) {
+		goto, GoogleHighlight
+	} else if (WinWdownAction=19) {
+		goto, GoogleClipboard
+	} else if (WinWdownAction=20) {
+		goto, SpeakHighlight
+	} else if (WinWdownAction=21) {
+		goto, SpeakClipboard
+	} else if (WinWdownAction=22) {
+		goto, MonitorOff
+	} else if (WinWdownAction=23) {
+		goto, OpenTray
+	} else if (WinWdownAction=24) {
+		goto, AlwaysOnTop
+	} else if (WinWdownAction=25) {
+		goto, WebTimer
+	} else if (WinWdownAction=26) {
+		goto, TimerTab
+	} else if (WinWdownAction=27) {
+		goto, ZoomFaster
+	} else if (WinWdownAction=28) {
+		goto, ZoomSlower
+	} else if (WinWdownAction=29) {
+		hotkeyMod=LWin
+		goto, ElasticZoom
+	} else if (WinWdownAction=30) {				
+		hotkeyMod=LWin
+		goto, ElasticStillZoom
+	} else if (WinWdownAction=31) {				
+		goto, SnipFree
+	} else if (WinWdownAction=32) {				
+		goto, SnipRect
+	} else if (WinWdownAction=33) {				
+		goto, SnipWin
+	} else if (WinWdownAction=34) {				
+		goto, SnipScreen
+	} else if (WinWdownAction=35) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (WinWdownAction=36) {				
+		goto, showHidePanel	
+	} else if (WinWdownAction=37) {
+		sendinput ^!{Space}
+	} else if (WinWdownAction=38) {
+		Run, %CustomWinWdownPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+;; Customize Key WHEEL END
+
+;; Customize Left/Right - Start
+
+~LButton & MButton::
+if (LeftMiddleAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (LeftMiddleAction<>38 AND LeftMiddleAction<>26 AND LeftMiddleAction<>18 AND LeftMiddleAction<>19 AND LeftMiddleAction<>21 AND LeftMiddleAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (LeftMiddleAction=1) { 
+		Gosub, SnippingTool
+	} else if (LeftMiddleAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (LeftMiddleAction=3) { 
+		Gosub, ColorHK
+	} else if (LeftMiddleAction=4) { 
+		Gosub, MouseHK
+	} else if (LeftMiddleAction=5) { 
+		Gosub, KeyboardHK
+	} else if (LeftMiddleAction=6) { 
+		Gosub, TextHK
+	} else if (LeftMiddleAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (LeftMiddleAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (LeftMiddleAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (LeftMiddleAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (LeftMiddleAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (LeftMiddleAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (LeftMiddleAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (LeftMiddleAction=14) { 
+		goto, notepad
+	} else if (LeftMiddleAction=15) { 
+		goto, wordpad
+	} else if (LeftMiddleAction=16) { 
+		goto, mscalc
+	} else if (LeftMiddleAction=17) { 
+		gosub, mspaint
+	} else if (LeftMiddleAction=18) {
+		goto, Google
+	} else if (LeftMiddleAction=19) {
+		goto, GoogleHighlight
+	} else if (LeftMiddleAction=20) {
+		goto, GoogleClipboard
+	} else if (LeftMiddleAction=21) {
+		goto, SpeakIt
+	} else if (LeftMiddleAction=22) {
+		goto, SpeakHighlight
+	} else if (LeftMiddleAction=23) {
+		goto, SpeakClipboard
+	} else if (LeftMiddleAction=24) {
+		goto, MonitorOff
+	} else if (LeftMiddleAction=25) {
+		goto, OpenTray
+	} else if (LeftMiddleAction=26) {
+		goto, AlwaysOnTop
+	} else if (LeftMiddleAction=27) {
+		goto, WebTimer
+	} else if (LeftMiddleAction=28) {
+		goto, TimerTab
+	} else if (LeftMiddleAction=29) {
+		goto, ZoomFaster
+	} else if (LeftMiddleAction=30) {
+		goto, ZoomSlower
+	} else if (LeftMiddleAction=31) {
+		hotkeyMod=Left
+		goto, ElasticZoom
+	} else if (LeftMiddleAction=32) {				
+		hotkeyMod=Left
+		goto, ElasticStillZoom
+	} else if (LeftMiddleAction=33) {				
+		goto, SnipFree
+	} else if (LeftMiddleAction=34) {				
+		goto, SnipRect
+	} else if (LeftMiddleAction=35) {				
+		goto, SnipWin
+	} else if (LeftMiddleAction=36) {				
+		goto, SnipScreen
+	} else if (LeftMiddleAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (LeftMiddleAction=38) {				
+		goto, showHidePanel
+	} else if (LeftMiddleAction=39) {
+		sendinput ^!{Space}
+	} else if (LeftMiddleAction=40) {
+		Run, %CustomLeftMiddlePath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
+~LButton & RButton::
+if (LeftRightAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (LeftRightAction<>38 AND LeftRightAction<>26 AND LeftRightAction<>18 AND LeftRightAction<>19 AND LeftRightAction<>21 AND LeftRightAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (LeftRightAction=1) { 
+		Gosub, SnippingTool
+	} else if (LeftRightAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (LeftRightAction=3) { 
+		Gosub, ColorHK
+	} else if (LeftRightAction=4) { 
+		Gosub, MouseHK
+	} else if (LeftRightAction=5) { 
+		Gosub, KeyboardHK
+	} else if (LeftRightAction=6) { 
+		Gosub, TextHK
+	} else if (LeftRightAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (LeftRightAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (LeftRightAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (LeftRightAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (LeftRightAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (LeftRightAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (LeftRightAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (LeftRightAction=14) { 
+		goto, notepad
+	} else if (LeftRightAction=15) { 
+		goto, wordpad
+	} else if (LeftRightAction=16) { 
+		goto, mscalc
+	} else if (LeftRightAction=17) { 
+		gosub, mspaint
+	} else if (LeftRightAction=18) {
+		goto, Google
+	} else if (LeftRightAction=19) {
+		goto, GoogleHighlight
+	} else if (LeftRightAction=20) {
+		goto, GoogleClipboard
+	} else if (LeftRightAction=21) {
+		goto, SpeakIt
+	} else if (LeftRightAction=22) {
+		goto, SpeakHighlight
+	} else if (LeftRightAction=23) {
+		goto, SpeakClipboard
+	} else if (LeftRightAction=24) {
+		goto, MonitorOff
+	} else if (LeftRightAction=25) {
+		goto, OpenTray
+	} else if (LeftRightAction=26) {
+		goto, AlwaysOnTop
+	} else if (LeftRightAction=27) {
+		goto, WebTimer
+	} else if (LeftRightAction=28) {
+		goto, TimerTab
+	} else if (LeftRightAction=29) {
+		goto, ZoomFaster
+	} else if (LeftRightAction=30) {
+		goto, ZoomSlower
+	} else if (LeftRightAction=31) {
+		hotkeyMod=Left
+		goto, ElasticZoom
+	} else if (LeftRightAction=32) {				
+		hotkeyMod=Left
+		goto, ElasticStillZoom
+	} else if (LeftRightAction=33) {				
+		goto, SnipFree
+	} else if (LeftRightAction=34) {				
+		goto, SnipRect
+	} else if (LeftRightAction=35) {				
+		goto, SnipWin
+	} else if (LeftRightAction=36) {				
+		goto, SnipScreen
+	} else if (LeftRightAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (LeftRightAction=38) {				
+		goto, showHidePanel
+	} else if (LeftRightAction=39) {
+		sendinput ^!{Space}
+	} else if (LeftRightAction=40) {
+		Run, %CustomLeftRightPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
+
 ~RButton & LButton::
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-{
-	Gui, Destroy
+if (RightLeftAction=41) { ; 41 = None
 	return
 }
-;Gui, Destroy
-goto, lastPos
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (RightLeftAction<>38 AND RightLeftAction<>26 AND RightLeftAction<>18 AND RightLeftAction<>19 AND RightLeftAction<>21 AND RightLeftAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (RightLeftAction=1) { 
+		Gosub, SnippingTool
+	} else if (RightLeftAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (RightLeftAction=3) { 
+		Gosub, ColorHK
+	} else if (RightLeftAction=4) { 
+		Gosub, MouseHK
+	} else if (RightLeftAction=5) { 
+		Gosub, KeyboardHK
+	} else if (RightLeftAction=6) { 
+		Gosub, TextHK
+	} else if (RightLeftAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (RightLeftAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (RightLeftAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (RightLeftAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (RightLeftAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (RightLeftAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (RightLeftAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (RightLeftAction=14) { 
+		goto, notepad
+	} else if (RightLeftAction=15) { 
+		goto, wordpad
+	} else if (RightLeftAction=16) { 
+		goto, mscalc
+	} else if (RightLeftAction=17) { 
+		gosub, mspaint
+	} else if (RightLeftAction=18) {
+		goto, Google
+	} else if (RightLeftAction=19) {
+		goto, GoogleHighlight
+	} else if (RightLeftAction=20) {
+		goto, GoogleClipboard
+	} else if (RightLeftAction=21) {
+		goto, SpeakIt
+	} else if (RightLeftAction=22) {
+		goto, SpeakHighlight
+	} else if (RightLeftAction=23) {
+		goto, SpeakClipboard
+	} else if (RightLeftAction=24) {
+		goto, MonitorOff
+	} else if (RightLeftAction=25) {
+		goto, OpenTray
+	} else if (RightLeftAction=26) {
+		goto, AlwaysOnTop
+	} else if (RightLeftAction=27) {
+		goto, WebTimer
+	} else if (RightLeftAction=28) {
+		goto, TimerTab
+	} else if (RightLeftAction=29) {
+		goto, ZoomFaster
+	} else if (RightLeftAction=30) {
+		goto, ZoomSlower
+	} else if (RightLeftAction=31) {
+		hotkeyMod=Right
+		goto, ElasticZoom
+	} else if (RightLeftAction=32) {				
+		hotkeyMod=Right
+		goto, ElasticStillZoom
+	} else if (RightLeftAction=33) {				
+		goto, SnipFree
+	} else if (RightLeftAction=34) {				
+		goto, SnipRect
+	} else if (RightLeftAction=35) {				
+		goto, SnipWin
+	} else if (RightLeftAction=36) {				
+		goto, SnipScreen
+	} else if (RightLeftAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (RightLeftAction=38) {				
+		goto, showHidePanel	
+	} else if (RightLeftAction=39) {
+		sendinput ^!{Space}
+	} else if (RightLeftAction=40) {
+		Run, %CustomRightLeftPath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
 
-; Undocumented way to launch AeroZoom panel
-+RButton::
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-{
-;	Gosub, ZoomPad
-	Gui, Destroy
+~RButton & MButton::
+if (RightMiddleAction=41) { ; 41 = None
 	return
 }
-goto, lastPos
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (RightMiddleAction<>38 AND RightMiddleAction<>26 AND RightMiddleAction<>18 AND RightMiddleAction<>19 AND RightMiddleAction<>21 AND RightMiddleAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (RightMiddleAction=1) { 
+		Gosub, SnippingTool
+	} else if (RightMiddleAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (RightMiddleAction=3) { 
+		Gosub, ColorHK
+	} else if (RightMiddleAction=4) { 
+		Gosub, MouseHK
+	} else if (RightMiddleAction=5) { 
+		Gosub, KeyboardHK
+	} else if (RightMiddleAction=6) { 
+		Gosub, TextHK
+	} else if (RightMiddleAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (RightMiddleAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (RightMiddleAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (RightMiddleAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (RightMiddleAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (RightMiddleAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (RightMiddleAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (RightMiddleAction=14) { 
+		goto, notepad
+	} else if (RightMiddleAction=15) { 
+		goto, wordpad
+	} else if (RightMiddleAction=16) { 
+		goto, mscalc
+	} else if (RightMiddleAction=17) { 
+		gosub, mspaint
+	} else if (RightMiddleAction=18) {
+		goto, Google
+	} else if (RightMiddleAction=19) {
+		goto, GoogleHighlight
+	} else if (RightMiddleAction=20) {
+		goto, GoogleClipboard
+	} else if (RightMiddleAction=21) {
+		goto, SpeakIt
+	} else if (RightMiddleAction=22) {
+		goto, SpeakHighlight
+	} else if (RightMiddleAction=23) {
+		goto, SpeakClipboard
+	} else if (RightMiddleAction=24) {
+		goto, MonitorOff
+	} else if (RightMiddleAction=25) {
+		goto, OpenTray
+	} else if (RightMiddleAction=26) {
+		goto, AlwaysOnTop
+	} else if (RightMiddleAction=27) {
+		goto, WebTimer
+	} else if (RightMiddleAction=28) {
+		goto, TimerTab
+	} else if (RightMiddleAction=29) {
+		goto, ZoomFaster
+	} else if (RightMiddleAction=30) {
+		goto, ZoomSlower
+	} else if (RightMiddleAction=31) {
+		hotkeyMod=Right
+		goto, ElasticZoom
+	} else if (RightMiddleAction=32) {				
+		hotkeyMod=Right
+		goto, ElasticStillZoom
+	} else if (RightMiddleAction=33) {				
+		goto, SnipFree
+	} else if (RightMiddleAction=34) {				
+		goto, SnipRect
+	} else if (RightMiddleAction=35) {				
+		goto, SnipWin
+	} else if (RightMiddleAction=36) {				
+		goto, SnipScreen
+	} else if (RightMiddleAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (RightMiddleAction=38) {				
+		goto, showHidePanel
+	} else if (RightMiddleAction=39) {
+		sendinput ^!{Space}
+	} else if (RightMiddleAction=40) {
+		Run, %CustomRightMiddlePath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
 
-; Additional way to launch AeroZoom panel as backup
-; ~MButton & LButton::
-; Gui, Destroy
-; goto, lastPos
+;; Customize Left/Right - END
+
+;; Customize Left/Right Wheelup/down - START
+
+
+~LButton & Wheelup::
+if (LeftWupAction=37) { ; 37 = None
+	return
+}
+if paused
+	return
+if (LeftWupAction<>34 AND LeftWupAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (LeftWupAction=1) { 
+	Gosub, SnippingTool
+} else if (LeftWupAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (LeftWupAction=3) { 
+	Gosub, ColorHK
+} else if (LeftWupAction=4) { 
+	Gosub, MouseHK
+} else if (LeftWupAction=5) { 
+	Gosub, KeyboardHK
+} else if (LeftWupAction=6) { 
+	Gosub, TextHK
+} else if (LeftWupAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (LeftWupAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (LeftWupAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (LeftWupAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (LeftWupAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (LeftWupAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (LeftWupAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (LeftWupAction=14) { 
+	goto, notepad
+} else if (LeftWupAction=15) { 
+	goto, wordpad
+} else if (LeftWupAction=16) { 
+	goto, mscalc
+} else if (LeftWupAction=17) { 
+	gosub, mspaint
+} else if (LeftWupAction=18) { 
+	goto, GoogleClipboard
+} else if (LeftWupAction=19) { 
+	goto, SpeakClipboard
+} else if (LeftWupAction=20) { 
+	goto, MonitorOff
+} else if (LeftWupAction=21) { 
+	goto, OpenTray
+} else if (LeftWupAction=22) { 
+	goto, AlwaysOnTop
+} else if (LeftWupAction=23) { 
+	goto, WebTimer
+} else if (LeftWupAction=24) { 
+	goto, TimerTab
+} else if (LeftWupAction=25) { 
+	goto, ZoomFaster
+} else if (LeftWupAction=26) { 
+	goto, ZoomSlower
+} else if (LeftWupAction=27) {
+	hotkeyMod=LButton
+	goto, ElasticZoom
+} else if (LeftWupAction=28) {				
+	hotkeyMod=LButton
+	goto, ElasticStillZoom
+} else if (LeftWupAction=29) {				
+	goto, SnipFree
+} else if (LeftWupAction=30) {				
+	goto, SnipRect
+} else if (LeftWupAction=31) {				
+	goto, SnipWin
+} else if (LeftWupAction=32) {				
+	goto, SnipScreen
+} else if (LeftWupAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (LeftWupAction=34) {				
+	goto, showHidePanel
+} else if (LeftWupAction=35) { 
+	sendinput ^!{Space}
+} else if (LeftWupAction=36) { 
+	Run, %CustomLeftWupPath%
+} else {
+	return ; this is unneeded
+}
+return
+
+
+~LButton & Wheeldown::
+if (LeftWdownAction=37) { ; 37 = None
+	return
+}
+if paused
+	return
+if (LeftWdownAction<>34 AND LeftWdownAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (LeftWdownAction=1) { 
+	Gosub, SnippingTool
+} else if (LeftWdownAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (LeftWdownAction=3) { 
+	Gosub, ColorHK
+} else if (LeftWdownAction=4) { 
+	Gosub, MouseHK
+} else if (LeftWdownAction=5) { 
+	Gosub, KeyboardHK
+} else if (LeftWdownAction=6) { 
+	Gosub, TextHK
+} else if (LeftWdownAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (LeftWdownAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (LeftWdownAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (LeftWdownAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (LeftWdownAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (LeftWdownAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (LeftWdownAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (LeftWdownAction=14) { 
+	goto, notepad
+} else if (LeftWdownAction=15) { 
+	goto, wordpad
+} else if (LeftWdownAction=16) { 
+	goto, mscalc
+} else if (LeftWdownAction=17) { 
+	gosub, mspaint
+} else if (LeftWdownAction=18) { 
+	goto, GoogleClipboard
+} else if (LeftWdownAction=19) { 
+	goto, SpeakClipboard
+} else if (LeftWdownAction=20) { 
+	goto, MonitorOff
+} else if (LeftWdownAction=21) { 
+	goto, OpenTray
+} else if (LeftWdownAction=22) { 
+	goto, AlwaysOnTop
+} else if (LeftWdownAction=23) { 
+	goto, WebTimer
+} else if (LeftWdownAction=24) { 
+	goto, TimerTab
+} else if (LeftWdownAction=25) { 
+	goto, ZoomFaster
+} else if (LeftWdownAction=26) { 
+	goto, ZoomSlower
+} else if (LeftWdownAction=27) {
+	hotkeyMod=LButton
+	goto, ElasticZoom
+} else if (LeftWdownAction=28) {				
+	hotkeyMod=LButton
+	goto, ElasticStillZoom
+} else if (LeftWdownAction=29) {				
+	goto, SnipFree
+} else if (LeftWdownAction=30) {				
+	goto, SnipRect
+} else if (LeftWdownAction=31) {				
+	goto, SnipWin
+} else if (LeftWdownAction=32) {				
+	goto, SnipScreen
+} else if (LeftWdownAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (LeftWdownAction=34) {				
+	goto, showHidePanel
+} else if (LeftWdownAction=35) { 
+	sendinput ^!{Space}
+} else if (LeftWdownAction=36) { 
+	Run, %CustomLeftWdownPath%
+} else {
+	return ; this is unneeded
+}
+return
+
+~RButton & Wheelup::
+if (RightWupAction=37) { ; 37 = None
+	return
+}
+if paused
+	return
+if (RightWupAction<>34 AND RightWupAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (RightWupAction=1) { 
+	Gosub, SnippingTool
+} else if (RightWupAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (RightWupAction=3) { 
+	Gosub, ColorHK
+} else if (RightWupAction=4) { 
+	Gosub, MouseHK
+} else if (RightWupAction=5) { 
+	Gosub, KeyboardHK
+} else if (RightWupAction=6) { 
+	Gosub, TextHK
+} else if (RightWupAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (RightWupAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (RightWupAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (RightWupAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (RightWupAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (RightWupAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (RightWupAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (RightWupAction=14) { 
+	goto, notepad
+} else if (RightWupAction=15) { 
+	goto, wordpad
+} else if (RightWupAction=16) { 
+	goto, mscalc
+} else if (RightWupAction=17) { 
+	gosub, mspaint
+} else if (RightWupAction=18) { 
+	goto, GoogleClipboard
+} else if (RightWupAction=19) { 
+	goto, SpeakClipboard
+} else if (RightWupAction=20) { 
+	goto, MonitorOff
+} else if (RightWupAction=21) { 
+	goto, OpenTray
+} else if (RightWupAction=22) { 
+	goto, AlwaysOnTop
+} else if (RightWupAction=23) { 
+	goto, WebTimer
+} else if (RightWupAction=24) { 
+	goto, TimerTab
+} else if (RightWupAction=25) { 
+	goto, ZoomFaster
+} else if (RightWupAction=26) { 
+	goto, ZoomSlower
+} else if (RightWupAction=27) {
+	hotkeyMod=RButton
+	goto, ElasticZoom
+} else if (RightWupAction=28) {				
+	hotkeyMod=RButton
+	goto, ElasticStillZoom
+} else if (RightWupAction=29) {				
+	goto, SnipFree
+} else if (RightWupAction=30) {				
+	goto, SnipRect
+} else if (RightWupAction=31) {				
+	goto, SnipWin
+} else if (RightWupAction=32) {				
+	goto, SnipScreen
+} else if (RightWupAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (RightWupAction=34) {				
+	goto, showHidePanel
+} else if (RightWupAction=35) { 
+	sendinput ^!{Space}
+} else if (RightWupAction=36) { 
+	Run, %CustomRightWupPath%
+} else {
+	return ; this is unneeded
+}
+return
+
+~RButton & Wheeldown::
+if (RightWdownAction=37) { ; 37 = None
+	return
+}
+if paused
+	return
+if (RightWdownAction<>34 AND RightWdownAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (RightWdownAction=1) { 
+	Gosub, SnippingTool
+} else if (RightWdownAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (RightWdownAction=3) { 
+	Gosub, ColorHK
+} else if (RightWdownAction=4) { 
+	Gosub, MouseHK
+} else if (RightWdownAction=5) { 
+	Gosub, KeyboardHK
+} else if (RightWdownAction=6) { 
+	Gosub, TextHK
+} else if (RightWdownAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (RightWdownAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (RightWdownAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (RightWdownAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (RightWdownAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (RightWdownAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (RightWdownAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (RightWdownAction=14) { 
+	goto, notepad
+} else if (RightWdownAction=15) { 
+	goto, wordpad
+} else if (RightWdownAction=16) { 
+	goto, mscalc
+} else if (RightWdownAction=17) { 
+	gosub, mspaint
+} else if (RightWdownAction=18) { 
+	goto, GoogleClipboard
+} else if (RightWdownAction=19) { 
+	goto, SpeakClipboard
+} else if (RightWdownAction=20) { 
+	goto, MonitorOff
+} else if (RightWdownAction=21) { 
+	goto, OpenTray
+} else if (RightWdownAction=22) { 
+	goto, AlwaysOnTop
+} else if (RightWdownAction=23) { 
+	goto, WebTimer
+} else if (RightWdownAction=24) { 
+	goto, TimerTab
+} else if (RightWdownAction=25) { 
+	goto, ZoomFaster
+} else if (RightWdownAction=26) { 
+	goto, ZoomSlower
+} else if (RightWdownAction=27) {
+	hotkeyMod=RButton
+	goto, ElasticZoom
+} else if (RightWdownAction=28) {				
+	hotkeyMod=RButton
+	goto, ElasticStillZoom
+} else if (RightWdownAction=29) {				
+	goto, SnipFree
+} else if (RightWdownAction=30) {				
+	goto, SnipRect
+} else if (RightWdownAction=31) {				
+	goto, SnipWin
+} else if (RightWdownAction=32) {				
+	goto, SnipScreen
+} else if (RightWdownAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (RightWdownAction=34) {				
+	goto, showHidePanel
+} else if (RightWdownAction=35) { 
+	sendinput ^!{Space}
+} else if (RightWdownAction=36) {
+ 	Run, %CustomRightWdownPath%
+} else {
+	return ; this is unneeded
+}
+return
+
+;; Customize Left/Right Wheelup/down - END
 
 lastPos:
 
@@ -997,10 +7296,17 @@ if errorlevel ; if the key is never created, i.e. first-run
 }
 RegRead,legacyKill,HKCU,Software\WanderSick\AeroZoom,legacyKill
 if errorlevel
-	legacyKill=2 ; 1 = Yes 2 = No
-RegRead,legacyKillPrev,HKCU,Software\WanderSick\AeroZoom,legacyKill
-if errorlevel
-	legacyKillPrev=2 ; Prev is for Advanced Options
+{
+	legacyKill=1 ; 1 = Yes 2 = No (Use Paint)
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, legacyKill, 1
+}
+if (legacyKill=2) AND !(SnippingToolExists) 
+{
+	legacyKill=1 ; ensure settings imported work across windows versions
+}
+;RegRead,legacyKillPrev,HKCU,Software\WanderSick\AeroZoom,legacyKill
+;if errorlevel
+;	legacyKillPrev=1 ; Prev is for Advanced Options
 RegRead,keepSnip,HKCU,Software\WanderSick\AeroZoom,keepSnip
 if errorlevel
 	keepSnip=2 ; 1 = Yes 2 = No
@@ -1013,35 +7319,83 @@ Gosub, updateMouseTextKB
 
 ; ----------------------------------------------------- Left Button Assignment END
 
-; Adds Buttons
-Gui, -MinimizeBox -MaximizeBox  ; Disable Minimize and Maximize button on Title bar
+; Adds Buttons ; enable ToolWindow to co-exist with AeroShake
+Gui, +ToolWindow -MaximizeBox ; Use this instead of disabling Minimize button on Title bar as 'WinMinimize, AeroZoom Panel' requires this to work. (now no longer necessary)
 
-If SwitchZoomInc
-{
-	; ----------------------------------------------------- Zoom Increment 2 of 3 (Add to GUI)
-	; Add a slider for Zoom Increment, the preset level is %zoominc% which was retrieved from registry
-	; Variable (user-selected increment) is to be stored in ZoomInc(vZoomInc)
-	; SliderX(gSliderX) is the subroutine to be performened
-	Gui, Add, Slider, TickInterval1 Range1-6 x12 y3 w120 h25 vZoomInc gSliderX, %zoominc%
-	ZoomInc_TT := "Set how much the view changes when zooming in or out"
-	; ----------------------------------------------------- Zoom Increment 2 of 3 END
-} else {
-	Gosub, ReadValueUpdatePanel
-	if (ZoomInc=1) {
-		Gui, Add, Slider, x12 y3 w120 h25 Range1-61 vMagnification gSliderMag, %Magnification%
-	} else if (ZoomInc=2) {
-		Gui, Add, Slider, x12 y3 w120 h25 Range1-31 vMagnification gSliderMag, %Magnification%
-	} else if (ZoomInc=3) {
-		Gui, Add, Slider, x12 y3 w120 h25 Range1-16 vMagnification gSliderMag, %Magnification%
-	} else if (ZoomInc=4) {
-		Gui, Add, Slider, x12 y3 w120 h25 Range1-11 vMagnification gSliderMag, %Magnification%
-	} else if (ZoomInc=5) {
-		Gui, Add, Slider, x12 y3 w120 h25 Range1-9 vMagnification gSliderMag, %Magnification%
-	} else if (ZoomInc=6) {
-		Gui, Add, Slider, x12 y3 w120 h25 Range1-5 vMagnification gSliderMag, %Magnification%
-	}
-	Magnification_TT := "Slide to zoom"
+; slider 1: zoom increment
+
+; ----------------------------------------------------- Zoom Increment 2 of 3 (Add to GUI)
+; Add a slider for Zoom Increment, the preset level is %zoominc% which was retrieved from registry
+; Variable (user-selected increment) is to be stored in ZoomInc(vZoomInc)
+; SliderX(gSliderX) is the subroutine to be performened
+
+Gui, Add, Slider, TickInterval1 Range1-6 x12 y3 w120 h25 vZoomInc gSliderX, %zoominc%
+
+If (SwitchSlider<>1 OR zoomitPanel) {
+	GuiControl, Disable, ZoomInc
+	GuiControl, Hide, ZoomInc
 }
+; ----------------------------------------------------- Zoom Increment 2 of 3 END
+
+; slider 2: magnification
+
+Gosub, ReadValueUpdatePanel
+if (ZoomInc=1) {
+	Gui, Add, Slider, x12 y3 w120 h25 Range1-61 vMagnification gSliderMag, %Magnification%
+} else if (ZoomInc=2) {
+	Gui, Add, Slider, x12 y3 w120 h25 Range1-31 vMagnification gSliderMag, %Magnification%
+} else if (ZoomInc=3) {
+	Gui, Add, Slider, x12 y3 w120 h25 Range1-16 vMagnification gSliderMag, %Magnification%
+} else if (ZoomInc=4) {
+	Gui, Add, Slider, x12 y3 w120 h25 Range1-11 vMagnification gSliderMag, %Magnification%
+} else if (ZoomInc=5) {
+	Gui, Add, Slider, x12 y3 w120 h25 Range1-9 vMagnification gSliderMag, %Magnification%
+} else if (ZoomInc=6) {
+	Gui, Add, Slider, x12 y3 w120 h25 Range1-5 vMagnification gSliderMag, %Magnification%
+}
+
+If (SwitchSlider<>2 OR zoomitPanel) {
+	GuiControl, Disable, Magnification
+	GuiControl, Hide, Magnification
+}
+
+; slider 3: snipping tool snipmode
+
+Gui, Add, Slider, x12 y3 w120 h25 TickInterval1 Range1-4 vSnipMode gSnipBarUpdate, %SnipMode%
+
+If (SwitchSlider<>3 OR zoomitPanel) {
+	GuiControl, Disable, SnipMode
+	GuiControl, Hide, SnipMode
+}
+
+; slider 4: unknown (for xp and vista w/o snipping tool)
+
+If NirCmd
+	SnipSlider=2
+Else
+	SnipSlider=1
+	
+Gui, Add, Slider, x12 y3 w120 h25 Range1-2 vSnipSlider gCaptureDiskOSD, %SnipSlider%
+
+If (SwitchSlider<>4 OR zoomitPanel) {
+	GuiControl, Disable, SnipSlider
+	GuiControl, Hide, SnipSlider
+}
+
+; slider 5: zoomit color adjustment
+
+Gui, Add, Slider, TickInterval1 Range1-6 x12 y3 w120 h25 vZoomItColor gZoomItColorPreview, %ZoomItColor%
+if not zoomitPanel
+{
+	GuiControl, Disable, ZoomItColor
+	GuiControl, Hide, ZoomItColor
+}
+
+ZoomInc_TT := "Zoom speed: 25 / 50 / 100 / 150 / 200 / 400"
+Magnification_TT := "Magnification: Slide to zoom in/out"
+SnipSlider_TT := "Save screen shots to Desktop: (1) Enable / (2) Disable"
+SnipMode_TT := "Snip Mode: (1) Free-form / (2) Rectangular / (3) Window / (4) Screen" ; also shared by AeroSnip Options
+ZoomItColor_TT := "Pen color: (1) Red / (2) Green / (3) Blue / (4) Yellow / (5) Pink / (6) Orange"
 
 Gui, Add, Text, x0 y0 h452 w16 gUiMove vTxt1, 
 Txt1_TT := "Click to drag"
@@ -1058,37 +7412,68 @@ if SwitchMiniMode
 	Txt4_TT := "Click to drag"
 }
 Gui, Font, s8, Arial
-Gui, Add, Button, x15 y27 w110 h43 gColor vColor, Color &Inversion
-Color_TT := "Turn on/off color inversion [Win+Alt+I]"
-Gui, Add, Button, x15 y70 w110 h43 gMouse vMouse, &Mouse %MouseCurrent% => %MouseNext%
-Mouse_TT := "Follow the mouse pointer [Win+Alt+M]"
-Gui, Add, Button, x15 y113 w110 h43 gKeyboard vKeyboard, &Keyboard %KeyboardCurrent% => %KeyboardNext%
-Keyboard_TT := "Follow the keyboard focus [Win+Alt+K]"
-Gui, Add, Button, x15 y156 w110 h43 gText vText, Te&xt %TextCurrent% => %TextNext%
-Text_TT := "Have magnifier follow the text insertion point [Win+Alt+T]"
-
+if not (!A_IsAdmin AND EnableLUA AND OSver>6 AND !zoomitPanel) {
+	if (OSver>=6.1) OR (OSver<6.1 AND zoomitPanel) {
+		Gui, Add, Button, x15 y27 w110 h43 gColor vColor, Color &Inversion
+		Color_TT := "Turn on/off color inversion [Win+Alt+I]"
+		Gui, Add, Button, x15 y70 w110 h43 gMouse vMouse, &Mouse %MouseCurrent% > %MouseNext%
+		Mouse_TT := "Follow the mouse pointer [Win+Alt+M]"
+		Gui, Add, Button, x15 y113 w110 h43 gKeyboard vKeyboard, &Keyboard %KeyboardCurrent% > %KeyboardNext%
+		Keyboard_TT := "Follow the keyboard focus [Win+Alt+K]"
+		Gui, Add, Button, x15 y156 w110 h43 gText vText, Te&xt %TextCurrent% > %TextNext%
+		Text_TT := "Have magnifier follow the text insertion point [Win+Alt+T]"
+	}
+}
 ;WinGet, chkMin, MinMax, ahk_class MagUIClass
 ;if (chkMin<0) { ; if magnifier win is minimized, i.e. chkmin = -1
-	Gui, Add, Button, x15 y201 w54 h28 gShowMagnifier vShowMagnifier, &Mag
-	ShowMagnifier_TT := "Show/hide magnifier [Win+Shift+``]"
+	if (!A_IsAdmin AND EnableLUA AND OSver>6.0 AND !zoomitPanel) {
+		Gui, Add, Button, x15 y28 w54 h28 gShowMagnifier vShowMagnifier, &Run
+		ShowMagnifier_TT := "Run magnifier (if closed)"
+	} else {
+		if (OSver<6.1 AND !zoomitPanel) {
+			Gui, Add, Button, x15 y28 w54 h28 gShowMagnifier vShowMagnifier, &Mag
+			ShowMagnifier_TT := "Show/hide magnifier [Win+Shift+``]"
+		} else {
+			Gui, Add, Button, x15 y201 w54 h28 gShowMagnifier vShowMagnifier, &Mag
+			ShowMagnifier_TT := "Show/hide magnifier [Win+Shift+``]"
+		}
+	}
 ;} else {
 ;	Gui, Add, Button, x15 y201 w54 h28 gShowMagnifier vShowMagnifier, &Hide
 ;}
 
-if (legacyKill=1) {
-	Gui, Add, Button, x71 y201 w54 h28 gKillMagnifier vKillMagnifier, Kil&l
-	KillMagnifier_TT := "Kill magnifier process"
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0 AND !zoomitPanel) {
+		Gui, Add, Button, x71 y28 w54 h28 gKillMagnifier vKillMagnifier, &Paint
+		KillMagnifier_TT := "Create and edit drawings"
 } else {
-	Gui, Add, Button, x71 y201 w54 h28 gKillMagnifier vKillMagnifier, &Paint
-	KillMagnifier_TT := "Create and edit drawings"
+	if (legacyKill=1) {
+		If (OSver<6.1 AND !zoomitPanel) {
+			Gui, Add, Button, x71 y28 w54 h28 gKillMagnifier vKillMagnifier, Kil&l
+			KillMagnifier_TT := "Kill magnifier process [Win+Shift+K]"
+		} else {
+			Gui, Add, Button, x71 y201 w54 h28 gKillMagnifier vKillMagnifier, Kil&l
+			KillMagnifier_TT := "Kill magnifier process [Win+Shift+K]"
+		}
+	} else {
+		If (OSver<6.1 AND !zoomitPanel) {
+			Gui, Add, Button, x71 y28 w54 h28 gKillMagnifier vKillMagnifier, &Paint
+			KillMagnifier_TT := "Create and edit drawings"
+		} else {
+			Gui, Add, Button, x71 y201 w54 h28 gKillMagnifier vKillMagnifier, &Paint
+			KillMagnifier_TT := "Create and edit drawings"
+		}
+	}
 }
-if (zoomIt=1 AND KeepSnip<>1) {
-	KillMagnifier_TT := "Break timer of ZoomIt [Ctrl+3]"
-}
-Gui, Add, Button, x15 y231 w54 h28 gDefault vDefault, &Reset
-Default_TT := "Reset magnifier [Win+Alt+R]"
 
-Gui, Add, Button, x71 y231 w54 h28 gCalc vCalc, %customCalcMsg%
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0 AND !zoomitPanel) OR (OSver<6.1 AND !zoomitPanel) {
+	Gui, Add, Button, x15 y58 w54 h28 gDefault vDefault, &Reset
+	Gui, Add, Button, x71 y58 w54 h28 gCalc vCalc, %customCalcMsg%
+} else {
+	Gui, Add, Button, x15 y231 w54 h28 gDefault vDefault, &Reset
+	Gui, Add, Button, x71 y231 w54 h28 gCalc vCalc, %customCalcMsg%
+}
+Default_TT := "Reset magnifier [Win+Shift+R]"
+
 if not customCalcPath
 {
 	if (customCalcMsg = "&Calc" OR customCalcMsg = "Calc" OR customCalcMsg = "C&alc" OR customCalcMsg = "Ca&lc" OR customCalcMsg = "Cal&c")
@@ -1096,233 +7481,386 @@ if not customCalcPath
 		Calc_TT := "Show calculator" ; show tooltip only if the button is for launching the caluculator, not user-defined
 	}
 }
-
-Gui, Add, Button, x15 y261 w54 h28 gDraw vDraw, &Snip
-if (zoomIt=1 AND KeepSnip<>1) {
-	Draw_TT := "Draw, type & still-zoom using ZoomIt [Ctrl+2]"
-} else {
-	Draw_TT := "Copy a portion of screen for annotation [Win+Alt+S]"
+if (!A_IsAdmin AND EnableLUA AND OSver>=6.1 AND !zoomitPanel) OR (OSver=6 AND !zoomitPanel) { ;win7 limited or vista;
+	If (SnippingToolExists OR (OSver>=6.1 AND (EditionID="Starter" OR EditionID="HomeBasic"))) { ; for win7 starter/hb under limited acc+uac, although snipping tool is unavailable, snip cant change to paint as the kill button has alrdy changed to paint
+		Gui, Add, Button, x15 y88 w54 h28 gDraw vDraw, &Snip
+		Gui, Add, Button, x71 y88 w54 h28 gType vType, %customTypeMsg%
+	} else { ; the below is for vista starter/hb w/o snipping tool
+		Gui, Add, Button, x15 y88 w54 h28 gDraw vDraw, &Paint
+		Gui, Add, Button, x71 y88 w54 h28 gType vType, %customTypeMsg%
+	}
+} else if (OSver<6 AND !zoomitPanel) { ; xp
+	Gui, Add, Button, x15 y88 w54 h28 gDraw vDraw, &Paint
+	Gui, Add, Button, x71 y88 w54 h28 gType vType, %customTypeMsg%
+} else { ; if normal
+	If SnippingToolExists {
+		Gui, Add, Button, x15 y261 w54 h28 gDraw vDraw, &Snip
+		Gui, Add, Button, x71 y261 w54 h28 gType vType, %customTypeMsg%
+	} else {
+		Gui, Add, Button, x15 y261 w54 h28 gDraw vDraw, &Paint
+		Gui, Add, Button, x71 y261 w54 h28 gType vType, %customTypeMsg%
+	}
 }
 
-Gui, Add, Button, x71 y261 w54 h28 gType vType, %customTypeMsg%
+if (OSver<6 OR EditionID="HomeBasic" OR EditionID="Starter") {
+	Draw_TT := "Create and edit drawings"
+}
+Draw_TT := "Copy a portion of screen for annotation [Win+Alt+F/R/W/S]"
+
+
 if not customEdPath
 {
 	if (customTypeMsg = "T&ype" OR customTypeMsg = "Type" OR customTypeMsg = "&Type" OR customTypeMsg = "Ty&pe" OR customTypeMsg = "Typ&e")
 	{
-		Type_TT := "Show text editor"
+		Type_TT := "Input text"
 	}
 }
 ; Gui, Add, Button, x71 y214 w54 h28 gHide, &__
 
-
+Gui, Font, s8, Tahoma
 ; ----------------------------------------------------- Radio Button 2 of 3 (Add to GUI)
 ; %chk*% checks last time's value remembered in the registry
-if not SwitchMiniMode
-{
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0 AND !zoomitPanel) OR (OSver<6.1 AND !zoomitPanel) {
 	Gui, Font, CDefault, ; to word around a weird bug where all radio texts become red
-	Gui, Add, Radio, %chkCtrl% -Wrap x22 y317 w38 h20 vchkMod gModifier, Ctrl
-	Gui, Add, Radio, %chkAlt% -Wrap x22 y337 w35 h20 gModifier, Alt
-	Gui, Add, Radio, %chkShift% -Wrap x22 y357 w42 h20 gModifier, Shift
-	Gui, Add, Radio, %chkWin% -Wrap x22 y377 w38 h20 gModifier, Win
-	Gui, Add, Radio, %chkMouseL% -Wrap x72 y317 w39 h20 gModifier, Left
-	Gui, Add, Radio, %chkMouseR% -Wrap x72 y337 w43 h20 gModifier, Right
-	Gui, Add, Radio, %chkMouseM% -Wrap x72 y357 w48 h20 gModifier, Middle
-	Gui, Add, Radio, %chkMouseX1% -Wrap x72 y377 w26 h20 gModifier, F
-	Gui, Add, Radio, %chkMouseX2% -Wrap x100 y377 w26 h20 gModifier, B
-	; chkMod_TT := "Modifier keys: Ctrl/Alt/Shift/Winkey; mouse buttons: Left/Right/Middle/Forward/Back"
-}
-
-; ----------------------------------------------------- Radio Button 2 of 3 END
-
-if (paused=0) {
-	pausedMsg = &off
+	Gui, Add, Radio, x22 y144 w38 h20 %chkCtrl% -Wrap vchkMod gModifier, Ctrl
+	Gui, Add, Radio, x22 y164 w35 h20 %chkAlt% -Wrap gModifier, Alt
+	Gui, Add, Radio, x22 y184 w42 h20 %chkShift% -Wrap gModifier, Shift
+	Gui, Add, Radio, x22 y204 w38 h20 %chkWin% -Wrap gModifier, Win
+	Gui, Add, Radio, x72 y144 w39 h20 %chkMouseL% -Wrap gModifier, Left
+	Gui, Add, Radio, x72 y164 w53 h20 %chkMouseR% -Wrap gModifier, Right
+	Gui, Add, Radio, x72 y184 w57 h20 %chkMouseM% -Wrap gModifier, Middle
+	Gui, Add, Radio, x72 y204 w26 h20 %chkMouseX1% -Wrap gModifier, F
+	Gui, Add, Radio, x100 y204 w26 h20 %chkMouseX2% -Wrap gModifier, B
 } else {
-	pausedMsg = &on
+	if not SwitchMiniMode
+	{
+		Gui, Font, CDefault, ; to word around a weird bug where all radio texts become red
+		Gui, Add, Radio, %chkCtrl% -Wrap x22 y317 w38 h20 vchkMod gModifier, Ctrl
+		Gui, Add, Radio, %chkAlt% -Wrap x22 y337 w35 h20 gModifier, Alt
+		Gui, Add, Radio, %chkShift% -Wrap x22 y357 w42 h20 gModifier, Shift
+		Gui, Add, Radio, %chkWin% -Wrap x22 y377 w38 h20 gModifier, Win
+		Gui, Add, Radio, %chkMouseL% -Wrap x72 y317 w39 h20 gModifier, Left
+		Gui, Add, Radio, %chkMouseR% -Wrap x72 y337 w53 h20 gModifier, Right
+		Gui, Add, Radio, %chkMouseM% -Wrap x72 y357 w57 h20 gModifier, Middle
+		Gui, Add, Radio, %chkMouseX1% -Wrap x72 y377 w26 h20 gModifier, F
+		Gui, Add, Radio, %chkMouseX2% -Wrap x100 y377 w26 h20 gModifier, B
+		; chkMod_TT := "Modifier keys: Ctrl/Alt/Shift/Winkey; mouse buttons: Left/Right/Middle/Forward/Back"
+	}
+}
+; ----------------------------------------------------- Radio Button 2 of 3 END
+Gui, Font, s8, Arial
+if paused {
+	Gui, Font, s8 Bold, Arial
 }
 
-Gui, Add, Button, x15 y291 w35 h22 gPauseScript vPauseScript, %pausedMsg%
-PauseScript_TT := "Turn off/on all mouse hotkeys temporarily (except those for calling this panel) [Win+Alt+O]"
-Gui, Add, Button, x52 y291 w36 h22 gHide vHide, &hide
-Hide_TT := "Hide/show this panel [Win+Shift+Esc]"
-Gui, Add, Button, x90 y291 w35 h22 gBye vBye, &quit
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0 AND !zoomitPanel) OR (OSver<6.1 AND !zoomitPanel) {
+	Gui, Add, Button, x15 y118 w33 h22 gPauseScript vPauseScript, &off
+	Gui, Font, s8 Norm, Arial
+	if zoomitPanel {
+		Gui, Font, s8 Bold, Arial
+	}
+	Gui, Add, Button, x50 y118 w40 h22 gZoomItPanel vZoomItButton, &zoom
+	Gui, Font, s8 Norm, Arial
+	Gui, Add, Button, x92 y118 w33 h22 gBye vBye, &quit
+} else {
+	Gui, Add, Button, x15 y291 w33 h22 gPauseScript vPauseScript, &off
+	Gui, Font, s8 Norm, Arial
+	if zoomitPanel {
+		Gui, Font, s8 Bold, Arial
+	}
+	Gui, Add, Button, x50 y291 w40 h22 gZoomItPanel vZoomItButton, &zoom
+	Gui, Font, s8 Norm, Arial
+	Gui, Add, Button, x92 y291 w33 h22 gBye vBye, &quit
+}
+PauseScript_TT := "Turn on/off mouse hotkeys (except for calling this panel) [Win+Alt+H]"
+;Hide_TT := "Hide/show this panel [Win+Shift+Esc]"
+if zoomitPanel {
+	ZoomItButton_TT := "Switch to ZoomIt Panel"
+} else {
+	ZoomItButton_TT := "Switch to Windows Magnifier Panel"
+}
 Bye_TT := "Quit AeroZoom [Q]"
 
 ; Adds Texts
 Gui, Font, s10, Tahoma
-if SwitchMiniMode
-{
-	Gui, Add, Text, x27 y324 w100 h42 vTxt gUiMove, AeroZoom %verAZ% ; v%verAZ%
+
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0 AND !zoomitPanel) OR (OSver<6.1 AND !zoomitPanel) {
+	Gui, Add, Text, x27 y229 w100 h42 vTxt gUiMove, AeroZoom v%verAZ% ; v%verAZ%
 } else {
-	Gui, Add, Text, x27 y402 w100 h42 vTxt gUiMove, AeroZoom %verAZ% ; v%verAZ%
+	if SwitchMiniMode
+	{
+		Gui, Add, Text, x27 y324 w100 h42 vTxt gUiMove, AeroZoom v%verAZ% ; v%verAZ%
+	} else {
+		Gui, Add, Text, x27 y402 w100 h42 vTxt gUiMove, AeroZoom v%verAZ% ; v%verAZ%
+	}
 }
+
 Txt_TT := "Click to drag"
 Gui, Font, norm
 
-hIcon32 := DllCall("LoadImage", uint, 0
-    , str, "AeroZoom.ico"  ; Icon filename (this file may contain multiple icons).
-    , uint, 1  ; Type of image: IMAGE_ICON
-    , int, 32, int, 32  ; Desired width and height of image (helps LoadImage decide which icon is best).
-    , uint, 0x10)  ; Flags: LR_LOADFROMFILE
-Gui +LastFound
-SendMessage, 0x80, 1, hIcon32  ; 0x80 is WM_SETICON; and 1 means ICON_BIG (vs. 0 for ICON_SMALL).
-
-; IMPORTANT: Set Title, Window Size and Position
-; Gui, Show, h452 w140 x%xPos2% y%yPos2%, `r
-if SwitchMiniMode
-{
-	if centerPanel
-	{
-		Gui, Show, h378 w140, AeroZoom
-		centerPanel=
-	} else {
-		Gui, Show, h378 w140 x%xPos2% y%yPos2%, AeroZoom
-	}
-} else {
-	if centerPanel
-	{
-		Gui, Show, h456 w140, AeroZoom
-		centerPanel=
-	} else {
-		Gui, Show, h456 w140 x%xPos2% y%yPos2%, AeroZoom
-	}
-}
-OnMessage(0x200, "WM_MOUSEMOVE")
-
-WinSet, Transparent, %panelTrans%, AeroZoom
-
 ; Adds Menus
-Menu, AboutMenu, Add, &Disable Startup Tips, startupTips
+Menu, AboutMenu, Add, Disable Startup &Tips, startupTips
+Menu, AboutMenu, Add, Disable First-Use &Guide, firstUseGuide
 Menu, AboutMenu, Add, &Quick Instructions, Instruction
 Menu, AboutMenu, Add, &About, HelpAbout
 ; Menu, AboutMenu, Add, &Email a Bug, EmailBugs ; Cancelled due to not universally supported
 Menu, AboutMenu, Add, &Check for Update, CheckUpdate
 Menu, AboutMenu, Add, AeroZoom on the &Web, VisitWeb
 
-Menu, ViewsMenu, Add, &Full Screen`tCtrl+Alt+F, ViewFullScreen
-Menu, ViewsMenu, Add, &Lens`tCtrl+Alt+L, ViewLens
-Menu, ViewsMenu, Add, &Docked`tCtrl+Alt+D, ViewDocked
-; Menu, ViewsMenu, Add  ; empty horizontal line (messes up)
-Menu, ViewsMenu, Add, &Preview Full Screen`tCtrl+Alt+Space, ViewPreview
-; Menu, ViewsMenu, Add  ; empty horizontal line (messes up)
-Menu, ViewsMenu, Add, &New Snip`tWin+Alt+S, SnippingTool
-Menu, ViewsMenu, Add, ZoomIt - &Still Zoom`tCtrl+1, ViewStillZoom
-Menu, ViewsMenu, Add, ZoomIt - &Draw`tCtrl+2, ViewDraw
-Menu, ViewsMenu, Add, ZoomIt - Break &Timer`tCtrl+3, ViewBreakTimer
-Menu, ViewsMenu, Add, ZoomIt - &Black Board`tCtrl+2`, K, ViewBlackBoard
-Menu, ViewsMenu, Add, ZoomIt - &White Board`tCtrl+2`, W, ViewWhiteBoard
+Menu, SnipMenu, Add, Free-form`tWin+Alt+F, SnipFree
+Menu, SnipMenu, Add, Rectangular`tWin+Alt+R, SnipRect
+Menu, SnipMenu, Add, Window`tWin+Alt+W, SnipWin
+Menu, SnipMenu, Add, Screen`tWin+Alt+S, SnipScreen
+Menu, SnipMenu, Add, Snipping Tool Options, SnippingToolOptions
 
-Menu, FileMenu, Add, &Hide/Show This Panel`tWin+Shift+Esc, HideAZ
+Menu, ZoomitMenu, Add, Still Zoom`tCtrl+1, ViewStillZoom
+If (OSver>=6)
+	Menu, ZoomitMenu, Add, Live Zoom`tCtrl+4, ViewLiveZoom
+Menu, ZoomitMenu, Add, Draw`tCtrl+2, ViewDraw
+Menu, ZoomitMenu, Add, Type`tCtrl+2`, T, ViewType
+Menu, ZoomitMenu, Add, Break Timer`tCtrl+3, ViewBreakTimer
+Menu, ZoomitMenu, Add, Black Board`tCtrl+2`, K, ViewBlackBoard
+Menu, ZoomitMenu, Add, White Board`tCtrl+2`, W, ViewWhiteBoard
+Menu, ZoomitMenu, Add, View Hotkeys`tWin+Alt+Q`, Z, ZoomItInstButton
+Menu, ZoomitMenu, Add, ZoomIt Options, ZoomItOptions
+
+If (OSver>=6) {
+	Menu, ViewsMenu, Add, &AeroSnip, :SnipMenu
+}
+Menu, ViewsMenu, Add, Sysinternals &ZoomIt, :ZoomitMenu
+If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+	Menu, ViewsMenu, Add, &Full Screen`tCtrl+Alt+F, ViewFullScreen
+	Menu, ViewsMenu, Add, &Lens`tCtrl+Alt+L, ViewLens
+	Menu, ViewsMenu, Add, &Docked`tCtrl+Alt+D, ViewDocked
+	Menu, ViewsMenu, Add, &Preview Full Screen`tCtrl+Alt+Space, ViewPreview
+}
+Menu, ViewsMenu, Add, &Windows Magnifier`tWin+Shift+``, ShowMagnifierHK
+; Menu, ViewsMenu, Add  ; empty horizontal line (messes up)
+; Menu, ViewsMenu, Add  ; empty horizontal line (messes up)
+
+Menu, Configuration, Add, &Import Settings, ImportConfig
+Menu, Configuration, Add, &Export Settings, ExportConfig
+Menu, Configuration, Add, &Save Config on Exit, ConfigBackup
+
+Menu, FileMenu, Add, &Configuration File, :Configuration
+if (OSver>=6.1) {
+		If not (!A_IsAdmin AND EnableLUA)
+			Menu, FileMenu, Add, Switch to &Zoom Speed Slider, SwitchSlider
+		Menu, FileMenu, Add, Switch to &Magnification Slider, SwitchSlider
+	if not zoomitPanel {
+		if (SwitchSlider=1) {
+			Menu, FileMenu, Check, Switch to &Zoom Speed Slider
+		} else if (SwitchSlider=2) {
+			Menu, FileMenu, Check, Switch to &Magnification Slider
+		}
+	}
+}
+
+if (OSver>=6) {
+	If SnippingToolExists
+	{
+		Menu, FileMenu, Add, Switch to &AeroSnip Slider, SwitchSlider
+		if not zoomitPanel {
+			if (SwitchSlider=3) {
+				Menu, FileMenu, Check, Switch to &AeroSnip Slider
+			}
+		}
+	}
+}
+
+if (OSver<6.1 AND !SnippingToolExists) {
+	Menu, FileMenu, Add, Switch to Capture-to-&Disk Slider, SwitchSlider
+	if not zoomitPanel {
+		if (SwitchSlider=4) {
+			Menu, FileMenu, Check, Switch to Capture-to-&Disk Slider
+		}
+	}
+}
+
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0)
+{
+	Menu, FileMenu, Add, Switch to &Full Functionality Mode, RunAsAdmin
+	Menu, FileMenu, Add, Switch off &User Account Control, RunUACoff
+}
+
+if not zoomitPanel {
+	Menu, FileMenu, Add, Enable ZoomIt &Panel, ZoomItPanel
+} else {
+	Menu, FileMenu, Add, Disable ZoomIt &Panel, ZoomItPanel
+}
+
+if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA)) {
+	if SwitchMiniMode
+	{
+		Menu, FileMenu, Add, &Go to Modern Mode, SwitchMiniMode
+	} else {
+		Menu, FileMenu, Add, &Go to Classic Mode, SwitchMiniMode
+	}
+}
+
+; Menu, FileMenu, Add, &Hide/Show Magnifier`tM, ShowMagnifier
 ; Menu, FileMenu, Add, &Hide/Show Magnifier`tWin+Shift+``, ShowMagnifier
-if SwitchZoomInc
-{
-	Menu, FileMenu, Add, Switch to &Magnification Slider, SwitchZoomInc
-} else {
-	Menu, FileMenu, Add, Switch to &Zoom Increment Slider, SwitchZoomInc
-}
 
-if SwitchMiniMode
-{
-	Menu, FileMenu, Add, &Switch to Normal Mode, SwitchMiniMode
-} else {
-	Menu, FileMenu, Add, &Switch to Mini Mode, SwitchMiniMode
-}
-
+Menu, FileMenu, Add, &Hide This Panel`tESC, HideAZ
 Menu, FileMenu, Add, &Quit AeroZoom`tQ, ExitAZ
 
 
 ; MySubmenus
 IfExist, %windir%\System32\calc.exe
-	Menu, MySubmenu, Add, &Calculator, WinCalc
+	Menu, MySubmenu, Add, Calculator, WinCalc
 
-Menu, MySubmenu, Add, ClearType Te&xt Tuner, ctTune
+IfExist, %windir%\System32\cttune.exe
+Menu, MySubmenu, Add, ClearType Text Tuner, ctTune
 	
 IfExist, %windir%\System32\cmd.exe
-	Menu, MySubmenu, Add, Comm&and Prompt, WinCMD
+	Menu, MySubmenu, Add, Command Prompt, WinCMD
 
-IfExist, %windir%\System32\control.exe
-	Menu, MySubmenu, Add, Control Pane&l, WinControl
+if (OSver>5.9) {
+	IfExist, %windir%\System32\cmd.exe
+		Menu, MySubmenu, Add, Command Prompt (Admin), WinCmdAdmin
+}
+
+IfExist, %windir%\system32\NetProj.exe
+	Menu, MySubmenu, Add, Connect to a Network Projector, WinNetworkProjector
 	
-Menu, MySubmenu, Add, &Ease of Access Center, easeOfAccess
+IfExist, %windir%\system32\displayswitch.exe
+	Menu, MySubmenu, Add, Connect to a Projector, WinProjector
+	
+IfExist, %windir%\System32\control.exe
+	Menu, MySubmenu, Add, Control Panel, WinControl
+	
+if (OSver>5.9) {
+	Menu, MySubmenu, Add, Ease of Access Center, easeOfAccess
+}
 
 IfExist, %CommonProgramFiles%\Microsoft Shared\Ink\mip.exe
-	Menu, MySubmenu, Add, &Math Input Panel, WinMath
+	Menu, MySubmenu, Add, Math Input Panel, WinMath
 
 IfExist, %windir%\system32\narrator.exe
-	Menu, MySubmenu, Add, Narrat&or, WinNarrator
+	Menu, MySubmenu, Add, Narrator, WinNarrator
 	
 IfExist, C:\Windows\System32\notepad.exe
-	Menu, MySubmenu, Add, &Notepad, WinNote
+	Menu, MySubmenu, Add, Notepad, WinNote
 
 IfExist, %windir%\System32\osk.exe
-	Menu, MySubmenu, Add, On-Screen &Keyboard, WinKB
+	Menu, MySubmenu, Add, On-Screen Keyboard, WinKB
 
 IfExist, %windir%\System32\mspaint.exe
-	Menu, MySubmenu, Add, &Paint, WinPaint
+	Menu, MySubmenu, Add, Paint, WinPaint
 
 IfExist, %windir%\System32\psr.exe
-	Menu, MySubmenu, Add, Pro&blem Steps Recorder, WinPSR
+	Menu, MySubmenu, Add, Problem Steps Recorder, WinPSR
 
 IfExist, %windir%\system32\rundll32.exe
-	Menu, MySubmenu, Add, &Run, WinRun
+	Menu, MySubmenu, Add, Run, WinRun
 
 
 
 	
 IfExist, %SystemRoot%\system32\SoundRecorder.exe
-	Menu, MySubmenu, Add, Sound Recor&der, WinSound
+	Menu, MySubmenu, Add, Sound Recorder, WinSound
 
 IfExist, %windir%\system32\StikyNot.exe
-	Menu, MySubmenu, Add, Stick&y Notes, WinSticky
+	Menu, MySubmenu, Add, Sticky Notes, WinSticky
 
 IfExist, %windir%\System32\taskmgr.exe
-	Menu, MySubmenu, Add, &Task Manager, WinTask
+	Menu, MySubmenu, Add, Task Manager, WinTask
+
+IfExist, %CommonProgramFiles%\Microsoft Shared\Ink\TabTip.exe
+	Menu, MySubmenu, Add, Tablet PC Input Panel, WinTabletInput
 	
 IfExist, %ProgramFiles%\Windows Journal\Journal.exe
-	Menu, MySubmenu, Add, Windows &Journel, WinJournel
+	Menu, MySubmenu, Add, Windows Journel, WinJournel
 
 IfExist, %ProgramFiles%\Windows NT\Accessories\wordpad.exe
-	Menu, MySubmenu, Add, &WordPad, WinWord
+	Menu, MySubmenu, Add, WordPad, WinWord
+	
+IfNotExist, %ProgramFiles%\Windows NT\Accessories\wordpad.exe ; for vista's file virtualization
+{
+	IfExist, C:\Program Files\Windows NT\Accessories\wordpad.exe
+		Menu, MySubmenu, Add, WordPad, WinWord
+}
 	
 IfExist, %windir%\Speech\Common\sapisvr.exe
-	Menu, MySubmenu, Add, Windows Speech Recogn&ition, WinSpeech
+	Menu, MySubmenu, Add, Windows Speech Recognition, WinSpeech
+
+Menu, CustomizeMenu, Add, &Holding Middle, CustomizeMiddle
+Menu, CustomizeMenu, Add, &Ctrl/Alt/Shift/Win, CustomizeKeys
+Menu, CustomizeMenu, Add, &Forward/Back, CustomizeForwardBack
+Menu, CustomizeMenu, Add, &Left/Right, CustomizeLeftRight
+
+Menu, OptionsMenu, Add, Custom Hotkeys (Beta), :CustomizeMenu
+Menu, OptionsMenu, Add, AeroSnip Options, CaptureOptions
+;Menu, OptionsMenu, Add, Snipping Tool, SnippingToolOptions
+;Menu, OptionsMenu, Add, ZoomIt Options, zoomitOptions
+Menu, OptionsMenu, Add, Advanced Options, AdvancedOptions
+
+Menu, MiscToolsMenu, Add, Aero Timer Web, WebTimer
+Menu, MiscToolsMenu, Add, Timer Tab, TimerTab
+IfExist, %systemdrive%\ChMac\ChMac.bat
+	Menu, MiscToolsMenu, Add, ChMac, ChMac
+IfExist, %systemdrive%\Cmd Dict\Cmd Dict.bat
+	Menu, MiscToolsMenu, Add, Cmd Dict, CmdDict1
+IfExist, %systemdrive%\Cmd Dict\Portable.cmd
+	Menu, MiscToolsMenu, Add, Cmd Dict, CmdDict2
+IfExist, %systemdrive%\ECPP\CommandPromptPortable.exe
+	Menu, MiscToolsMenu, Add, ECPP, ECPP1
+IfExist, %systemdrive%\ECPP\ECPP.exe
+	Menu, MiscToolsMenu, Add, ECPP, ECPP2
+Menu, MiscToolsMenu, Add, Eject Disc, OpenTray
+Menu, MiscToolsMenu, Add, Monitor Off, MonitorOff
+Menu, MiscToolsMenu, Add, Search Clipboard, GoogleClipboard
+Menu, MiscToolsMenu, Add, Speak Clipboard, SpeakClipboard
+IfExist, %systemdrive%\Total Malware Scanner\Total Malware Scanner.bat
+	Menu, MiscToolsMenu, Add, Total Malware Scanner, TMS1
+IfExist, %systemdrive%\Total Malware Scanner\Total Malware Scanner.exe
+	Menu, MiscToolsMenu, Add, Total Malware Scanner, TMS2
+Menu, MiscToolsMenu, Add, Legacy: Click-n-Go Buttons, ClicknGo
+If !(OSver<6) AND !(EditionID="HomeBasic" OR EditionID="Starter") AND !(!A_IsAdmin AND EnableLUA AND OSver>6.0) { ; if not xp (Snip Button becomes Paint) AND not vista/win7 home basic/start (Snip button becomes Paint) AND not win7 limited user with UAC on (Kill button is already Paint) ** beware the last case does not contain Kill button while the prev 2 contain
+	Menu, MiscToolsMenu, Add, Legacy: Change Kill to Paint, TogglePaintKill
+	If (legacyKill=2)
+		Menu, MiscToolsMenu, Check, Legacy: Change Kill to Paint
+	Else
+		Menu, MiscToolsMenu, Uncheck, Legacy: Change Kill to Paint
+}
 
 Menu, ToolboxMenu, Add, &Windows Tools, :MySubmenu
-Menu, ToolboxMenu, Add, &Sysinternals ZoomIt, ZoomIt
+Menu, ToolboxMenu, Add, Misc &Tools, :MiscToolsMenu
+Menu, ToolboxMenu, Add, &Preferences, :OptionsMenu
 Menu, ToolboxMenu, Add, &Hold Middle as Trigger, HoldMiddle
 Menu, ToolboxMenu, Add, &Misclick-Preventing Pad, UseZoomPad
-Menu, ToolboxMenu, Add, Use &Notepad, UseNotepad
-Menu, ToolboxMenu, Add, &Click-n-Go, ClicknGo
-Menu, ToolboxMenu, Add, Always on &Top, OnTop
-Menu, ToolboxMenu, Add, &Run on Startup, RunOnStartup
+Menu, ToolboxMenu, Add, Save &Captures to Disk, NirCmd
+Menu, ToolboxMenu, Add, Type with &Notepad, UseNotepad
+Menu, ToolboxMenu, Add, &Always on Top, OnTop
+If (OSver>=6.0) {
+	Menu, ToolboxMenu, Add, &Run on Startup, RunOnStartup
+}
+Menu, ToolboxMenu, Add, &Enable ZoomIt, ZoomIt
+If (OSver>=6.0) {
+	Menu, ToolboxMenu, Add, Wheel with ZoomIt (&Live), ZoomItLive
+	Menu, ToolboxMenu, Add, Wheel with ZoomIt (&Still), ZoomitStill
+}
 Menu, ToolboxMenu, Add, &Install to This Computer, Install
-Menu, ToolboxMenu, Add, &ZoomIt Options, zoomitOptions
-Menu, ToolboxMenu, Add, &Advanced Options, AdvancedOptions
 
 Process, Exist, zoomit.exe
 If (errorlevel=0) {
-	Menu, ToolboxMenu, Disable, &ZoomIt Options
-	Menu, ViewsMenu, Disable, ZoomIt - &Still Zoom`tCtrl+1
-	Menu, ViewsMenu, Disable, ZoomIt - &Draw`tCtrl+2
-	Menu, ViewsMenu, Disable, ZoomIt - &Black Board`tCtrl+2`, K
-	Menu, ViewsMenu, Disable, ZoomIt - &White Board`tCtrl+2`, W
-	Menu, ViewsMenu, Disable, ZoomIt - Break &Timer`tCtrl+3
+	Menu, ViewsMenu, Disable, Sysinternals &ZoomIt
 } else {
-	Menu, ToolboxMenu, Enable, &ZoomIt Options
-	Menu, ViewsMenu, Enable, ZoomIt - &Still Zoom`tCtrl+1
-	Menu, ViewsMenu, Enable, ZoomIt - &Draw`tCtrl+2
-	Menu, ViewsMenu, Enable, ZoomIt - &Black Board`tCtrl+2`, K
-	Menu, ViewsMenu, Enable, ZoomIt - &White Board`tCtrl+2`, W
-	Menu, ViewsMenu, Enable, ZoomIt - Break &Timer`tCtrl+3
+	Menu, ViewsMenu, Enable, Sysinternals &ZoomIt
+}
+
+If (EditionID="HomeBasic" OR EditionID="Starter") {
+	Menu, ViewsMenu, Disable, &AeroSnip
 }
 
 ; Check Click 'n Go bit
 RegRead,clickGoBit,HKCU,Software\WanderSick\AeroZoom,clickGoBit
 if clickGoBit ; if  Click 'n Go bit exists and is not 0
 {
-	Menu, ToolboxMenu, Check, &Click-n-Go
+	Menu, MiscToolsMenu, Check, Legacy: Click-n-Go Buttons
 	guiDestroy=Destroy
 } else { ; else if Click 'n Go bit exists and is 0
-	Menu, ToolboxMenu, Uncheck, &Click-n-Go
+	Menu, MiscToolsMenu, Uncheck, Legacy: Click-n-Go Buttons
 	guiDestroy=
 }
 
@@ -1335,10 +7873,10 @@ if errorlevel ; if the key is never created, i.e. first-run
 }
 if onTopBit ; if onTop bit exists and is not 0
 {
-	Menu, ToolboxMenu, Check, Always on &Top
+	Menu, ToolboxMenu, Check, &Always on Top
 	onTop=+AlwaysOnTop
 } else { ; else if onTop bit exists and is 0
-	Menu, ToolboxMenu, Uncheck, Always on &Top
+	Menu, ToolboxMenu, Uncheck, &Always on Top
 	onTop=-AlwaysOnTop
 }
 ; Set Always On Top
@@ -1346,7 +7884,7 @@ Gui, %onTop%
 
 ; Create the menu bar by attaching the sub-menus to it:
 Menu, MyBar, Add, &Az, :FileMenu
-Menu, MyBar, Add, &View, :ViewsMenu
+Menu, MyBar, Add, &Go, :ViewsMenu
 Menu, MyBar, Add, &Tool, :ToolboxMenu
 Menu, MyBar, Add, &?, :AboutMenu
 	
@@ -1356,17 +7894,43 @@ Gosub, ReadValueUpdateMenu
 
 ; Check if notepad is preferred
 if (notepad=1) {
-	Menu, ToolboxMenu, Check, Use &Notepad
+	Menu, ToolboxMenu, Check, Type with &Notepad
+}
+
+if (NirCmd=1) {
+	Menu, ToolboxMenu, Check, Save &Captures to Disk
+}
+
+if (EnableAutoBackup=1) {
+	Menu, Configuration, Check, &Save Config on Exit
 }
 
 RegRead,TipDisabled,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,TipDisabled
 if (TipDisabled=1) {
-	Menu, AboutMenu, Check, &Disable Startup Tips
+	Menu, AboutMenu, Check, Disable Startup &Tips
 } else {
-	Menu, AboutMenu, Uncheck, &Disable Startup Tips
+	Menu, AboutMenu, Uncheck, Disable Startup &Tips
 }
 
-; Menu, ToolboxMenu, Disable, &Hold Middle as Trigger ; uncomment in MButton.ahk
+RegRead,GuideDisabled,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,GuideDisabled
+if (GuideDisabled=1) {
+	Menu, AboutMenu, Check, Disable First-Use &Guide
+} else {
+	Menu, AboutMenu, Uncheck, Disable First-Use &Guide
+}
+
+;if (chkMod=7) { ; if MButton ahk, disable the menu item
+;	Menu, ToolboxMenu, Disable, &Hold Middle as Trigger
+;	Menu, ToolboxMenu, Disable, &Customize Holding Middle
+;}
+
+;if (chkMod<8) { ; if not X1 or X2 ahk, disable the menu item
+;	Menu, ToolboxMenu, Disable, &Customize Back/Forward
+;}
+
+;if (chkMod>4) { ; if not keys ahk, disable the menu item
+;	Menu, ToolboxMenu, Disable, &Customize Alt/Ctrl/Shift/Win
+;}
 
 RegRead,holdMiddle,HKCU,Software\WanderSick\AeroZoom,holdMiddle
 If (holdMiddle=1) {
@@ -1408,72 +7972,277 @@ IfExist, %programfiles% (x86)\WanderSick\AeroZoom\AeroZoom.exe
 ; Check if zoomit.exe is running or zoomit was perferred
 
 if (zoomit=1) {
-	Menu, ToolboxMenu, Check, &Sysinternals ZoomIt
+	Menu, ToolboxMenu, Check, &Enable ZoomIt
+}
+
+if zoomitPanel {
 	if not (KeepSnip=1) { ; if KeepSnip is not checked in the Advanced Options (1 = Yes; 2 = No)
-		if (legacyKill=1) {
-			GuiControl,, Kil&l, Tim&er
-		} else {
-			GuiControl,, &Paint, Tim&er
-		}
-		GuiControl,, &Snip, &Draw ; Change text 'Snip' to 'Draw'	
+		GuiControl,, Color, Zoom (&Still)
+		Color_TT := "ZoomIt: Still zoom [Ctrl+1]"
+		GuiControl,, Mouse, Zoom (&Live)
+		Mouse_TT := "ZoomIt: Live zoom [Ctrl+2]"
+		GuiControl,, Keyboard, Board (&White)
+		Keyboard_TT := "ZoomIt: White board [Ctrl+2, W]"
+		GuiControl,, Text, Board (&Black)
+		Text_TT := "ZoomIt: Black board [Ctrl+2, K]"
+		GuiControl,, Calc, &Help
+		Calc_TT := "ZoomIt: Hotkey list [Win+Alt+Q, Z]"
+		GuiControl,, ShowMagnifier, O&ption
+		ShowMagnifier_TT := "ZoomIt: ZoomIt Options"
+		GuiControl,, KillMagnifier, Tim&er
+		KillMagnifier_TT := "ZoomIt: Break timer [Ctrl+3]"
+		GuiControl,, Draw, &Draw ; Change text 'Snip' to 'Draw'	
+		Draw_TT := "ZoomIt: Draw [Ctrl+2]"
+		GuiControl,, Type, T&ype ; required if user customized it
+		Type_TT := "ZoomIt: Type [Ctrl+2, T]"
 	}
 }
 
+if (zoomitLive) AND (OSver>=6.0) {
+	Menu, ToolboxMenu, Check, Wheel with ZoomIt (&Live)
+}
+
+if (zoomitStill) AND (OSver>=6.0) {
+	Menu, ToolboxMenu, Check, Wheel with ZoomIt (&Still)
+}
+
+; if (OSver<6.1) OR !(EditionID="HomeBasic" OR EditionID="Starter")
+if (OSver=6) {
+	Menu, ToolboxMenu, Disable, Wheel with ZoomIt (&Live)
+}
+
+if (OSver<6) OR (OSver=6 AND !SnippingToolExists)
+{
+	if not zoomitPanel
+		Menu, FileMenu, Disable, Switch to Capture-to-&Disk Slider ; since this is the only one slider
+}
+
+if (OSver=6 AND SnippingToolExists)
+{
+	if not zoomitPanel
+		Menu, FileMenu, Disable, Switch to &AeroSnip Slider ; since this is the only one slider
+}
+
+if not A_IsAdmin
+{
+	Menu, Configuration, Disable, &Save Config on Exit
+	If (OSver>=6) {
+		Menu, ToolboxMenu, Disable, &Run on Startup
+	}
+}
 
 ; Attach the menu bar to the window:
 Gui, Menu, MyBar
 
-; go to subroutines to update the GUI
-Gosub, ReadValueUpdatePanel
+
+hIcon32 := DllCall("LoadImage", uint, 0
+    , str, "AeroZoom.ico"  ; Icon filename (this file may contain multiple icons).
+    , uint, 1  ; Type of image: IMAGE_ICON
+    , int, 32, int, 32  ; Desired width and height of image (helps LoadImage decide which icon is best).
+    , uint, 0x10)  ; Flags: LR_LOADFROMFILE
+Gui +LastFound
+SendMessage, 0x80, 1, hIcon32  ; 0x80 is WM_SETICON; and 1 means ICON_BIG (vs. 0 for ICON_SMALL).
+
+; IMPORTANT: Set Title, Window Size and Position
+; Gui, Show, h452 w140 x%xPos2% y%yPos2%, `r
+
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0 AND !zoomitPanel) OR (OSver<6.1 AND !zoomitPanel) {
+	if centerPanel
+	{
+		Gui, Show, h263 w140, AeroZoom Panel
+		centerPanel=
+	} else {
+		Gui, Show, h263 w140 x%xPos2% y%yPos2%, AeroZoom Panel
+	}
+} else {
+	if SwitchMiniMode
+	{
+		if centerPanel
+		{
+			Gui, Show, h358 w140, AeroZoom Panel
+			centerPanel=
+		} else {
+			Gui, Show, h358 w140 x%xPos2% y%yPos2%, AeroZoom Panel
+		}
+	} else {
+		if centerPanel
+		{
+			Gui, Show, h436 w140, AeroZoom Panel
+			centerPanel=
+		} else {
+			Gui, Show, h436 w140 x%xPos2% y%yPos2%, AeroZoom Panel
+		}
+	}
+}
+OnMessage(0x200, "WM_MOUSEMOVE")
+
+WinSet, Transparent, %panelTrans%, AeroZoom Panel
+
+If (OSver>6.0) {
+	; go to subroutines to update the GUI
+	Gosub, ReadValueUpdatePanel
+}
 
 Loop 6
 
-; record current magnifier window status (for use by settimer later)
-Process, Exist, magnify.exe
-If errorlevel
-{
-	IfWinExist, ahk_class MagUIClass
-	{
-		WinGet, chkMin, MinMax, ahk_class MagUIClass
-		if (chkMin<0) { ; minimized
-			hideOrMinLast=2 ; minimized
-		} else {
-			hideOrMinLast=3 ; normal
-		}
-	} else {
-		hideOrMinLast=1 ; hidden
-	}
-} else {
-	hideOrMinLast= ; if not defined, use default settings
-}
-
-
 OnMessage(0x200, "WM_MOUSEMOVE")
 
-SetTimer, updateMouseTextKB, 500 ; monitor registry for value changes
+
+if (OSver>6) {
+	; record current magnifier window status (for use by settimer later)
+	Process, Exist, magnify.exe
+	If errorlevel
+	{
+		IfWinExist, ahk_class MagUIClass
+		{
+			WinGet, chkMin, MinMax, ahk_class MagUIClass
+			if (chkMin<0) { ; minimized
+				hideOrMinLast=2 ; minimized
+			} else {
+				hideOrMinLast=3 ; normal
+			}
+		} else {
+			hideOrMinLast=1 ; hidden
+		}
+	} else {
+		hideOrMinLast= ; if not defined, use default settings
+	}
+	SetTimer, updateMouseTextKB, 500 ; monitor registry for value changes
+}
+
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
+	Menu, ToolboxMenu, Disable, &Run on Startup
+}
 
 return
 
 ShowMagnifier:
+if zoomitPanel {
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	Process, Exist, zoomit.exe
+	If not errorlevel {
+		Run, "%A_WorkingDir%\Data\ZoomIt.exe"
+		Sleep,1750
+	}
+	IfWinExist, ZoomIt - Sysinternals: www.sysinternals.com
+		WinClose
+	Else
+		Gosub, zoomitOptions
+	Gui, %guiDestroy%
+	return
+}
 Process, Exist, magnify.exe
 if errorlevel ; if running, return PID
 {
-	WinGet, chkMin, MinMax, ahk_class MagUIClass
-	if (chkMin<0) { 
-		WinShow, ahk_class MagUIClass
-		WinRestore, ahk_class MagUIClass ; the old way WinRestore Magnifier may not work for non-english systems
-		; GuiControl,, S&how, &Hide
-	} else { ; if magnifier win is normal, chkmin=0; if minimized, chkmin=-1; if maximized, chkmin=1 (not possible for magnifier); if quit, chkmin= (cleared)
-		if (hideOrMin=1) {
-			WinMinimize, ahk_class MagUIClass
-			WinHide, ahk_class MagUIClass
-		} else {
-			WinMinimize, ahk_class MagUIClass
+	If (OSver>=6.1) {
+		WinGet, chkMin, MinMax, ahk_class MagUIClass
+		if (chkMin<0) { 
+			WinShow, ahk_class MagUIClass
+			WinRestore, ahk_class MagUIClass ; the old way WinRestore Magnifier may not work for non-english systems
+			; GuiControl,, S&how, &Hide
+		} else { ; if magnifier win is normal, chkmin=0; if minimized, chkmin=-1; if maximized, chkmin=1 (not possible for magnifier); if quit, chkmin= (cleared)
+			if (hideOrMin=1) {
+				WinMinimize, ahk_class MagUIClass
+				WinHide, ahk_class MagUIClass
+			} else {
+				WinMinimize, ahk_class MagUIClass
+			}
+			; GuiControl,, &Hide, S&how
 		}
-		; GuiControl,, &Hide, S&how
+	} else if (OSver=6.0) {
+		IfWinExist, ahk_class NativeHWNDHost
+		{
+			WinGet, chkMin, MinMax, ahk_class NativeHWNDHost
+			If (chkmin=-1)
+				WinActivate
+			Else
+				WinMinimize
+		}
+		Else
+		{
+			GoSub, CloseMagnifier
+			Run, "%windir%\system32\magnify.exe",,
+		}
+	} else if (OSver<6) {
+		;DetectHiddenText, on ; there is no reliable way to detect magnifier in non-en xp
+		IfWinExist, Magnifier Settings
+		{
+			WinGet, chkMin, MinMax, Magnifier Settings
+			If (chkmin=-1)
+				WinActivate
+			Else
+				WinMinimize
+		}
+		Else
+		{
+			GoSub, CloseMagnifier
+			Run, "%windir%\system32\magnify.exe",,
+		}
+		;DetectHiddenText, off
 	}
 } else { ; if not running
-	Run,"%windir%\system32\magnify.exe",,
+	gosub, W7HBCantRun2MagMsg
+	Run, "%windir%\system32\magnify.exe",,
+	; GuiControl,, S&how, &Hide
+}
+Gui, %guiDestroy%
+return
+
+ShowMagnifierHK: ; for HotKey. Difference from above is this does not shows zoomit options when zoomitpanel is on
+
+Process, Exist, magnify.exe
+if errorlevel ; if running, return PID
+{
+	If (OSver>=6.1) {
+		WinGet, chkMin, MinMax, ahk_class MagUIClass
+		if (chkMin<0) { 
+			WinShow, ahk_class MagUIClass
+			WinRestore, ahk_class MagUIClass ; the old way WinRestore Magnifier may not work for non-english systems
+			; GuiControl,, S&how, &Hide
+		} else { ; if magnifier win is normal, chkmin=0; if minimized, chkmin=-1; if maximized, chkmin=1 (not possible for magnifier); if quit, chkmin= (cleared)
+			if (hideOrMin=1) {
+				WinMinimize, ahk_class MagUIClass
+				WinHide, ahk_class MagUIClass
+			} else {
+				WinMinimize, ahk_class MagUIClass
+			}
+			; GuiControl,, &Hide, S&how
+		}
+	} else if (OSver=6.0) {
+		IfWinExist, ahk_class NativeHWNDHost
+		{
+			WinGet, chkMin, MinMax, ahk_class NativeHWNDHost
+			If (chkmin=-1)
+				WinActivate
+			Else
+				WinMinimize
+		}
+		Else
+		{
+			GoSub, CloseMagnifier
+			Run, "%windir%\system32\magnify.exe",,
+		}
+	} else if (OSver<6) {
+		;DetectHiddenText, on ; there is no reliable way to detect magnifier in non-en xp
+		IfWinExist, Magnifier Settings
+		{
+			WinGet, chkMin, MinMax, Magnifier Settings
+			If (chkmin=-1)
+				WinActivate
+			Else
+				WinMinimize
+		}
+		Else
+		{
+			GoSub, CloseMagnifier
+			Run, "%windir%\system32\magnify.exe",,
+		}
+		;DetectHiddenText, off
+	}
+} else { ; if not running
+	gosub, W7HBCantRun2MagMsg
+	Run, "%windir%\system32\magnify.exe",,
 	; GuiControl,, S&how, &Hide
 }
 Gui, %guiDestroy%
@@ -1481,13 +8250,18 @@ return
 
 KillMagnifier:
 ; if enhanced with ZoomIt, this will be the timer button.
-if (zoomit=1 AND KeepSnip<>1) {
+if zoomitPanel {
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
 		goto, zoomit
 	Process, Exist, zoomit.exe
 	If (errorlevel=0) {
-		Run, %A_WorkingDir%\Data\ZoomIt.exe
-		WinWait, ahk_class ZoomitClass,,3
+		Run, "%A_WorkingDir%\Data\ZoomIt.exe"
+		Sleep,1750
+	}
+	IfWinExist, ahk_class MagnifierClass ; if zoomit is working, stop it
+	{
+		sendinput ^4
+		WinWaitClose, ahk_class MagnifierClass, , 3
 	}
 	IfWinExist, ahk_class ZoomitClass
 	{
@@ -1496,17 +8270,10 @@ if (zoomit=1 AND KeepSnip<>1) {
 		;GuiControl,, Paus&e, Tim&er
 	} else {
 		;GuiControl,, Tim&er, Paus&e
-		WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
-		sendinput ^3
-		WinWait, ahk_class ZoomitClass,,5
-		WinWaitClose, ahk_class ZoomitClass
-		If onTopBit
-			WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-		Else
-			WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+		gosub, ViewBreakTimer
 	}
 	Gui, %guiDestroy%
-		
+				
 	; the part below monitors if the break timer window is closed by user externally
 	; so as to reflect the Pause/Tiemr status on the panel
 	; this consumes much less cpu than a loop
@@ -1521,28 +8288,64 @@ if (zoomit=1 AND KeepSnip<>1) {
 	;	MsgNum := DllCall( "RegisterWindowMessage", Str,"SHELLHOOK" )
 	;	OnMessage( MsgNum, "ShellMessageZoomIt" )
 } else {
-	; Run,"%windir%\system32\taskkill.exe" /f /im magnify.exe,,Min
+	; Run, "%windir%\system32\taskkill.exe" /f /im magnify.exe,,Min
+	if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
+		gosub, mspaint
+		Gui, %guiDestroy%
+	} else {
+		if (legacyKill=1)
+		{
+			If (OSver>6 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+				If not killGuidance
+				{
+					if not GuideDisabled
+					{
+						Msgbox, 262144, This message will only be shown once, 'Reset' is suggested as a replacement for 'Kill' because of its better zoom performance.`n`n'Kill magnifier' is only useful for stopping Docked and Lens view and to work around a bug of Windows Media Center where the cursor is gone while Magnifier is running.`n`nIf you do happen to use Windows Media Center with AeroZoom, consider enabling holding the middle button to kill magnifier in 'Tool > Preferences > Custom Hotkeys > Holding Middle' so that you can bring the cursor back more easily.
+						killGuidance = 1
+						RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, killGuidance, 1
+					}
+				}
+			}
+			GoSub, CloseMagnifier
+			 ; GuiControl,, &Hide, S&how
+			Gui, %guiDestroy%
+		} else {
+			; AZ v2 Runs Paint instead of Kill by default (since clicking Mag/Show button again hides it alrdy)
+			; AZ v2.1 Runs Kill again to ease users in some unknown cases (e.g. Windows Media Center)
+			gosub, mspaint
+			Gui, %guiDestroy%
+		}
+	}
+}
+return
+
+KillMagnifierHK:
+; Run, "%windir%\system32\taskkill.exe" /f /im magnify.exe,,Min
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
+	gosub, mspaint
+	Gui, %guiDestroy%
+} else {
 	if (legacyKill=1)
 	{
-		Process, Exist, magnify.exe
-		if errorlevel
-		{
-			Process, Close, magnify.exe
+		If (OSver>6 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+			If not killGuidance
+			{
+				if not GuideDisabled
+				{
+					Msgbox, 262144, This message will only be shown once, 'Reset' is suggested as a replacement for 'Kill' because of its better zoom performance.`n`n'Kill magnifier' is only useful for stopping Docked and Lens view and to work around a bug of Windows Media Center where the cursor is gone while Magnifier is running.`n`nIf you do happen to use Windows Media Center with AeroZoom, consider enabling holding the middle button to kill magnifier in 'Tool > Preferences > Custom Hotkeys > Holding Middle' so that you can bring the cursor back more easily.
+					killGuidance = 1
+					RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, killGuidance, 1
+				}
+			}
 		}
+		GoSub, CloseMagnifier
 		 ; GuiControl,, &Hide, S&how
 		Gui, %guiDestroy%
 	} else {
 		; AZ v2 Runs Paint instead of Kill by default (since clicking Mag/Show button again hides it alrdy)
-		IfWinExist, ahk_class MSPaintApp
-			WinActivate
-		else
-			Run,"%windir%\system32\mspaint.exe",,
+		; AZ v2.1 Runs Kill again to ease users in some unknown cases (e.g. Windows Media Center)
+		gosub, mspaint
 		Gui, %guiDestroy%
-		If onTopBit
-		{
-			WinWait, ahk_class MSPaintApp,,3 ; Loop to ensure to wait until the program is run before setting it to Always on Top 
-			WinSet, AlwaysOnTop, on, ahk_class MSPaintApp
-		}
 	}
 }
 return
@@ -1563,146 +8366,179 @@ return
 ;}
 
 Default:
+IfWinExist, ahk_class MagnifierClass ; if zoomit is working, enhance (stop) it instead
+{
+	sendinput ^4
+	return
+}
+IfWinExist, ahk_class ZoomitClass
+{
+	sendinput {esc}
+	return
+}
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
+	RegRead,limitedacc4,HKCU,Software\WanderSick\AeroZoom,limitedacc4
+	if errorlevel
+	{
+		if not GuideDisabled
+		{
+			msgbox,262208,This message will be shown once only,Before doing a reset under limited mode with UAC in Windows 7, locate Magnifier first and close it manually before clicking the Reset button. Magnifier will then run automatically.`n`nThe reset hotkey [Win]+[Shift]+[R] works the same way. (Manually close Magnifier first.)
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, limitedacc4, 1
+		}
+	}
+}
+
 ; check if a last magnifier window is available and record its status
 ; so that after it restores it will remain hidden/minimized/normal
 
 ; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
 ; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
+MagExists=
+
+;RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Magnify, ShowWarning, 0x0
+
 Process, Exist, magnify.exe
 If errorlevel
 {
-	IfWinExist, ahk_class MagUIClass
-	{
-		WinGet, chkMin, MinMax, ahk_class MagUIClass
-		if (chkMin<0) { ; minimized
-			hideOrMinLast=2 ; minimized
+	MagExists=1 ; only run magnifier later if exists
+	if (OSver>6) {
+		IfWinExist, ahk_class MagUIClass
+		{
+			WinGet, chkMin, MinMax, ahk_class MagUIClass
+			if (chkMin<0) { ; minimized
+				hideOrMinLast=2 ; minimized
+			} else {
+				hideOrMinLast=3 ; normal
+			}
 		} else {
-			hideOrMinLast=3 ; normal
+			hideOrMinLast=1 ; hidden
 		}
-	} else {
-		hideOrMinLast=1 ; hidden
 	}
 } else {
 	hideOrMinLast= ; if not defined, use default settings
 }
-Process, Close, magnify.exe
-GuiControl,, Magnification, 1
-GuiControl,, ZoomInc, 3
-RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Magnification, 0x64
-RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Invert, 0x0
-RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowCaret, 0x0
-RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowFocus, 0x0
-RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowMouse, 0x1
-RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
+
+GoSub, CloseMagnifier
+If (OSver>=6.1) {
+	IfWinExist, AeroZoom Panel
+	{
+		If (SwitchSlider=2)
+			GuiControl,, Magnification, 1
+		If (SwitchSlider=1)
+			GuiControl,, ZoomInc, 3
+	}
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Magnification, 0x64
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Invert, 0x0
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowCaret, 0x0
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowFocus, 0x0
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowMouse, 0x1
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
+} else If (OSver=6) {
+	RegDelete, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier
+} else If (OSver<6) {
+	RegDelete, HKEY_CURRENT_USER, Software\Microsoft\Magnify
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Magnify, ShowWarning, 0x0
+}
 sleep, %delayButton%
-Run,"%windir%\system32\magnify.exe",,Min
+If MagExists
+	Run, "%windir%\system32\magnify.exe",,Min ; run magnifier only if it existed
+MagExists=
 ; GuiControl,, &Hide, S&how
 Gui, %guiDestroy%
 
-
-	WinWait, ahk_class MagUIClass,,3 
-
-; Hide or minimize or normalize magnifier window
-If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-	if (hideOrMin=1) {
-		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-		WinHide, ahk_class MagUIClass
-	} else if (hideOrMin=2) {
-		WinMinimize, ahk_class MagUIClass
-	}
-} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-	WinMinimize, ahk_class MagUIClass
-	WinHide, ahk_class MagUIClass
-} else if (hideOrMinLast=2) {
-	WinMinimize, ahk_class MagUIClass
-}
-
+Gosub, MagWinRestore
 return
 
 Calc:
+if zoomitPanel {
+	Gosub, ZoomItInstButton
+	Gui, %guiDestroy%
+	return
+}
 if customCalcCheckbox
 {
 	if customCalcPath
 	{
-		Run,"%customCalcPath%",,
+		Run, %CustomCalcPath%
 		Gui, %guiDestroy%
 		return
 	}
 }
-IfWinExist, ahk_class CalcFrame
-	WinActivate
-else
-	Run,"%windir%\system32\calc.exe",,
+gosub, mscalc
 Gui, %guiDestroy%
-	If onTopBit
-	{
-		WinWait, ahk_class CalcFrame,,3 ; Loop to ensure to wait until the program is run before setting it to Always on Top 
-		WinSet, AlwaysOnTop, on, ahk_class CalcFrame
-	}
 return
 
 Draw:
-if (zoomit=1 AND KeepSnip<>1) {
+if zoomitPanel {
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
 		goto, zoomit
 	Process, Exist, zoomit.exe
 	If (errorlevel=0) {
-		Run, %A_WorkingDir%\Data\ZoomIt.exe
-		WinWait, ahk_class ZoomitClass,,3
+		Run, "%A_WorkingDir%\Data\ZoomIt.exe"
+		Sleep,1750
 	}
-	WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
-	sendinput ^2
-	WinWait, ahk_class ZoomitClass,,5
-	WinWaitClose, ahk_class ZoomitClass
-	If onTopBit
-		WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-	Else
-		WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+	gosub, viewDraw
 } else {
-	Gosub, SnippingTool
+	If (OSver>=6.1 AND (EditionID="Starter" OR EditionID="HomeBasic")) { ; for win7 starter/hb under limited acc+uac, although snipping tool is unavailable, snip cant change to paint as the kill button has alrdy changed to paint
+		Gui, %guiDestroy%
+		Gosub, SnippingTool
+		return
+	}
+	if (OSver<6 OR EditionID="HomeBasic" OR EditionID="Starter") {
+		Gosub, MSPaint
+	} else {
+		Gosub, SnippingTool
+	}
 }
 Gui, %guiDestroy%
 return
 
 
-RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, ZoomItTimerTip, 1
+; RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, ZoomItTimerTip, 1
 
 Type:
+if zoomitPanel {
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	Process, Exist, zoomit.exe
+	If (errorlevel=0) {
+		Run, "%A_WorkingDir%\Data\ZoomIt.exe"
+		Sleep,1750
+	}
+	gosub, viewType
+	Gui, %guiDestroy%
+	return
+}
 if customEdCheckbox
 {
 	if customEdPath
 	{
-		Run,"%customEdPath%",,
+		Run, %CustomEdPath%
 		Gui, %guiDestroy%
 		return
 	}
 }
 if (notepad=1) {
-	IfWinExist, ahk_class Notepad
-		WinActivate
-	else
-		Run,"%windir%\system32\notepad.exe",,
-	Gui, %guiDestroy%
-	If onTopBit
-	{
-		WinWait, ahk_class Notepad,,3
-		WinSet, AlwaysOnTop, on, ahk_class Notepad
-	}
+	gosub, notepad
 } else {
-	IfWinExist, ahk_class WordPadClass
-		WinActivate
-	else
-		Run,"%ProgramFiles%\Windows NT\Accessories\wordpad.exe",,
-	Gui, %guiDestroy%
-	If onTopBit
-	{
-		WinWait, ahk_class WordPadClass,,3
-		WinSet, AlwaysOnTop, on, ahk_class WordPadClass
-	}
+	gosub, wordpad
 }
+Gui, %guiDestroy%
 return
 
 Color:
+if zoomitPanel {
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	Process, Exist, zoomit.exe
+	If (errorlevel=0) {
+		Run, "%A_WorkingDir%\Data\ZoomIt.exe"
+		Sleep,1750
+	}
+	gosub, ViewStillZoom
+	Gui, %guiDestroy%
+	return
+}
 Process, Exist, magnify.exe
 if errorlevel 
 	magRunning = 1
@@ -1714,24 +8550,26 @@ else
 
 ; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
 ; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
-if magRunning
-{
-	IfWinExist, ahk_class MagUIClass
+if (OSver>6) {
+	if magRunning
 	{
-		WinGet, chkMin, MinMax, ahk_class MagUIClass
-		if (chkMin<0) { ; minimized
-			hideOrMinLast=2 ; minimized
+		IfWinExist, ahk_class MagUIClass
+		{
+			WinGet, chkMin, MinMax, ahk_class MagUIClass
+			if (chkMin<0) { ; minimized
+				hideOrMinLast=2 ; minimized
+			} else {
+				hideOrMinLast=3 ; normal
+			}
 		} else {
-			hideOrMinLast=3 ; normal
+			hideOrMinLast=1 ; hidden
 		}
 	} else {
-		hideOrMinLast=1 ; hidden
+		hideOrMinLast= ; if not defined, use default settings
 	}
-} else {
-	hideOrMinLast= ; if not defined, use default settings
 }
 	
-Process, Close, magnify.exe
+GoSub, CloseMagnifier
 RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,Invert
 if (magnifierSetting=0x1) {
 	if not magRunning ; if mag exe is not running BUT magnifierSetting is set to inverted, that means user's screen color is NOT inverted atm and he wants to INVERT it INSTEAD OF what clicking this button is supposed to do -- turning magnifierSetting to off (which uninverts it), simply run mag exe again would already invert the color.
@@ -1747,52 +8585,76 @@ ColorSkip:
 Run,"%windir%\system32\magnify.exe",,Min
 Gui, %guiDestroy%
 
-
-	WinWait, ahk_class MagUIClass,,3 
-
-; Hide or minimize or normalize magnifier window
-If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-	if (hideOrMin=1) {
-		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-		WinHide, ahk_class MagUIClass
-	} else if (hideOrMin=2) {
-		WinMinimize, ahk_class MagUIClass
-	}
-} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-	WinMinimize, ahk_class MagUIClass
-	WinHide, ahk_class MagUIClass
-} else if (hideOrMinLast=2) {
-	WinMinimize, ahk_class MagUIClass
-}
-
+Gosub, MagWinRestore
 Return
 
-Mouse:
+ColorHK:
+Process, Exist, magnify.exe
+if errorlevel 
+	magRunning = 1
+else
+	magRunning =
 
 ; check if a last magnifier window is available and record its status
 ; so that after it restores it will remain hidden/minimized/normal
 
 ; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
 ; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
-Process, Exist, magnify.exe
-If errorlevel
-{
-	IfWinExist, ahk_class MagUIClass
+if (OSver>6) {
+	if magRunning
 	{
-		WinGet, chkMin, MinMax, ahk_class MagUIClass
-		if (chkMin<0) { ; minimized
-			hideOrMinLast=2 ; minimized
+		IfWinExist, ahk_class MagUIClass
+		{
+			WinGet, chkMin, MinMax, ahk_class MagUIClass
+			if (chkMin<0) { ; minimized
+				hideOrMinLast=2 ; minimized
+			} else {
+				hideOrMinLast=3 ; normal
+			}
 		} else {
-			hideOrMinLast=3 ; normal
+			hideOrMinLast=1 ; hidden
 		}
 	} else {
-		hideOrMinLast=1 ; hidden
+		hideOrMinLast= ; if not defined, use default settings
 	}
+}
+	
+GoSub, CloseMagnifier
+RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,Invert
+if (magnifierSetting=0x1) {
+	if not magRunning ; if mag exe is not running BUT magnifierSetting is set to inverted, that means user's screen color is NOT inverted atm and he wants to INVERT it INSTEAD OF what clicking this button is supposed to do -- turning magnifierSetting to off (which uninverts it), simply run mag exe again would already invert the color.
+	{
+		goto, ColorSkipHK
+	}
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Invert, 0x0
 } else {
-	hideOrMinLast= ; if not defined, use default settings
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Invert, 0x1
+}
+sleep, %delayButton%
+ColorSkipHK:
+Run,"%windir%\system32\magnify.exe",,Min
+Gui, %guiDestroy%
+
+Gosub, MagWinRestore
+Return
+
+Mouse:
+if zoomitPanel {
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	Process, Exist, zoomit.exe
+	If (errorlevel=0) {
+		Run, "%A_WorkingDir%\Data\ZoomIt.exe"
+		Sleep,1750
+	}
+	gosub, ViewLiveZoom
+	Gui, %guiDestroy%
+	return
 }
 
-Process, Close, magnify.exe
+Gosub, MagWinBeforeRestore
+
+GoSub, CloseMagnifier
 RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,FollowMouse
 if (magnifierSetting=0x1) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowMouse, 0x0
@@ -1808,56 +8670,68 @@ Run,"%windir%\system32\magnify.exe",,Min
 Gui, %guiDestroy%
 
 
+Gosub, MagWinRestore
+if not zoomitPanel ; to prevent panel button being updated externally by hotkeys (win+alt+m)
+	GuiControl,,Mouse,&Mouse %MouseCurrent% > %MouseNext%
+Return
 
-	WinWait, ahk_class MagUIClass,,3 
+MouseHK:
 
-; Hide or minimize or normalize magnifier window
-If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-	if (hideOrMin=1) {
-		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-		WinHide, ahk_class MagUIClass
-	} else if (hideOrMin=2) {
-		WinMinimize, ahk_class MagUIClass
-	}
-} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-	WinMinimize, ahk_class MagUIClass
-	WinHide, ahk_class MagUIClass
-} else if (hideOrMinLast=2) {
-	WinMinimize, ahk_class MagUIClass
+Gosub, MagWinBeforeRestore
+
+GoSub, CloseMagnifier
+RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,FollowMouse
+if (magnifierSetting=0x1) {
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowMouse, 0x0
+	MouseCurrent = Off
+	MouseNext = On
+} else {
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowMouse, 0x1
+	MouseCurrent = On
+	MouseNext = Off
 }
+sleep, %delayButton%
+Run,"%windir%\system32\magnify.exe",,Min
+Gui, %guiDestroy%
 
 
-GuiControl,,Mouse,&Mouse %MouseCurrent% => %MouseNext%
+Gosub, MagWinRestore
+if not zoomitPanel ; to prevent panel button being updated externally by hotkeys (win+alt+m)
+	GuiControl,,Mouse,&Mouse %MouseCurrent% > %MouseNext%
 Return
 
 Keyboard:
 
 
-; check if a last magnifier window is available and record its status
-; so that after it restores it will remain hidden/minimized/normal
-
-; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
-; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
-Process, Exist, magnify.exe
-If errorlevel
-{
-	IfWinExist, ahk_class MagUIClass
-	{
-		WinGet, chkMin, MinMax, ahk_class MagUIClass
-		if (chkMin<0) { ; minimized
-			hideOrMinLast=2 ; minimized
-		} else {
-			hideOrMinLast=3 ; normal
-		}
-	} else {
-		hideOrMinLast=1 ; hidden
+if zoomitPanel {
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	Process, Exist, zoomit.exe
+	If (errorlevel=0) {
+		Run, "%A_WorkingDir%\Data\ZoomIt.exe"
+		Sleep,1750
 	}
-} else {
-	hideOrMinLast= ; if not defined, use default settings
+	gosub, ViewWhiteBoard
+	Gui, %guiDestroy%
+	return
 }
 
+RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,FollowFocus
+if (magnifierSetting<>0x1 AND zoompad) {
+	RegRead,kbPadMsg,HKCU,Software\WanderSick\AeroZoom,kbPadMsg
+	if errorlevel
+	{
+		if not GuideDisabled
+		{
+			Msgbox, 262208, This message will be shown once only, 'Keyboard (i.e. Follow the keyboard focus)' and 'Misclick-preventing Pad' may cause zoom problems if enabled together.`n`nA workaround is to use 'Text (Follow text insertion point)' instead.
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, kbPadMsg, 1
+		}
+	}
+}
 
-Process, Close, magnify.exe
+Gosub, MagWinBeforeRestore
+
+GoSub, CloseMagnifier
 RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,FollowFocus
 if (magnifierSetting=0x1) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowFocus, 0x0
@@ -1873,56 +8747,54 @@ Run,"%windir%\system32\magnify.exe",,Min
 Gui, %guiDestroy%
 
 
+Gosub, MagWinRestore
+if not zoomitPanel ; to prevent panel button being updated externally by hotkeys (win+alt+k)
+	GuiControl,,Keyboard,&Keyboard %KeyboardCurrent% > %KeyboardNext%
+Return
 
-	WinWait, ahk_class MagUIClass,,3 
+KeyboardHK:
 
-; Hide or minimize or normalize magnifier window
-If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-	if (hideOrMin=1) {
-		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-		WinHide, ahk_class MagUIClass
-	} else if (hideOrMin=2) {
-		WinMinimize, ahk_class MagUIClass
-	}
-} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-	WinMinimize, ahk_class MagUIClass
-	WinHide, ahk_class MagUIClass
-} else if (hideOrMinLast=2) {
-	WinMinimize, ahk_class MagUIClass
+Gosub, MagWinBeforeRestore
+
+GoSub, CloseMagnifier
+RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,FollowFocus
+if (magnifierSetting=0x1) {
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowFocus, 0x0
+	KeyboardCurrent = Off
+	KeyboardNext = On
+} else {
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowFocus, 0x1
+	KeyboardCurrent = On
+	KeyboardNext = Off
 }
+sleep, %delayButton%
+Run,"%windir%\system32\magnify.exe",,Min
+Gui, %guiDestroy%
 
 
-GuiControl,,Keyboard,&Keyboard %KeyboardCurrent% => %KeyboardNext%
+Gosub, MagWinRestore
+if not zoomitPanel ; to prevent panel button being updated externally by hotkeys (win+alt+k)
+	GuiControl,,Keyboard,&Keyboard %KeyboardCurrent% > %KeyboardNext%
 Return
 
 Text:
 
-
-; check if a last magnifier window is available and record its status
-; so that after it restores it will remain hidden/minimized/normal
-
-; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
-; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
-Process, Exist, magnify.exe
-If errorlevel
-{
-	IfWinExist, ahk_class MagUIClass
-	{
-		WinGet, chkMin, MinMax, ahk_class MagUIClass
-		if (chkMin<0) { ; minimized
-			hideOrMinLast=2 ; minimized
-		} else {
-			hideOrMinLast=3 ; normal
-		}
-	} else {
-		hideOrMinLast=1 ; hidden
+if zoomitPanel {
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	Process, Exist, zoomit.exe
+	If (errorlevel=0) {
+		Run, "%A_WorkingDir%\Data\ZoomIt.exe"
+		Sleep,1750
 	}
-} else {
-	hideOrMinLast= ; if not defined, use default settings
+	gosub, ViewBlackBoard
+	Gui, %guiDestroy%
+	return
 }
 
+Gosub, MagWinBeforeRestore
 
-Process, Close, magnify.exe
+GoSub, CloseMagnifier
 RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,FollowCaret
 if (magnifierSetting=0x1) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowCaret, 0x0
@@ -1939,44 +8811,54 @@ Gui, %guiDestroy%
 
 
 
+Gosub, MagWinRestore
+if not zoomitPanel ; to prevent panel button being updated externally by hotkeys (win+alt+t)
+	GuiControl,,Text,Te&xt %TextCurrent% > %TextNext%
+Return
 
-	WinWait, ahk_class MagUIClass,,3 
+TextHK:
 
-; Hide or minimize or normalize magnifier window
-If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-	if (hideOrMin=1) {
-		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-		WinHide, ahk_class MagUIClass
-	} else if (hideOrMin=2) {
-		WinMinimize, ahk_class MagUIClass
-	}
-} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-	WinMinimize, ahk_class MagUIClass
-	WinHide, ahk_class MagUIClass
-} else if (hideOrMinLast=2) {
-	WinMinimize, ahk_class MagUIClass
+Gosub, MagWinBeforeRestore
+
+GoSub, CloseMagnifier
+RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,FollowCaret
+if (magnifierSetting=0x1) {
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowCaret, 0x0
+	TextCurrent = Off
+	TextNext = On
+} else {
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowCaret, 0x1
+	TextCurrent = On
+	TextNext = Off
 }
+sleep, %delayButton%
+Run,"%windir%\system32\magnify.exe",,Min
+Gui, %guiDestroy%
 
 
-GuiControl,,Text,Te&xt %TextCurrent% => %TextNext%
+
+Gosub, MagWinRestore
+if not zoomitPanel ; to prevent panel button being updated externally by hotkeys (win+alt+t)
+	GuiControl,,Text,Te&xt %TextCurrent% > %TextNext%
 Return
 
 PauseScript:
-if (paused=0) {
+if not paused {
 	paused = 1
-	Gui, Font, s9 Bold, Arial
-	GuiControl,,PauseScript,&on
+	Gui, Font, s8 Bold, Arial
+	GuiControl,,PauseScript,&off
 	GuiControl, Font, PauseScript
 } else {
-	paused = 0
+	paused =
 	Gui, Font, s8 Norm, Arial
 	GuiControl,,PauseScript,&off
 	GuiControl, Font, PauseScript
 }
+Gui, Font, s10 Norm, Tahoma
 Gui, %guiDestroy%
 return
 
-Hide:
+;Hide:
 HideAZ:
 GuiEscape:    ; On ESC press
 GuiClose:   ; On "Close" button press
@@ -1984,128 +8866,246 @@ Gui, Destroy
 return
 
 Bye:
-Process, Close, magnify.exe
-if CheckboxRestoreDefault {
-	RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom
-	RegDelete, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier
-	Gui, 1:Font, CRed, 
-	GuiControl,1:Font,Txt,
-	GuiControl,1:,Txt,-  Restoring  -
-	GuiControl,Disable,Bye
-	Gui,+Disabled
-	Process, Close, zoomit.exe
-	Process, Close, zoomit64.exe
-	IfExist, %A_WorkingDir%\Data\ZoomIt.exe
-	{
-		Msgbox, 262180, AeroZoom Restoration, Also delete ZoomIt and reset its hotkey? ; hotkey will be reset on next use of ZoomIt
-		IfMsgBox Yes
-		{
-			Sleep, 1100
-			FileDelete, %A_WorkingDir%\Data\ZoomIt.exe
-			FileDelete, %A_WorkingDir%\Data\ZoomIt64.exe
-		}
-	}
-}
-ExitApp
-return
-
 ExitAZ:
-Process, Close, magnify.exe
-if CheckboxRestoreDefault {
-	RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom
-	RegDelete, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier
-	Gui, 1:Font, CRed, 
-	GuiControl,1:Font,Txt,
-	GuiControl,1:,Txt,-  Restoring  -
-	GuiControl,Disable,Bye
-	Gui,+Disabled
-	Process, Close, zoomit.exe
-	Process, Close, zoomit64.exe
-	IfExist, %A_WorkingDir%\Data\ZoomIt.exe
-	{
-		Msgbox, 262180, AeroZoom Restoration, Also delete ZoomIt and reset its hotkey? ; hotkey will be reset on next use of ZoomIt
-		IfMsgBox Yes
-		{
-			Sleep, 1100
-			FileDelete, %A_WorkingDir%\Data\ZoomIt.exe
-			FileDelete, %A_WorkingDir%\Data\ZoomIt64.exe
-		}
-	}
-}
+GoSub, CloseMagnifier
+GoSub, AutoConfigBackup
 ExitApp
 return
 
 Instruction:
-Gui, 2:+owner1  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
-Gui +Disabled  ; Disable main window.
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
+	RegRead,limitedAcc3,HKCU,Software\WanderSick\AeroZoom,limitedAcc3
+	if errorlevel
+	{
+		if not GuideDisabled
+		{
+			Msgbox, 262208, This message will be shown once only, You are using the limited functionality mode. Some unavailable hotkeys are not shown.
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, limitedAcc3, 1
+		}
+	}
+	goto, InstructionLimited
+} else if (OSver<6.1) {
+	RegRead,VistaMsg2,HKCU,Software\WanderSick\AeroZoom,VistaMsg2
+	if errorlevel
+	{
+		if not GuideDisabled
+		{
+			Msgbox, 262208, This message will be shown once only, You are using an older version of Windows. Some unavailable hotkeys are not shown.
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, VistaMsg2, 1
+		}
+	}
+	goto, InstructionVista ; also for xp
+}
+IfWinExist, AeroZoom Panel
+{
+	Gui, 2:+owner1  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
+	Gui, 1:+Disabled  ; Disable main window.
+}
+Gui, 2:+ToolWindow
 Gui, 2:Font, s10, Arial bold, 
-Gui, 2:Add, Text, , Global Keyboard Shortcuts
+Gui, 2:Add, Text, , Global Keyboard Shortcuts (Windows 7)
 Gui, 2:Font, s9, Arial, 
-Gui, 2:Add, Text, , Full Screen`t`t=> [Ctrl] + [Alt] + [F]`nLens      `t`t=> [Ctrl] + [Alt] + [L]`nDocked    `t`t=> [Ctrl] + [Alt] + [D]`nPreview full screen`t=> [Ctrl] + [Alt] + [Space]`n`nZoom level`t`t=> [Win] + [Alt] + [F1 to F6]`nInvert color`t`t=> [Win] + [Alt] + [I]`nFollow mouse`t`t=> [Win] + [Alt] + [M]`nFollow key`t`t=> [Win] + [Alt] + [K]`nFollow text`t`t=> [Win] + [Alt] + [T]`n`nReset zoom`t`t=> [Win] + [Shift] + [-]`nReset magnifier`t=> [Win] + [Alt] + [R]`nShow|hide magnifier`t=> [Win] + [Shift] + [``]`nShow|hide panel`t=> [Win] + [Shift] + [Esc]`nNew snip`t`t=> [Win] + [Alt] + [S]`nTurn off|on hotkeys`t=> [Win] + [Alt] + [O]
+Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom speed`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   [Win] + [Alt] + [Shift] + [H]`nQuick help`t`t   [Win] + [Alt] + [Q]
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Modifier (User-defined Mouse Button)
 Gui, 2:Font, s9, Arial, 
-Gui, 2:Add, Text, , Zoom in  `t`t=> [Modifier] + [Wheel-up]`nZoom out`t`t=> [Modifier] + [Wheel-down]`nReset zoom`t`t=> [Modifier] + [Middle]`nShow|hide panel`t=> [Left] + [Right]`nPreview full screen`t=> hold [Middle]  *when zoomed in`nNew snip`t`t=> hold [Middle]  **when zoomed out`nStill zoom on|off`t=> hold [Middle]  **requires ZoomIt
+Gui, 2:Add, Text, , Zoom in|out`t`t   [Modifier] + [Wheel-up/down]`nZoom reset`t`t   [Modifier] + [Middle]`nShow|hide panel`t   [Left] + [Right]`nPreview full screen`t   hold [Middle]  *when zoomed in`nNew snip|custom`t   hold [Middle]  *when zoomed out
 Gui, 2:Font, s10, Arial, 
-Gui, 2:Add, Text, , Note:`tIn 'middle mode', hold [Mid] + [Right] to reset`n`tzoom, [Mid] + [Left] to snip/still-zoom/preview.
+Gui, 2:Add, Text, , Note:`tIn 'middle mode', hold [Mid] + [Right] to reset`n`tzoom, [Mid] + [Left] to snip/preview.
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Font, CRed, 
-Gui, 2:Add, Text, , At: %modDisp%
+Gui, 2:Add, Text, , Now: %modDisp%
 Gui, 1:Font, CDefault, 
 Gui, 2:Font, s10, Arial, 
 Gui, 2:Font, norm, 
-Gui, 2:Add, Button, x184 y500 h30 w56 vExtraInstTemp gExtraInstButton, &Extras
+Gui, 2:Add, Button, x184 y455 h30 w56 vExtraInstTemp gExtraInstButton, &Custom
 ExtraInstTemp_TT := "Extra Instructions for Back/Forward Mouse Button"
-Gui, 2:Add, Button, x240 y500 h30 w56 vZoomItInstTemp gZoomItInstButton, &ZoomIt
+Gui, 2:Add, Button, x240 y455 h30 w56 vZoomItInstTemp gZoomItInstButton, &ZoomIt
 ZoomItInstTemp_TT := "ZoomIt Default Hotkeys"
-Gui, 2:Add, Button, x296 y500 h30 w56 Default vOKtemp1, &OK
+Gui, 2:Add, Button, x296 y455 h30 w56 Default vOKtemp1, &OK
 OKtemp1_TT := "Click to close"
-Gui, 2:Show, w361 h537 , Quick Instructions
+Gui, 2:Show, w361 h492 , Quick Instructions
+return
+
+InstructionLimited: ; no kill, only run mag (no hide), no reset zoom. 
+IfWinExist, AeroZoom Panel
+{
+	Gui, 2:+owner1  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
+	Gui, 1:+Disabled  ; Disable main window.
+}
+Gui, 2:+ToolWindow
+Gui, 2:Font, s10, Arial bold, 
+Gui, 2:Add, Text, , Global Keyboard Shortcuts (Limited)
+Gui, 2:Font, s9, Arial, 
+Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom speed`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset magnifier`t   [Win] + [Shift] + [R]  *close mag first`nRun magnifier`t`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   [Win] + [Alt] + [Shift] + [H]`nQuick help`t`t   [Win] + [Alt] + [Q]
+Gui, 2:Font, s10, Arial bold, 
+Gui, 2:Add, Text, , Modifier (User-defined Mouse Button)
+Gui, 2:Font, s9, Arial, 
+Gui, 2:Add, Text, , Zoom in|out`t`t   [Modifier] + [Wheel-up/down]`nShow|hide panel`t   [Left] + [Right]`nPreview full screen`t   hold [Middle]  *when zoomed in`nNew snip|custom`t   hold [Middle]  *when zoomed out
+Gui, 2:Font, s10, Arial, 
+Gui, 2:Add, Text, , Note:`tIn 'middle mode', hold [Middle] and press [Left]`n`tto snip/preview.
+Gui, 2:Font, s10, Arial bold, 
+Gui, 2:Font, CRed, 
+Gui, 2:Add, Text, , Now: %modDisp%
+Gui, 1:Font, CDefault, 
+Gui, 2:Font, s10, Arial, 
+Gui, 2:Font, norm, 
+Gui, 2:Add, Button, x184 y425 h30 w56 vExtraInstTemp gExtraInstButton, &Custom
+ExtraInstTemp_TT := "Extra Instructions for Back/Forward Mouse Button"
+Gui, 2:Add, Button, x240 y425 h30 w56 vZoomItInstTemp gZoomItInstButton, &ZoomIt
+ZoomItInstTemp_TT := "ZoomIt Default Hotkeys"
+Gui, 2:Add, Button, x296 y425 h30 w56 Default vOKtemp1, &OK
+OKtemp1_TT := "Click to close"
+Gui, 2:Show, w361 h462 , Quick Instructions
+return
+
+InstructionVista: ; also for xp
+IfWinExist, AeroZoom Panel
+{
+	Gui, 2:+owner1  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
+	Gui, 1:+Disabled  ; Disable main window.
+}
+Gui, 2:+ToolWindow
+Gui, 2:Font, s10, Arial bold, 
+Gui, 2:Add, Text, , Global Keyboard Shortcuts (Vista and XP)
+Gui, 2:Font, s9, Arial, 
+Gui, 2:Add, Text, , Elastic zoom`t`t   [Ctrl] + [Caps Lock]  *Vista + Aero`nElastic zoom (still)`t   [Shift] + [Caps Lock]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]  *Vista`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   [Win] + [Alt] + [Shift] + [H]`nQuick help`t`t   [Win] + [Alt] + [Q]
+Gui, 2:Font, s10, Arial bold, 
+Gui, 2:Add, Text, , Modifier (User-defined Mouse Button)
+Gui, 2:Font, s9, Arial, 
+Gui, 2:Add, Text, , Zoom in|out`t`t   [Modifier] + [Wheel-up/down]`nReset zoom`t`t   [Modifier] + [Middle]`nShow|hide panel`t   [Left] + [Right]`nNew snip|custom`t   hold [Middle]  *when zoomed out
+Gui, 2:Font, s10, Arial, 
+Gui, 2:Add, Text, , Note:`tIn 'middle mode', hold [Mid] + [Right] to reset`n`tzoom, [Mid] + [Left] to snip/still-zoom.
+Gui, 2:Font, s10, Arial bold, 
+Gui, 2:Font, CRed, 
+Gui, 2:Add, Text, , Now: %modDisp%
+Gui, 1:Font, CDefault, 
+Gui, 2:Font, s10, Arial, 
+Gui, 2:Font, norm, 
+Gui, 2:Add, Button, x184 y395 h30 w56 vExtraInstTemp gExtraInstButton, &Custom
+ExtraInstTemp_TT := "Extra Instructions for Back/Forward Mouse Button"
+Gui, 2:Add, Button, x240 y395 h30 w56 vZoomItInstTemp gZoomItInstButton, &ZoomIt
+ZoomItInstTemp_TT := "ZoomIt Default Hotkeys"
+Gui, 2:Add, Button, x296 y395 h30 w56 Default vOKtemp1, &OK
+OKtemp1_TT := "Click to close"
+Gui, 2:Show, w361 h434 , Quick Instructions
 return
 
 CheckUpdate:
 Gui, 1:Font, CRed, 
 GuiControl,1:Font,Txt,
 GuiControl,1:,Txt,- Please Wait -
-Gui, -AlwaysOnTop   ; To let the update check popup message show on top after checking, which is done thru batch and VBScript.
-RunWait, "%comspec%" /c "%A_WorkingDir%\Data\_updateCheck.bat" /quiet, , Min
-Gui, +AlwaysOnTop
+; Gui, 1:-AlwaysOnTop   ; To let the update check popup message show on top after checking, which is done thru batch and VBScript.
+Run, "%comspec%" /c "%A_WorkingDir%\Data\_updateCheck.bat" /quiet, ,Min
+WinWait, Update Check,,30
+WinSet, AlwaysOnTop, on, Update Check
+WinWaitClose, Update Check,,30
+;If onTopBit
+;	Gui, 1:+AlwaysOnTop
 Gui, 1:Font, CDefault, 
 GuiControl,1:Font,Txt,
-GuiControl,1:,Txt, AeroZoom %verAZ% ; v%verAZ%
+GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
 WinActivate
 Return
 
 VisitWeb:
-Run, http://wandersick.blogspot.com/p/aerozoom-for-windows-7-magnifier.html
+Run, www.wandersick.blogspot.com/p/aerozoom-for-windows-7-magnifier.html
+return
+
+Gmail:
+Run, mailto:wandersick+aerozoom@gmail.com
+return
+
+Tweet:
+Run, www.twitter.com/wandersick
 return
 
 HelpAbout:
+if (OSver<6.1) OR (EditionID="HomeBasic" OR EditionID="Starter") OR (!A_IsAdmin AND EnableLUA AND OSver>6.0) { ; limited mode means anything that is not win 7 home prem or above
+	goto, HelpAboutLimited
+}
 Gui, 2:+owner1  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
 Gui +Disabled  ; Disable main window.
+Gui, 2:+ToolWindow
 Gui, 2:Font, s12, Arial bold, 
-Gui, 2:Add, Text, , AeroZoom %verAZ%
+Gui, 2:Add, Text, , AeroZoom %verAZ% with AeroSnip
 ; Gui, 2:Font, norm,
-Gui, 2:Font, s10, Arial, 
+Gui, 2:Font, s10, Tahoma, 
 Gui, 2:Add, Text, ,The wheel zoom and presentation kit?`nBetter Magnifier, Snipping Tool and ZoomIt?`nJust thought the idea's neat, so I created It.`n`nAn AutoHotkey-ware by a Cantonese.`nThis software is GPL so completely free.`n`nIf you like this, just love this world still.`nOr donate any $ to any cause you wish.
-Gui, 2:Font, s10, Arial,
-Gui, 2:Add, Text, ,Lastly if you have words to me, send it.`n@Wandersick via Gmail or tweet.
-Gui, 2:Font, s10, Arial, 
-;Gui, 2:Add, Text, ,Sorry for being me.
+Gui, 2:Font, s10, Tahoma,
+Gui, 2:Add, Text, ,Lastly if you have words to me, send it.`n@Wandersick via Gmail or a tweet.
+Gui, 2:Font, s10, Tahoma, 
 Gui, 2:Font, norm,
-Gui, 2:Add, Button, x154 y249 h30 w60 vReadmetemp2, &Readme
+Gui, 2:Add, Button, x94 y254 h30 w60 vContacttemp2, &Support
+Contacttemp2_TT := "Methods to contact AeroZoom's creator"
+Gui, 2:Add, Button, x154 y254 h30 w60 vReadmetemp2, &Readme
 Readmetemp2_TT := "View Readme"
-Gui, 2:Add, Button, x214 y249 h30 w60 Default vOKtemp2, &OK
+Gui, 2:Add, Button, x214 y254 h30 w60 Default vOKtemp2, &OK
 OKtemp2_TT := "Click to close"
-Gui, 2:Show, w282 h286, About
+Gui, 2:Show, w282 h291, About
+return
+
+HelpAboutLimited:
+Gui, 2:+owner1  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
+Gui +Disabled  ; Disable main window.
+Gui, 2:+ToolWindow
+Gui, 2:Font, s12, Arial bold, 
+Gui, 2:Add, Text, , AeroZoom %verAZ% with AeroSnip
+; Gui, 2:Font, norm,
+Gui, 2:Font, s10, Tahoma, 
+Gui, 2:Add, Text, ,The wheel zoom and presentation kit?`nBetter Magnifier, Snipping Tool and ZoomIt?`nJust thought the idea's neat, so I created It.`n`nAn AutoHotkey-ware by a Cantonese.`nThis software is GPL so completely free.`n`nIf you like this, just love this world still.`nOr donate any $ to any cause you wish.
+Gui, 2:Font, s10, Tahoma,
+Gui, 2:Add, Text, ,Lastly if you have words to me, send it.`n@Wandersick via Gmail or tweet.
+Gui, 2:Font, s10, Arial bold, 
+Gui, 2:Font, CRed, 
+Gui, 2:Add, Text, ,AeroZoom is working in limited mode.
+Gui, 2:Font, CDefault, 
+Gui, 2:Font, s10 Norm, Tahoma
+Gui, 2:Add, Button, x94 y289 h30 w60 vContacttemp2, &Support
+Contacttemp2_TT := "Methods to contact AeroZoom's creator"
+Gui, 2:Add, Button, x154 y289 h30 w60 vReadmetemp2, &Readme
+Readmetemp2_TT := "View Readme"
+Gui, 2:Add, Button, x214 y289 h30 w60 Default vOKtemp2, &OK
+OKtemp2_TT := "Click to close"
+Gui, 2:Show, w282 h325, About
 return
 
 ZoomItInstButton:
-Msgbox, 262144, Default Hotkeys of Sysinternals ZoomIt, Operation Modes`n - Still-zoom : Ctrl+1`n - Draw : Ctrl+2`n - Break timer : Ctrl+3`n`nStill-zoom`n - Zoom in/out : Wheel up/down or arrow keys`n - Enter draw mode : Left click or press any draw mode key`n - Enter text mode : T`n`nDraw`n - Change color : R (Red) G (Green) B (Blue) Y (Yellow) P (Pink) O (Orange)`n - Undo an edit : Ctrl+Z`n - Erase all : E`n - Black board : K`n - White board : W`n - Straight line : hold Shift and drag`n - Straight arrow : hold Ctrl+Shift and drag`n - Rectangle : hold Ctrl and drag`n - Ellipse : hold Tab and drag`n - Center cursor : Space Bar`n - Undo : Ctrl+Z`n - Print screen : Ctrl+C`n - Save as PNG : Ctrl+S`n - Enter zoom mode : Wheel up/down or arrow keys`n - Enter text mode : T`n`nBreak Timer`n - Increase/decrease time : Wheel up/down or arrow keys`n`nTo change the font size in text mode : Wheel up/down or arrow keys`nTo exit a sub mode or ZoomIt : Right click or Esc (Never use Alt+F4)
+Msgbox, 262144, Default Hotkeys of Sysinternals ZoomIt, Operation Modes`n - Still-zoom : Ctrl+1 (Works across all Windows versions, including XP)`n - Draw : Ctrl+2`n - Break timer : Ctrl+3`n - Live zoom : Ctrl+4 (Incl. Win 7 Starter/Home Basic and all Vista editions)`n`nStill-zoom`n - Zoom in/out : Wheel up/down or arrow keys`n - Enter draw mode : Left click or press any draw mode key`n - Enter text mode : T`n`nDraw`n - Change color : R (Red) G (Green) B (Blue) Y (Yellow) P (Pink) O (Orange)`n - Undo an edit : Ctrl+Z`n - Erase all : E`n - Black board : K`n - White board : W`n - Straight line : hold Shift and drag`n - Straight arrow : hold Ctrl+Shift and drag`n - Rectangle : hold Ctrl and drag`n - Ellipse : hold Tab and drag`n - Center cursor : Space Bar`n - Undo : Ctrl+Z`n - Print screen : Ctrl+C`n - Save to disk : Ctrl+S`n - Enter zoom mode : Wheel up/down or arrow keys`n - Enter text mode : T`n`nBreak Timer`n - Increase/decrease time : Wheel up/down or arrow keys`n`nTo change the font size in text mode : Wheel up/down or arrow keys`nTo exit a sub mode or ZoomIt : Right click or Esc (Never use Alt+F4)
 return
 
 ExtraInstButton:
-Msgbox, 262144, Extra Hotkeys for Back/Forward Mouse Buttons, When using Back or Forward mouse button as a modifier, AeroZoom also makes use of the extra button to provide more features.`n`nWhat is an extra button? If you use the Back button (B) as the modifier, then the extra button would be the Forward button and vice versa, as in the following example.`n`n1: [Back+Left click] = (when unzoomed) snip/still-zoom with ZoomIt,`n(zoomed) preview full screen. *no need to hold them as holding a middle button.`n2: [Forward+Left click] = color inversion/break timer with ZoomIt.`n3: [Forward+Right click] = Show/hide Magnifier.`n4: [Forward+Wheel up] = Increase zoom increment by one step.`n5: [Forward+Wheel down] = decrease zoom increment by one step.`n6: [Forward+Middle button] = reset zoom increment to default level.`n`nBasically, this makes use of the extra button as a modifier to provide features such as scrolling to adjust zoom increment (how deep to zoom at each scroll) in addition to zooming in/out, etc. All other mouse hotkeys remain the same. Please refer to '? > Quick Instructions'.
+Msgbox, 262144, Custom Hotkeys, Before we begin, do you know what a modifier is?`n`nA modifier is a button like Ctrl, Alt, Shift, Win, that we hold before pressing another button to access another feature. Before AeroZoom 2.0, the modifiers supported were only Left and Right mouse buttons. Now, besides using the new modifiers (Ctrl, Alt, Win, Shift, Back, Forward, Middle) for zoom, AeroZoom also makes more Customizable hotkeys out of them. Let's take a look!`n`n1. 'Holding middle button' as a hotkey to automatically switch between 'New snip'/'Preview full screen' (for Windows 7).`n`n2. Sixteen hotkeys made using modifier keys [Ctrl/Alt/Win/Shift] and [Left/Right/Wheel-up/Wheel-down mouse button].`n`n3. Eight hotkeys out of Back and Forward buttons (if your mouse has one).`n`n4. Eight hotkeys out of Left and Right mouse buttons.`n`nBy default, all hotkeys except 'Holding Middle as Trigger' are disabled. To customize them, go to 'Tool > Preferences > Custom Hotkeys', where built-in functions such as these less-known ones: Speak, Google, Eject CD, Timer, Monitor Off, Always On Top or any command or program can be specified.`n`nNote 1: If you are currently using the modifier for zoom, the relevant hotkeys won't be available for editing (greyed out).`n`nNote 2: If AeroZoom is working in Limited mode (go to '? > About' to see), some internal functions may not work.
+return
+
+2ButtonSupport:
+Gui, 5:+owner2  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
+Gui 2:+Disabled  ; Disable parent window.
+Gui, 5:+ToolWindow
+Gui, 5:Font, s12, Arial bold, 
+Gui, 5:Add, Text, , Contact Wandersick
+Gui, 5:Font, norm,
+Gui, 5:Font, s10, Tahoma
+Gui, 5:Add, Text, ,(1) Blog  (2) Email 
+Gui, 5:Font, underline
+Gui, 5:Add, Text, cBlue gVisitWeb vBlogTemp, http://wandersick.blogspot.com
+BlogTemp_TT := "Visit Wandersick's blog"
+;Gui, 5:Add, Text, cBlue gTweet vTweetTemp, http://twitter.com/wandersick
+;TweetTemp_TT := "Visit Wandersick's Twitter"
+Gui, 5:Add, Text, cBlue gGmail vGmailTemp, wandersick@gmail.com
+GmailTemp_TT := "Email Wandersick"
+Gui, 5:Font, norm
+Gui, 5:Add, Text, ,Please report issues. (English/Chinese)
+Gui, 5:Add, Button, x213 y169 h30 w60 Default vOKtemp5, &OK
+OKtemp5_TT := "Click to close"
+Gui, 5:Show, w282 h206 , Support
+return
+
+5ButtonOK:  ; This section is used by the "about box" above.
+5GuiClose:   ; On "Close" button press
+5GuiEscape:   ; On ESC press
+Gui, 2:-Disabled  ; Re-enable the parent window (must be done prior to the next step).
+Gui, Destroy  ; Destroy the box.
 return
 
 2ButtonReadme:
@@ -2132,23 +9132,21 @@ if errorlevel
 }
 ; hide (1) or minimize (2) or do neither (3)
 
+; some of the following should be unneeded.
+
 RegRead,keepSnip,HKCU,Software\WanderSick\AeroZoom,keepSnip
 if errorlevel
 {
 	keepSnip=2
 }
 
-RegRead,legacyKill,HKCU,Software\WanderSick\AeroZoom,legacyKill
-if errorlevel
-{
-	legacyKill=2
-}
+;RegRead,legacyKill,HKCU,Software\WanderSick\AeroZoom,legacyKill
+;if errorlevel
+;{
+;	legacyKill=1
+;}
 
-RegRead,padTrans,HKCU,Software\WanderSick\AeroZoom,padTrans
-if errorlevel
-{
-	padTrans=35
-}
+; padtrans and padborders are read at the start of script
 RegRead,padX,HKCU,Software\WanderSick\AeroZoom,padX
 if errorlevel
 {
@@ -2162,17 +9160,12 @@ if errorlevel
 RegRead,padH,HKCU,Software\WanderSick\AeroZoom,padH
 if errorlevel
 {
-	padH=455
+	padH=475
 }
 RegRead,padW,HKCU,Software\WanderSick\AeroZoom,padW
 if errorlevel
 {
-	padW=455
-}
-RegRead,padBorder,HKCU,Software\WanderSick\AeroZoom,padBorder
-if errorlevel
-{
-	padBorder=1
+	padW=475
 }
 RegRead,padStayTime,HKCU,Software\WanderSick\AeroZoom,padStayTime
 if errorlevel
@@ -2194,11 +9187,12 @@ if errorlevel
 {
 	panelTrans=255
 }
-RegRead,stillZoomDelay,HKCU,Software\WanderSick\AeroZoom,stillZoomDelay
-if errorlevel
-{
-	stillZoomDelay=650
-}
+;Unnecessary
+;RegRead,stillZoomDelay,HKCU,Software\WanderSick\AeroZoom,stillZoomDelay
+;if errorlevel
+;{
+;	stillZoomDelay=750
+;}
 
 RegRead,delayButton,HKCU,Software\WanderSick\AeroZoom,delayButton
 if errorlevel
@@ -2211,26 +9205,35 @@ RegRead,customEdPath,HKCU,Software\WanderSick\AeroZoom,customEdPath
 RegRead,customCalcCheckbox,HKCU,Software\WanderSick\AeroZoom,customCalcCheckbox
 RegRead,customCalcPath,HKCU,Software\WanderSick\AeroZoom,customCalcPath
 Gui, 3:+owner1  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
-Gui, +Disabled
-Gui, 3:-MinimizeBox -MaximizeBox 
+Gui, 1:+Disabled
+;Gui, 3:-MinimizeBox -MaximizeBox 
+Gui, 3:+ToolWindow
+Gui, 3:Add, Text, x0 y0 h617 w11 gUiMove vDrag1, 
+Drag1_TT := "Click to drag"
+Gui, 3:Add, Text, x193 y0 h617 w16 gUiMove vDrag2, 
+Drag2_TT := "Click to drag"
+Gui, 3:Add, Text, x0 y0 h12 w210 gUiMove vDrag3, 
+Drag3_TT := "Click to drag"
+
+Gui, 3:Font, s8, Tahoma
 Gui, 3:Add, Edit, x132 y320 w50 h20 +Center +Limit3 -Multi +Number -WantTab -WantReturn vPadTransTemp,
-PadTransTemp_TT := "0 min (more transparent), 255 max (less transparent). Default: 35"
+PadTransTemp_TT := "Misclick-Preventing Pad: 1-255 (less-more transparent). Default: 1 (For the best performance, do not change this.)"
 Gui, 3:Add, UpDown, x164 y320 w18 h20 vPadTrans Range1-255, %padTrans%
-PadTrans_TT := "0 min (more transparent), 255 max (less transparent). Default: 50"
+PadTrans_TT := "Misclick-Preventing Pad: 1-255 (less-more transparent). Default: 1 (For the best performance, do not change this.)"
 
 Gui, 3:Add, Edit, x72 y320 w50 h20 +Center +Limit3 -Multi +Number -WantTab -WantReturn vPanelTransTemp, 
-PanelTransTemp_TT := "120 min (more transparent), 255 max (less transparent). Default: 255"
+PanelTransTemp_TT := "AeroZoom Panel: 120 min (more transparent), 255 max (less transparent). Default: 255"
 Gui, 3:Add, UpDown, x104 y320 w18 h20 vPanelTrans Range120-255, %panelTrans%
-PanelTrans_TT := "120 min (more transparent), 255 max (less transparent). Default: 255"
+PanelTrans_TT := "AeroZoom Panel: 120 min (more transparent), 255 max (less transparent). Default: 255"
 
-if CheckboxRestoreDefault ; if Restore Default checkbox was checked
-{
-	Checked=Checked1
-}
-else
-{
-	Checked=Checked0
-}
+;if CheckboxRestoreDefault ; if Restore Default checkbox was checked
+;{
+;	Checked=Checked1
+;}
+;else
+;{
+;	Checked=Checked0
+;}
 
 ;Gui, 3:Font, CRed, 
 ;Gui, 3:Add, CheckBox, %Checked% -Wrap x22 y540 w150 h20 vCheckboxRestoreDefault, &Restore default settings
@@ -2260,11 +9263,11 @@ if CustomCalcCheckbox
 	Checked=Checked0
 	CheckboxDisable=+Disabled
 }
-Gui, 3:Add, CheckBox, %Checked% -Wrap x22 y70 w150 h20 gCustomCalcCheckbox vCustomCalcCheckbox , Define &Calc function
+Gui, 3:Add, CheckBox, %Checked% -Wrap x22 y70 w150 h20 gCustomCalcCheckbox vCustomCalcCheckbox , Define C&alc function
 CustomCalcCheckbox_TT := "Specify a program to override the default calculator"
 Gui, 3:Add, Edit, %CheckboxDisable% x22 y92 w110 h20 -Multi -WantTab -WantReturn vCustomCalcPath, %customCalcPath%
 CustomCalcPath_TT := "Specify a program to override the default calculator"
-Gui, 3:Add, Button, %CheckboxDisable% x132 y91 w50 h22 vCustomCalcBrowse g3ButtonBrowse2, Brow&se
+Gui, 3:Add, Button, %CheckboxDisable% x132 y91 w50 h22 vCustomCalcBrowse g3ButtonBrowse2, &Browse
 CustomCalcBrowse_TT := "Browse for an executable"
 
 ; Gui, 3:Add, Text, x15 y108 w160 h20 +Left, Manual offset/size adjustment
@@ -2275,41 +9278,41 @@ Gui, 3:Add, Text, x22 y234 w50 h20 , Offset Y
 Gui, 3:Add, Text, x22 y264 w50 h20 , Width
 Gui, 3:Add, Text, x22 y294 w50 h20 , Height
 
-Gui, 3:Add, Edit, x72 y200 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vPanelXtemp,
+Gui, 3:Add, Edit, x72 y200 w50 h20 +Center +Limit6 -Multi -WantTab -WantReturn vPanelXtemp,
 PanelXtemp_TT := "AeroZoom Panel: horizontal offset. Default: 15 px"
-Gui, 3:Add, UpDown, x104 y200 w18 h20 vPanelX Range0-9999, %panelX%
+Gui, 3:Add, UpDown, x104 y200 w18 h20 vPanelX Range-9999-9999, %panelX%
 PanelX_TT := "AeroZoom Panel: horizontal offset. Default: 15 px"
 
-Gui, 3:Add, Edit, x72 y230 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vPanelYtemp, 
+Gui, 3:Add, Edit, x72 y230 w50 h20 +Center +Limit6 -Multi -WantTab -WantReturn vPanelYtemp, 
 PanelYtemp_TT := "AeroZoom Panel: vertical offset. Default: 160 px"
-Gui, 3:Add, UpDown, x104 y230 w18 h20 vPanelY Range0-9999, %panelY%
+Gui, 3:Add, UpDown, x104 y230 w18 h20 vPanelY Range-9999-9999, %panelY%
 PanelY_TT := "AeroZoom Panel: vertical offset. Default: 160 px"
 
-Gui, 3:Add, Edit, x132 y200 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vPadXtemp, 
+Gui, 3:Add, Edit, x132 y200 w50 h20 +Center +Limit6 -Multi -WantTab -WantReturn vPadXtemp, 
 PadXtemp_TT := "Misclick-Preventing Pad: horizontal offset. Default: 235 px"
-Gui, 3:Add, UpDown, x164 y200 w18 h20 vPadX Range0-9999, %padX%
+Gui, 3:Add, UpDown, x164 y200 w18 h20 vPadX Range-9999-9999, %padX%
 PadX_TT := "Misclick-Preventing Pad: horizontal offset. Default: 235 px"
 
-Gui, 3:Add, Edit, x132 y230 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vPadYtemp, 
+Gui, 3:Add, Edit, x132 y230 w50 h20 +Center +Limit6 -Multi -WantTab -WantReturn vPadYtemp, 
 PadYtemp_TT := "Misclick-Preventing Pad: vertical offset. Default: 240 px"
-Gui, 3:Add, UpDown, x164 y230 w18 h20 vPadY Range0-9999, %padY%
+Gui, 3:Add, UpDown, x164 y230 w18 h20 vPadY Range-9999-9999, %padY%
 PadY_TT := "Misclick-Preventing Pad: vertical offset. Default: 240 px"
 
 Gui, 3:Add, Edit, x132 y260 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vPadWtemp, 
-PadWtemp_TT := "Misclick-Preventing Pad: horizontal width. Default: 455 px"
+PadWtemp_TT := "Misclick-Preventing Pad: horizontal width. Default: 475 px"
 Gui, 3:Add, UpDown, x164 y260 w18 h20 vPadW Range0-9999, %padW%
-PadW_TT := "Misclick-Preventing Pad: horizontal width. Default: 455 px"
+PadW_TT := "Misclick-Preventing Pad: horizontal width. Default: 475 px"
 
 Gui, 3:Add, Edit, x132 y290 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vPadHtemp, 
-PadHtemp_TT := "Misclick-Preventing Pad: vertical height. Default: 455 px"
+PadHtemp_TT := "Misclick-Preventing Pad: vertical height. Default: 475 px"
 Gui, 3:Add, UpDown, x164 y290 w18 h20 vPadH Range0-9999, %padH%
-PadH_TT := "Misclick-Preventing Pad: vertical height. Default: 455 px"
+PadH_TT := "Misclick-Preventing Pad: vertical height. Default: 475 px"
 
-Gui, 3:Add, Button, x12 y570 w60 h30 vOKtemp3, &OK
+Gui, 3:Add, Button, x12 y565 w60 h30 vOKtemp3, &OK
 OKtemp3_TT := "Save changes"
-Gui, 3:Add, Button, x72 y570 w60 h30 vResetTemp, &Reset
+Gui, 3:Add, Button, x132 y565 w60 h30 vResetTemp, &Reset
 ResetTemp_TT := "Restore AeroZoom and magnifier settings to their defaults (Require program restart)"
-Gui, 3:Add, Button, x132 y570 w60 h30 Default vCancelTemp, &Cancel
+Gui, 3:Add, Button, x72 y565 w60 h30 Default vCancelTemp, &Cancel
 CancelTemp_TT := "Cancel changes"
 
 
@@ -2322,43 +9325,71 @@ CustomCalcMsg_TT := "Change text label of Calc here (where the character after &
 Gui, 3:Add, Edit, x132 y120 w50 h20 +Center +Limit8 -Multi -WantTab -WantReturn vCustomTypeMsg, %customTypeMsg%
 CustomTypeMsg_TT := "Change text label of Type here (where the character after & is the Alt keyboard shortcut)"
 
-Gui, 3:Add, GroupBox, x12 y160 w180 h310 , Fine-tuning
+Gui, 3:Add, GroupBox, x12 y160 w180 h250 , Position / Fine-tuning
 Gui, 3:Add, GroupBox, x12 y10 w180 h140 , Buttons
 
-Gui, 3:Add, Text, x22 y352 w110 h20 , Middle hold time*
-Gui, 3:Add, Edit, x132 y350 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vStillZoomDelayTemp, 
-StillZoomDelayTemp_TT := "How long holding [Middle] button triggers snip/still-zoom/preview. Default: 650 ms (Require program restart)"
-Gui, 3:Add, UpDown, x164 y350 w18 h20 vStillZoomDelay Range0-9999, %stillZoomDelay%
+;Gui, 3:Add, Edit, x132 y350 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vStillZoomDelayTemp, 
+;StillZoomDelayTemp_TT := "How long holding [Middle] button triggers snip/preview. Default: 750 ms (Require program restart)"
+;Gui, 3:Add, UpDown, x164 y350 w18 h20 vStillZoomDelay Range0-9999, %stillZoomDelay%
 
-Gui, 3:Add, Text, x22 y382 w110 h20 , Button delay*
-Gui, 3:Add, Edit, x132 y380 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vdelayButtonTemp, 
-delayButtonTemp_TT := "Delay between each operation. Lower = faster but may cause lag in some PCs. Default: 100 ms (Require program restart)"
-Gui, 3:Add, UpDown, x164 y380 w18 h20 vDelayButton Range0-9999, %delayButton%
+Gui, 3:Font, CRed, 
+Gui, 3:Add, Text, x22 y482 w110 h20 , Operation delay
+Gui, 3:Font, CDefault, 
+Gui, 3:Add, Edit, x132 y480 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vdelayButtonTemp, 
+delayButtonTemp_TT := "Sleep time between each operation. Too low may cause some functions to fail. Default: 100 ms"
+Gui, 3:Add, UpDown, x164 y480 w18 h20 vDelayButton Range0-9999, %delayButton%
 
-Gui, 3:Add, Text, x22 y412 w100 h20 , Pad stay time
-Gui, 3:Add, Edit, x132 y410 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vPadStayingTimeTemp, 
-PadStayingTimeTemp_TT := "How long the misclick-preventing pad stays. Default: 150 ms (Approximate)"
-Gui, 3:Add, UpDown, x164 y410 w18 h20 vPadStayTime Range0-9999, %padStayTime%
+Gui, 3:Add, Text, x22 y352 w100 h20 , Stay time
+Gui, 3:Add, Edit, x132 y350 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vPadStayingTimeTemp, 
+PadStayingTimeTemp_TT := "How long the misclick-preventing pad stays. Default: 150 (The larger the longer)"
+Gui, 3:Add, UpDown, x164 y350 w18 h20 vPadStayTime Range0-9999, %padStayTime%
 
-Gui, 3:Add, Text, x22 y443 w100 h20 , Pad borders
-Gui, 3:Add, DropDownList, x132 y440 w50 h21 R2 +AltSubmit vPadBorder Choose%PadBorder%, Yes|No
-PadBorder_TT := "Frame the misclick preventing pad? Default: Yes"
+Gui, 3:Add, Text, x22 y383 w100 h20 , Borders
+Gui, 3:Add, DropDownList, x132 y380 w50 h21 R2 +AltSubmit vPadBorder Choose%PadBorder%, Yes|No
+PadBorder_TT := "Frame the misclick-preventing pad? Default: No"
 
-Gui, 3:Add, Text, x22 y483 w100 h20, Keep Snip, Paint*
-Gui, 3:Add, DropDownList, x132 y480 w50 h20 R2 +AltSubmit vKeepSnip Choose%KeepSnip%, Yes|No
-KeepSnip_TT := "Keep [Snip] and [Kill]/[Paint] buttons when ZoomIt is on. Default: No. (Require program restart)"
+;Gui, 3:Font, Bold s8, Tahoma
+Gui, 3:Add, Text, x22 y423 w100 h20, On-screen display
+Gui, 3:Add, DropDownList, x132 y420 w50 h20 R2 +AltSubmit vOSD Choose%OSD%, Yes|No
+OSD_TT := "Shows on-screen display while using slider. Default: Yes."
+;Gui, 3:Font, Norm s8, Tahoma
+; Gui, 3:Add, Text, x22 y423 w100 h20, Switch buttons*
+; Gui, 3:Add, DropDownList, x132 y420 w50 h20 R2 +AltSubmit vKeepSnip Choose%KeepSnip%, No|Yes
+; KeepSnip_TT := "Switch [Snip] and [Kill] to [Draw] and [Timer] buttons when ZoomIt is on. Default: Yes. (*Require program restart)"
 
-Gui, 3:Add, Text, x22 y513 w100 h20 , Use Kill button*
-Gui, 3:Add, DropDownList, x132 y510 w50 h20 R2 +AltSubmit vLegacyKill Choose%LegacyKill%, Yes|No
-LegacyKill_TT := "Replace [Paint] with [Kill]. Default: No. [Kill] is useful for Docked and Lens views. (Require program restart)"
+;Gui, 3:Add, DropDownList, x132 y450 w50 h20 R2 +AltSubmit vLegacyKill Choose%LegacyKill%, No|Yes
+;LegacyKill_TT := "Replace [Kill] with [Paint] ('Switch buttons' must be 'No' if ZoomIt is used.) Default: No. (*Require program restart)"
+;Gui, 3:Add, Text, x22 y483 w100 h20 , Paint*
 
-Gui, 3:Add, Text, x22 y543 w100 h20 , Magnifier*
-Gui, 3:Add, DropDownList, x132 y540 w50 h20 R3 +AltSubmit vHideOrMin Choose%hideOrMin%, Hide|Min|Show
-HideOrMin_TT := "Hide/Minimize/Show the floating Magnifier window. Default: Hide (Require program restart)"
+Gui, 3:Add, Text, x22 y453 w100 h20 , Magnifier*
+Gui, 3:Add, DropDownList, x132 y450 w50 h20 R3 +AltSubmit vHideOrMin Choose%hideOrMin%, Hide|Min|Show
+HideOrMin_TT := "Hide/Minimize/Show the floating Magnifier window. Default: Hide (*Require program restart)"
 
+if RunMagOnStart ; if checkbox was checked
+{
+	Checked=Checked1
+}
+else
+{
+	Checked=Checked0
+}
+Gui, 3:Add, CheckBox, %Checked% -Wrap x22 y533 w170 h30 vRunMagOnStart, Run &Magnifier with AeroZoom
+RunMagOnStart_TT := "Run Magnifier as soon as AeroZoom starts (for better performance). Default: Checked"
+
+Gui, 3:Add, Text, x22 y510 w90 h20 , Search engine
+Gui, 3:Add, Edit, x112 y510 w70 h20 +Center -Multi -WantTab -WantReturn vGoogleUrl, %GoogleUrl%
+GoogleUrl_TT := "Search engine to use, e.g. google.hk, hk.bing.com. Default: google.com"
 ; Generated using SmartGUI Creator 4.0
-Gui, 3:Show, h609 w204, Advanced Options
+Gui, 3:Show, h604 w203, Advanced Options
 
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0) OR (OSver<6.1) ; only apply if non-admin and UAC is on and Win7
+{
+	GuiControl, 3:Disable, HideOrMin
+}
+
+If (OSver<6.1 OR EditionID="Starter" OR EditionID="HomeBasic") {
+	GuiControl, 3:Disable, RunMagOnStart
+}
 return
 
 3ButtonReset:
@@ -2390,31 +9421,64 @@ Msgbox, 262180, AeroZoom Restoration, AeroZoom will restore itself to default se
 			FileSetAttrib, -R, %A_Startup%\*AeroZoom*.*
 			FileDelete, %A_Startup%\*AeroZoom*.*
 		}
-		RunWait, "%A_WorkingDir%\Data\AeroZoom_Task.bat" /deltask,"%A_WorkingDir%\",min ; del task
+		If !(OSver<6) {
+			Run, "%A_WorkingDir%\Data\AeroZoom_Task.bat" /deltask,"%A_WorkingDir%\",min ; del task
+		}
 		RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, RunOnStartup, 0
 		RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom
-		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Magnification, 0x64
-		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Invert, 0x0
-		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowCaret, 0x0
-		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowFocus, 0x0
-		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowMouse, 0x1
-		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
-		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, MagnificationMode, 0x2
-		Process, Close, magnify.exe
+		GoSub, CloseMagnifier
+		If (OSver>6) {
+			RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Magnification, 0x64
+			RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Invert, 0x0
+			RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowCaret, 0x0
+			RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowFocus, 0x0
+			RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, FollowMouse, 0x1
+			RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
+			RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, MagnificationMode, 0x2
+		} else if (OSver=6) {
+			RegDelete, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier
+		} else If (OSver<6) {
+			RegDelete, HKEY_CURRENT_USER, Software\Microsoft\Magnify
+			RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Magnify, ShowWarning, 0x0
+		}
 		Process, Close, zoomit.exe
-	Process, Close, zoomit64.exe
-		IfExist, %A_WorkingDir%\Data\ZoomIt.exe
+		Process, Close, zoomit64.exe
+		If SnippingToolExists
 		{
-			Msgbox, 262180, AeroZoom Restoration, Also delete ZoomIt and reset its hotkey? ; hotkey will be reset on next use (download) of ZoomIt
+			Msgbox, 262180, AeroZoom Restoration, Restore Snipping Tool settings to defaults?
 			IfMsgBox Yes
 			{
-				Sleep, 1100
+				Process, Close, SnippingTool.exe
+				Sleep, 50
+				RegDelete, HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool
+			}
+		}
+		IfExist, %A_WorkingDir%\Data\ZoomIt.exe
+		{
+			Msgbox, 262180, AeroZoom Restoration, Also delete ZoomIt and reset ZoomIt's hotkeys?
+			IfMsgBox Yes
+			{
+				Sleep, 50
 				FileDelete, %A_WorkingDir%\Data\ZoomIt.exe
-			FileDelete, %A_WorkingDir%\Data\ZoomIt64.exe
+				FileDelete, %A_WorkingDir%\Data\ZoomIt64.exe
+				RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, DrawToggleKey
+				RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, BreakTimerKey
+				RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, ToggleKey
+				RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, LiveZoomToggleKey
+				RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, EulaAccepted ; force user to reaccept EULA
+			}
+		}
+		IfExist, %A_WorkingDir%\Data\NirCmd.exe
+		{
+			Msgbox, 262180, AeroZoom Restoration, Also delete NirCmd?
+			IfMsgBox Yes
+			{
+				Sleep, 50
+				FileDelete, %A_WorkingDir%\Data\NirCmd.exe
 			}
 		}
 		; Save last AZ window position before exit so that it shows the GUI after restart
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI,
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2444,7 +9508,10 @@ RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, padStayTime, 
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, panelX, %panelX%
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, panelY, %panelY%
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, panelTrans, %panelTrans%
-WinSet, Transparent, %panelTrans%, AeroZoom
+WinSet, Transparent, %panelTrans%, AeroZoom Panel
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, OSD, %OSD%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RunMagOnStart, %RunMagOnStart%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, GoogleUrl, %GoogleUrl%
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, customEdCheckbox, %customEdCheckbox%
 if customEdPath 
 {
@@ -2459,7 +9526,7 @@ if customEdCheckbox
 {
 	; If custom editor is selected, deselect UseNotepad
 	RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Notepad
-	Menu, ToolboxMenu, Uncheck, Use &Notepad
+	Menu, ToolboxMenu, Uncheck, Type with &Notepad
 	notepad=0
 }
 
@@ -2488,31 +9555,33 @@ if (hideOrMin<>hideOrMinPrev) { ; note hideOrMinPrev is differernt from hideOrMi
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, hideOrMin, %hideOrMin%
 	restartRequired=1
 }
-if (keepSnip<>keepSnipPrev) { 
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, keepSnip, %keepSnip%
-	restartRequired=1
-}
-if (legacyKill<>legacyKillPrev) { 
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, legacyKill, %legacyKill%
-	restartRequired=1
-}
-if (stillZoomDelay <> stillZoomDelayPrev) { ; if value changed
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, stillZoomDelay, %stillZoomDelay%
-	restartRequired=1
-}
-if (delayButton <> delayButtonPrev) { ; if value changed
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, delayButton, %delayButton%
-	restartRequired=1
-}
+;if (keepSnip<>keepSnipPrev) { 
+;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, keepSnip, %keepSnip%
+;	restartRequired=1
+;}
+;if (legacyKill<>legacyKillPrev) { 
+;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, legacyKill, %legacyKill%
+;	restartRequired=1
+;}
+;now handled in CustomizeMiddle:
+;if (stillZoomDelay <> stillZoomDelayPrev) { ; if value changed
+;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, stillZoomDelay, %stillZoomDelay%
+;	restartRequired=1
+;}
+
+;if (delayButton <> delayButtonPrev) { ; if value changed
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, delayButton, %delayButton%
+;	restartRequired=1
+;}
 
 if restartRequired {
 	Msgbox, 262208, AeroZoom, AeroZoom will now restart to apply new settings.
 	; Save last AZ window position before exit so that it shows the GUI after restart
-	WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI,
+	WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
-	Process, Close, magnify.exe
+	GoSub, CloseMagnifier
 	restartRequired=
 	reload
 	return
@@ -2531,11 +9600,13 @@ if (chkMod=1) {
 	; Write current Modifier setting to registry
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Modifier, 0x1
 	; Run the user-selected modifier version of AeroZoom
-	; chkModRaw<>chkMod to prevent running the same instance
-	if (chkModRaw<>chkMod) {
+	; chkModRaw<>chkMod to prevent re-running the same instance
+	; if (chkModRaw<>chkMod) {
+	; v2.1 UPDATE: now cancelled. rerunning the same modifier instance is allowed, to workaround
+	; a very rare bug? where zoom stopped working suddenly, by clicking the radio button.
 		; Save last AZ window position before exit (restarting AeroZoom is required as changing
 		; modifier key means switching executables)
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI, AeroZoom %verAZ% ; v%verAZ%
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2544,12 +9615,12 @@ if (chkMod=1) {
 		Else
 			Run,"%A_WorkingDir%\Data\AeroZoom_Ctrl.exe",,
 		ExitApp
-	}
+	;}
 } else if (chkMod=2) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Modifier, 0x2
-	if (chkModRaw<>chkMod) {
+	; if (chkModRaw<>chkMod) {
 		; Save last AZ window position before exit
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI, AeroZoom %verAZ% ; v%verAZ%
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2558,12 +9629,12 @@ if (chkMod=1) {
 		Else
 			Run,"%A_WorkingDir%\Data\AeroZoom_Alt.exe",,
 		ExitApp
-	}
+	;}
 } else if (chkMod=3) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Modifier, 0x3
-	if (chkModRaw<>chkMod) {
+	; if (chkModRaw<>chkMod) {
 		; Save last AZ window position before exit
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI, AeroZoom %verAZ% ; v%verAZ%
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2572,12 +9643,12 @@ if (chkMod=1) {
 		Else
 			Run,"%A_WorkingDir%\Data\AeroZoom_Shift.exe",,
 		ExitApp
-	}
+	;}
 } else if (chkMod=4) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Modifier, 0x4
-	if (chkModRaw<>chkMod) {
+	; if (chkModRaw<>chkMod) {
 		; Save last AZ window position before exit
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI, AeroZoom %verAZ% ; v%verAZ%
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2586,12 +9657,12 @@ if (chkMod=1) {
 		Else
 			Run,"%A_WorkingDir%\Data\AeroZoom_Win.exe",,
 		ExitApp
-	}
+	;}
 } else if (chkMod=5) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Modifier, 0x5
-	if (chkModRaw<>chkMod) {
+	; if (chkModRaw<>chkMod) {
 		; Save last AZ window position before exit
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI, AeroZoom %verAZ% ; v%verAZ%
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2600,18 +9671,21 @@ if (chkMod=1) {
 		Else		
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseL.exe",,
 		ExitApp
-	}
+	;}
 } else if (chkMod=6) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Modifier, 0x6
-	if (chkModRaw<>chkMod) {
+	; if (chkModRaw<>chkMod) {
 		; Switching to right-handed mode. Hold right+left mouse buttons to bring up panel.
 		RegRead,RButton,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,RButton
 		if (RButton<>1) {  ; check if message was shown before
-		  Msgbox, 262144, This message will not be shown next time, This is for left-handed users to zoom holding the [Right] mouse button.
-		  RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RButton, 1
+			if not GuideDisabled
+			{
+				Msgbox, 262144, This message will not be shown next time, This is for left-handed users to zoom holding the [Right] mouse button.
+				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RButton, 1
+			}
 		}
 		; Save last AZ window position before exit
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI, AeroZoom %verAZ% ; v%verAZ%
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2620,17 +9694,20 @@ if (chkMod=1) {
 		Else
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseR.exe",,
 		ExitApp
-	}
+	;}
 } else if (chkMod=7) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Modifier, 0x7
-	if (chkModRaw<>chkMod) {
+	; if (chkModRaw<>chkMod) {
 		RegRead,MButton,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,MButton
 		if (MButton<>1) {  ; check if message was shown before
-		  Msgbox, 262144, This message will not be shown next time, Only one button is required to zoom in this mode.`n`nWhen [Middle] button is pressed and held *hard*, scroll up/down to zoom.`n`nTo reset zoom, while holding [Middle], press [Right].`nTo snip/still-zoom/preview full screen, while holding [Middle], press [Left].`n`nNext time you can read this message at '? > Quick Instructions'
-		  RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MButton, 1
+			if not GuideDisabled
+			{	
+				Msgbox, 262144, This message will not be shown next time, Only one button is required to zoom in this mode.`n`nWhen [Middle] button is pressed and held *down*, scroll up/down to zoom.`n`nTo reset zoom, while holding [Middle], press [Right].`nTo snip/preview full screen (for Windows 7), while holding [Middle], press [Left].`n`nNext time you can read this message by pressing [Win]+[Alt]+[Q] anytime, or at '? > Quick Instructions'
+				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MButton, 1
+			}
 		}
 		; Save last AZ window position before exit
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI, AeroZoom %verAZ% ; v%verAZ%
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2639,17 +9716,20 @@ if (chkMod=1) {
 		Else
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseM.exe",,
 		ExitApp
-	}
+	;}
 } else if (chkMod=8) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Modifier, 0x8
-	if (chkModRaw<>chkMod) {
+	; if (chkModRaw<>chkMod) {
 		RegRead,X1,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,X1
 		if (X1<>1) {  ; check if message was shown before
-		  Msgbox, 262144, This message will not be shown next time, This is for mouse with a [Forward] button.`n`nWhen using Back or Forward mouse button as a modifier, AeroZoom also makes use of the extra button to provide more features.`n`nWhat is an extra button? If you use the Forward button (F) as the modifier, then the extra button would be the Back button and vice versa, as in the following example.`n`n1: [Forward+Left click] = (when unzoomed) snip/still-zoom with ZoomIt,`n(zoomed) preview full screen. *no need to hold them as holding a middle button.`n2: [Back+Left click] = color inversion/break timer with ZoomIt.`n3: [Back+Right click] = Show/hide Magnifier.`n4: [Back+Wheel up] = Increase zoom increment by one step.`n5: [Back+Wheel down] = decrease zoom increment by one step.`n6: [Back+Middle button] = reset zoom increment to default level.`n`nBasically, this makes use of the extra button as a modifier to provide features such as scrolling to adjust zoom increment (how deep to zoom at each scroll) in addition to zooming in/out, etc. All other mouse hotkeys remain the same. Please refer to '? > Quick Instructions'.`n`nNext time you can read this message at '? > Quick Instructions > Extras'
-		  RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, X1, 1
+			if not GuideDisabled
+			{
+				Msgbox, 262144, This message will not be shown next time, This is for mouse devices with a [Forward] button.`n`nIf you mouse has a Back or Forward button, AeroZoom creates 8 more hotkeys out of those buttons to do more, e.g. these less known built-in functions: Speak, Google, Eject Disc, Timer, Monitor Off, Always On Top or running any command or program.`n`nCustomize the hotkeys at 'Tool > Preferences > Custom Hotkeys > Forward/Back'.
+				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, X1, 1
+			}
 		}
 		; Save last AZ window position before exit
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI, AeroZoom %verAZ% ; v%verAZ%
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2658,17 +9738,20 @@ if (chkMod=1) {
 		Else
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseX1.exe",,
 		ExitApp
-	}
+	;}
 } else if (chkMod=9) {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Modifier, 0x9
-	if (chkModRaw<>chkMod) {
+	; if (chkModRaw<>chkMod) {
 		RegRead,X2,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,X2
 		if (X2<>1) {  ; check if message was shown before
-		  Msgbox, 262144, This message will not be shown next time, This is for mouse with a [Back] button.`n`nWhen using Back or Forward mouse button as a modifier, AeroZoom also makes use of the extra button to provide more features.`n`nWhat is an extra button? If you use the Back button (B) as the modifier, then the extra button would be the Forward button and vice versa, as in the following example.`n`n1: [Back+Left click] = (when unzoomed) snip/still-zoom with ZoomIt,`n(zoomed) preview full screen. *no need to hold them as holding a middle button.`n2: [Forward+Left click] = color inversion/break timer with ZoomIt.`n3: [Forward+Right click] = Show/hide Magnifier.`n4: [Forward+Wheel up] = Increase zoom increment by one step.`n5: [Forward+Wheel down] = decrease zoom increment by one step.`n6: [Forward+Middle button] = reset zoom increment to default level.`n`nBasically, this makes use of the extra button as a modifier to provide features such as scrolling to adjust zoom increment (how deep to zoom at each scroll) in addition to zooming in/out, etc. All other mouse hotkeys remain the same. Please refer to '? > Quick Instructions'.`n`nNext time you can read this message at '? > Quick Instructions > Extras'
-		  RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, X2, 1
+			if not GuideDisabled
+			{
+				Msgbox, 262144, This message will not be shown next time, This is for mouse devices with a [Back] button.`n`nIf you mouse has a Back or Forward button, AeroZoom creates 8 more hotkeys out of those buttons to do more, e.g. these less known built-in functions: Speak, Google, Eject Disc, Timer, Monitor Off, Always On Top or running any command or program.`n`nCustomize the hotkeys at 'Tool > Preferences > Custom Hotkeys > Forward/Back'.
+				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, X2, 1
+			}
 		}
 		; Save last AZ window position before exit
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI, AeroZoom %verAZ% ; v%verAZ%
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2677,12 +9760,12 @@ if (chkMod=1) {
 		Else
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseX2.exe",,
 		ExitApp
-	}
+	;}
 } else {
 	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Modifier, 0x4
-	if (chkModRaw<>chkMod) {
+	; if (chkModRaw<>chkMod) {
 		; Save last AZ window position before exit
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI, AeroZoom %verAZ% ; v%verAZ%
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -2691,7 +9774,7 @@ if (chkMod=1) {
 		Else
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseL.exe",,
 		ExitApp
-	}
+	;}
 }
 return
 ; ----------------------------------------------------- Radio Button END (return to listen hotkeys)
@@ -2714,12 +9797,14 @@ if not errorlevel {
 	Run,"%windir%\system32\magnify.exe",,Min
 	;sleep, %delayButton%
 	; hide/minimize Windows Magnifier
-	WinWait, ahk_class MagUIClass,,4 
-	if (hideOrMin=1) {
-		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-		WinHide, ahk_class MagUIClass
-	} else if (hideOrMin=2) {
-		WinMinimize, ahk_class MagUIClass
+	If (OSver>6) {
+		WinWait, ahk_class MagUIClass,,4 
+		if (hideOrMin=1) {
+			WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
+			WinHide, ahk_class MagUIClass
+		} else if (hideOrMin=2) {
+			WinMinimize, ahk_class MagUIClass
+		}
 	}
 }
 
@@ -2755,30 +9840,48 @@ if (Magnification>MagnificationNew) {
 }
 
 ; Update the panel menu
-if (MagnificationRaw=0x64) ; if zoomed out (because Preview Full Screen only works when zoomed in)
-	Menu, ViewsMenu, Disable, &Preview Full Screen`tCtrl+Alt+Space
-else ; if zoomed in
-	Menu, ViewsMenu, Enable, &Preview Full Screen`tCtrl+Alt+Space
+If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+	if (MagnificationRaw=0x64) ; if zoomed out (because Preview Full Screen only works when zoomed in)
+		Menu, ViewsMenu, Disable, &Preview Full Screen`tCtrl+Alt+Space
+	else ; if zoomed in
+		Menu, ViewsMenu, Enable, &Preview Full Screen`tCtrl+Alt+Space
+}
 Return
 
 ; ----------------------------------------------------- Zoom Increment 3 of 3 (Subroutine)
 SliderX:
+if (OSver<6.1) {
+	return
+}
+
 ; Gui, Submit, NoHide << not required if a gLabel is used in Slider
 if (zoomInc=1) {
 	zoomIncRaw=0x19
+	zoomIncText=25`%
 } else if (zoomInc=2) {
 	zoomIncRaw=0x32
+	zoomIncText=50`%
 } else if (zoomInc=3) {
 	zoomIncRaw=0x64
+	zoomIncText=100`%
 } else if (zoomInc=4) {
 	zoomIncRaw=0x96
+	zoomIncText=150`%
 } else if (zoomInc=5) {
 	zoomIncRaw=0xc8
+	zoomIncText=200`%
 } else if (zoomInc=6) {
 	zoomIncRaw=0x190
+	zoomIncText=400`%
 } else {
 	zoomIncRaw=0x64
+	zoomIncText=100`%
 }
+
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CaptureDiskOSD
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomitColorOSD
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipModeOSD
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomIncTextOSD, %ZoomIncText%
 
 ; Write to Registry the user selected Zoom Increment setting
 RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, %zoomIncRaw%
@@ -2802,31 +9905,17 @@ If errorlevel
 	} else {
 		hideOrMinLast=1 ; hidden
 	}
-	Process, Close, magnify.exe ; !!!!!! If magnifier is running, rerun Magnifier to apply the setting
+	GoSub, CloseMagnifier ; !!!!!! If magnifier is running, rerun Magnifier to apply the setting
 	sleep, %delayButton%
 	Run,"%windir%\system32\magnify.exe",,Min
 } else {
 	hideOrMinLast= ; if not defined, use default settings
 }
+	
+Gosub, MagWinRestore
 
-
-	WinWait, ahk_class MagUIClass,,3 
-
-; Hide or minimize or normalize magnifier window
-If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-	if (hideOrMin=1) {
-		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-		WinHide, ahk_class MagUIClass
-	} else if (hideOrMin=2) {
-		WinMinimize, ahk_class MagUIClass
-	}
-} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-	WinMinimize, ahk_class MagUIClass
-	WinHide, ahk_class MagUIClass
-} else if (hideOrMinLast=2) {
-	WinMinimize, ahk_class MagUIClass
-}
-
+If (OSD=1)
+	Run, "%A_WorkingDir%\Data\OSD.exe"
 
 Return
 ; ----------------------------------------------------- Zoom Increment END (return to listen hotkey)
@@ -2837,9 +9926,19 @@ Gui, 1:Font, CRed,
 GuiControl,1:Font,Txt, ; to apply the color change
 GuiControl,1:,Txt,- Please Wait -
 GuiControl,Disable,Bye
-Gui,+Disabled
+;Gui,+Disabled ; this is commented to avoid gui from hiding itself when not always on top
 
 ; Check if AeroZoom task exist
+
+RegRead,RunOnStartupMsg,HKCU,Software\WanderSick\AeroZoom,RunOnStartupMsg
+if errorlevel
+{
+	if not GuideDisabled
+	{
+		Msgbox, 262208, This message will be shown once only, Use this especially if you have User Account Control (UAC) on for your PC.`n`n'Run on Startup' takes advantage of Task Scheduler to run AeroZoom at logon as admin without any screen-dimming prompts. It is an exclusive feature for Windows Vista and later.`n`nNote: If you have any other programs prompting for admin rights at logon, this function might not work.
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RunOnStartupMsg, 1
+	}
+}
 
 IfExist, %A_Startup%\*AeroZoom*.* ; this is a precaution for legacy reasons
 {
@@ -2862,19 +9961,19 @@ if (errorlevel=2) { ; if task existed and has just been successfully deleted
 	RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, RunOnStartup, 1
 	Msgbox, 262144, AeroZoom, Task successfully created.`n`nAeroZoom will start at boot time with current settings for this user: %A_UserName%`n`nUnder this copy of AeroZoom: %A_WorkingDir%
 } else {
-	Msgbox, 262192, AeroZoom, Sorry. There was a problem creating or deleting task.
+	Msgbox, 262192, AeroZoom, Sorry. There was a problem creating or deleting task.`n`nMaybe you don't have administrator rights?
 }
 
 Gui, 1:Font, CDefault,
 GuiControl,1:Font,Txt,	
-GuiControl,1:,Txt, AeroZoom %verAZ% ; v%verAZ%
+GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
 Gui,-Disabled
 GuiControl,Enable,Bye
 
 return
 
 Install:
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+IfWinExist, AeroZoom Panel
 	ExistAZ=1
 ; Install / Unisntall
 regKey=SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\AeroZoom
@@ -2913,7 +10012,7 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 	GuiControl,1:Font,Txt, ; to apply the color change
 	GuiControl,1:,Txt,- Please Wait -
 	GuiControl,Disable,Bye
-	Gui,+Disabled
+	;Gui,+Disabled ; this is commented to avoid gui from hiding itself when not always on top
 	; Remove existing directory
 	FileRemoveDir, %localappdata%\WanderSick\AeroZoom\Data, 1
 	FileRemoveDir, %localappdata%\WanderSick\AeroZoom, 1
@@ -2922,11 +10021,11 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 	; Create shortcut to Start Menu (Current User)
 	IfExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 	{
-		FileCreateShortcut, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe, %A_Programs%\AeroZoom.lnk, %localappdata%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
-		FileCreateShortcut, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe, %A_Desktop%\AeroZoom.lnk, %localappdata%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
+		FileCreateShortcut, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe, %A_Programs%\AeroZoom.lnk, %localappdata%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
+		FileCreateShortcut, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe, %A_Desktop%\AeroZoom.lnk, %localappdata%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
 	} else {
-		FileCreateShortcut, %A_WorkingDir%\AeroZoom.exe, %A_Programs%\AeroZoom.lnk, %A_WorkingDir%,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
-		FileCreateShortcut, %A_WorkingDir%\AeroZoom.exe, %A_Desktop%\AeroZoom.lnk, %A_WorkingDir%,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
+		FileCreateShortcut, %A_WorkingDir%\AeroZoom.exe, %A_Programs%\AeroZoom.lnk, %A_WorkingDir%,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
+		FileCreateShortcut, %A_WorkingDir%\AeroZoom.exe, %A_Desktop%\AeroZoom.lnk, %A_WorkingDir%,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
 	}
 	; if a shortcut is in startup, re-create it to ensure its not linked to the portable version's path
 	IfExist, %A_Startup%\*AeroZoom*.* ; this is legacy. now task is created instead of shortcut
@@ -2947,7 +10046,7 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 		}
 		;IfExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 		;{
-			; FileCreateShortcut, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe, %A_Startup%\AeroZoom.lnk, %localappdata%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
+			; FileCreateShortcut, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe, %A_Startup%\AeroZoom.lnk, %localappdata%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
 		;}
 		;IfExist, %A_Startup%\*AeroZoom*.*
 		;{
@@ -3010,7 +10109,7 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 		GuiControl,1:Font,Txt, ; to apply the color change
 		GuiControl,1:,Txt,- Uninstalling - 
 		GuiControl,Disable,Bye
-		Gui,+Disabled
+		;Gui,+Disabled ; this is commented to avoid gui from hiding itself when not always on top
 		IfExist, %A_WorkingDir%\Data\ZoomIt.exe ; if ZoomIt exists, its setting is kept in order to avoid a bug (need to click 2 times in the menu)
 			RegRead,zoomitTemp,HKCU,Software\WanderSick\AeroZoom,zoomit
 			
@@ -3045,7 +10144,7 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 			Msgbox, 262192, AeroZoom, Please uninstall AeroZoom from 'Control Panel\Programs and Features' or use Setup.exe.
 			Gui, 1:Font, CDefault,
 			GuiControl,1:Font,Txt,	
-			GuiControl,1:,Txt, AeroZoom %verAZ% ; v%verAZ%
+			GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
 			Gui,-Disabled
 			GuiControl,Enable,Bye
 			ExistAZ=
@@ -3114,10 +10213,45 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 }
 Gui, 1:Font, CDefault,
 GuiControl,1:Font,Txt,	
-GuiControl,1:,Txt, AeroZoom %verAZ% ; v%verAZ%
+GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
 Gui,-Disabled
 GuiControl,Enable,Bye
 ExistAZ=
+return
+
+NirCmd:
+IfNotExist, %A_WorkingDir%\Data\NirCmd.exe
+	goto, NirCmdDownload
+if (NirCmd=1) {
+	NirCmd=0
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, NirCmd, 0
+	Menu, ToolboxMenu, Uncheck, Save &Captures to Disk
+	If (OSver<6.1) {
+		GuiControl,1:, SnipSlider, 1
+	}
+} else {
+	NirCmd=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, NirCmd, 1
+	Menu, ToolboxMenu, Check, Save &Captures to Disk
+	If (OSver<6.1) {
+		GuiControl,1:, SnipSlider, 2
+	}
+}
+
+return
+
+ConfigBackup:
+gosub, configGuidance
+if (EnableAutoBackup=1) {
+	EnableAutoBackup=0
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EnableAutoBackup, 0
+	Menu, Configuration, Uncheck, &Save Config on Exit
+} else {
+	EnableAutoBackup=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EnableAutoBackup, 1
+	Menu, Configuration, Check, &Save Config on Exit
+}
+
 return
 
 Zoomit:
@@ -3125,32 +10259,12 @@ Process, Exist, ZoomIt.exe
 if (errorlevel<>0) {
 	Process, Close, zoomit.exe
 	Process, Close, zoomit64.exe
-	Menu, ToolboxMenu, Uncheck, &Sysinternals ZoomIt
-	Menu, ToolboxMenu, Disable, &ZoomIt Options
-	Menu, ViewsMenu, Disable, ZoomIt - &Still Zoom`tCtrl+1
-	Menu, ViewsMenu, Disable, ZoomIt - &Draw`tCtrl+2
-	Menu, ViewsMenu, Disable, ZoomIt - &Black Board`tCtrl+2`, K
-	Menu, ViewsMenu, Disable, ZoomIt - &White Board`tCtrl+2`, W
-	Menu, ViewsMenu, Disable, ZoomIt - Break &Timer`tCtrl+3
+	Menu, ToolboxMenu, Uncheck, &Enable ZoomIt
+	Menu, ViewsMenu, Disable, Sysinternals &ZoomIt
 	zoomit=0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomIt, 0
-	if not (KeepSnip=1) { ; if KeepSnip is not set in the Advanced Options
-		if (legacyKill=1) {
-			; Change text 'Timer' to 'Kill'
-			GuiControl,, Tim&er, Kil&l
-			;GuiControl,, Paus&e, Kil&l
-		} else {
-			GuiControl,, Tim&er, &Paint
-			;GuiControl,, Paus&e, &Paint
-		}
-		GuiControl,, &Draw, &Snip
-		if (legacyKill=1) {
-			KillMagnifier_TT := "Kill magnifier process"
-		} else {
-			KillMagnifier_TT := "Create and edit drawings"
-		}
-		Draw_TT := "Copy a portion of screen for annotation [Win+Alt+S]"
-	}
+	if zoomitPanel
+		gosub, zoomitPanel
 } else {
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
 	{
@@ -3162,56 +10276,43 @@ if (errorlevel<>0) {
 		EulaAccepted =
 		RegRead,EulaAccepted,HKCU,Software\Sysinternals\ZoomIt,EulaAccepted
 		If not EulaAccepted
-		{
-			Msgbox, 262196, NOTICE, Did you not accept the EULA of Sysinternals ZoomIt?`n`nAeroZoom has detected the step of accepting ZoomIt's End User Licensing Agreement has not been completed. If that is the case, click 'Yes'.`n`nIf you suspect the download failed and ZoomIt.exe is corrupt (sign: strange error prompts), click 'No' so that AeroZoom deletes the file and lets you download again. `n`nAlternatively, you can manually delete or put zoomit.exe into:`n`n%A_WorkingDir%\Data
-			IfMsgbox, No
+		{	
+			If Welcome ; except first-run (where user might have moved AeroZoom to another PC)
 			{
-				FileSetAttrib, -R, %A_WorkingDir%\Data\ZoomIt*
-				FileDelete, %A_WorkingDir%\Data\ZoomIt.exe
-				FileDelete, %A_WorkingDir%\Data\ZoomIt64.exe
-				ZoomItFirstRun=
-				goto, ZoomIt
+				Msgbox, 262196, Notice, AeroZoom has detected the step of accepting ZoomIt's End User Licensing Agreement (EULA) may have not been completed. If that is the case, click 'Yes'.`n`nIf you suspect the download failed and ZoomIt.exe is corrupt (sign: strange error prompts), click 'No' so that AeroZoom deletes the file and lets you download again. `n`nAlternatively, you can manually delete or put ZoomIt.exe into:`n`n%A_WorkingDir%\Data
+				IfMsgbox, No
+				{
+					FileSetAttrib, -R, %A_WorkingDir%\Data\ZoomIt*
+					FileDelete, %A_WorkingDir%\Data\ZoomIt.exe
+					FileDelete, %A_WorkingDir%\Data\ZoomIt64.exe
+					ZoomItFirstRun=
+					goto, ZoomIt
+				}
+				ZoomItFirstRun=1
 			}
-			ZoomItFirstRun=1
 		}
 	}
 	skipEulaChk = 
-	Run, %A_WorkingDir%\Data\ZoomIt.exe
+	Run, "%A_WorkingDir%\Data\ZoomIt.exe"
 	if ZoomItFirstRun
 	{
 		WinWait, ZoomIt License Agreement,,3 ; Prevent AZ panel fro covering EULA
-		WinSet, AlwaysOnTop, Off, ahk_class AutoHotkeyGUI,AeroZoom
+		WinHide, AeroZoom Panel
 		WinSet, AlwaysOnTop, On, ZoomIt License Agreement
 		WinWaitClose, ZoomIt License Agreement
-		If onTopBit
-			WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-		Else
-			WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+		WinWait, ZoomIt - Sysinternals: www.sysinternals.com,,1 ; zoomit options may show if it is the first time zoomit has run
+		IfWinExist, ZoomIt - Sysinternals: www.sysinternals.com
+			WinClose
+		WinShow, AeroZoom Panel
 	}
 	ZoomItFirstRun=
 	RegRead,EulaAccepted,HKCU,Software\Sysinternals\ZoomIt,EulaAccepted
 	If not EulaAccepted
 		return
-	Menu, ToolboxMenu, Check, &Sysinternals ZoomIt
-	Menu, ToolboxMenu, Enable, &ZoomIt Options
-	Menu, ViewsMenu, Enable, ZoomIt - &Still Zoom`tCtrl+1
-	Menu, ViewsMenu, Enable, ZoomIt - &Draw`tCtrl+2
-	Menu, ViewsMenu, Enable, ZoomIt - &Black Board`tCtrl+2`, K
-	Menu, ViewsMenu, Enable, ZoomIt - &White Board`tCtrl+2`, W
-	Menu, ViewsMenu, Enable, ZoomIt - Break &Timer`tCtrl+3
+	Menu, ToolboxMenu, Check, &Enable ZoomIt
+	Menu, ViewsMenu, Enable, Sysinternals &ZoomIt
 	zoomit=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomIt, 1
-	if not (KeepSnip=1) { ; if KeepSnip is not set in the Advanced Options
-		if (legacyKill=1) {
-			; Change text 'Kill' to 'Timer'
-			GuiControl,, Kil&l, Tim&er
-		} else {
-			GuiControl,, &Paint, Tim&er
-		}
-		GuiControl,, &Snip, &Draw
-		KillMagnifier_TT := "Break timer of ZoomIt [Ctrl+3]"
-		Draw_TT := "Draw, type & still-zoom using ZoomIt [Ctrl+2]"
-	}
 }
 return
 
@@ -3245,12 +10346,12 @@ UseNotepad:
 if (notepad=1) {
 	notepad=0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Notepad, 0
-	Menu, ToolboxMenu, Uncheck, Use &Notepad
+	Menu, ToolboxMenu, Uncheck, Type with &Notepad
 	;GuiControl,, &Note, Word
 } else {
 	notepad=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Notepad, 1
-	Menu, ToolboxMenu, Check, Use &Notepad
+	Menu, ToolboxMenu, Check, Type with &Notepad
 	; When useNotepad is selected, customEd is deselected
 	RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, customEdCheckbox
 	customEdCheckbox=
@@ -3264,11 +10365,11 @@ RegRead,clickGoBit,HKCU,Software\WanderSick\AeroZoom,clickGoBit
 if clickGoBit
 {
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, clickGoBit, 0
-	Menu, ToolboxMenu, Uncheck, &Click-n-Go
+	Menu, MiscToolsMenu, Uncheck, Legacy: Click-n-Go Buttons
 	guiDestroy=
 } else {
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, clickGoBit, 1
-	Menu, ToolboxMenu, Check, &Click-n-Go
+	Menu, MiscToolsMenu, Check, Legacy: Click-n-Go Buttons
 	guiDestroy=Destroy
 }
 return
@@ -3279,16 +10380,16 @@ RegRead,onTopBit,HKCU,Software\WanderSick\AeroZoom,onTopBit
 if onTopBit
 {
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, onTopBit, 0
-	Menu, ToolboxMenu, Uncheck, Always on &Top
+	Menu, ToolboxMenu, Uncheck, &Always on Top
 	onTop=-AlwaysOnTop
 	onTopBit=0
-	WinSet, AlwaysOnTop, off, ahk_class CalcFrame
+	WinSet, AlwaysOnTop, off, ahk_class %calcClass%
 	WinSet, AlwaysOnTop, off, ahk_class MSPaintApp
 	WinSet, AlwaysOnTop, off, ahk_class WordPadClass
 	WinSet, AlwaysOnTop, off, ahk_class Notepad
 } else {
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, onTopBit, 1
-	Menu, ToolboxMenu, Check, Always on &Top
+	Menu, ToolboxMenu, Check, &Always on Top
 	onTop=+AlwaysOnTop
 	onTopBit=1
 }
@@ -3306,9 +10407,10 @@ GuiControl,3:Enable, customCalcPath ;a variable is set, so text label is not use
 return
 
 3ButtonBrowse1:
-Gui, -AlwaysOnTop
-FileSelectFile, customEdPath, 3, , Select a program to launch by this button, Executables (*.exe)
-Gui, +AlwaysOnTop
+Gui, 1:-AlwaysOnTop
+FileSelectFile, customEdPath, 3, , Select something to launch by this button, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
 if customEdPath
 {
 	GuiControl,3:,customEdPath,%customEdPath%
@@ -3316,9 +10418,10 @@ if customEdPath
 return
 
 3ButtonBrowse2:
-Gui, -AlwaysOnTop ; to prevent the Browse dialog from being covered by the Advanced Options dialog
-FileSelectFile, customCalcPath, 3, , Select a program to launch by this button, Executables (*.exe)
-Gui, +AlwaysOnTop
+Gui, 1:-AlwaysOnTop ; to prevent the Browse dialog from being covered by the Advanced Options dialog
+FileSelectFile, customCalcPath, 3, , Select something to launch by this button, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
 if customCalcPath
 {
 	GuiControl,3:,customCalcPath,%customCalcPath%
@@ -3337,25 +10440,28 @@ zoomitOptions:
 RegRead,zoomItOptions,HKCU,Software\WanderSick\AeroZoom,zoomItOptions
 if not zoomItOptions
 {
-	Msgbox, 262144, This message will only be shown once, Please do not modify the keyboard shortcuts in ZoomIt Options as AeroZoom depends on the default hotkeys to work.`n`nIn case they are modified, it can be reverted by checking 'Restore default settings' in Tool > Advanced Options, or by pressing Win+Shift+Alt+R.
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomItOptions, 1
+	if not GuideDisabled
+	{
+		Msgbox, 262144, This message will only be shown once, Please do not modify the keyboard shortcuts in ZoomIt Options as AeroZoom depends on the default hotkeys to work.`n`nIn case they are modified, it can be reverted by clicking 'Reset' in Tool > Preferences > Advanced Options.
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomItOptions, 1
+	}
 }
-Run, %A_WorkingDir%\Data\ZoomIt.exe ; running an already running ZoomIt brings up the options menu.
+Run, "%A_WorkingDir%\Data\ZoomIt.exe" ; running an already running ZoomIt brings up the options menu.
 WinWait, ZoomIt - Sysinternals: www.sysinternals.com,,3 ; Prevent AZ panel fro covering ZoomIt Options
-WinSet, AlwaysOnTop, Off, ahk_class AutoHotkeyGUI,AeroZoom
+;WinSet, AlwaysOnTop, Off, AeroZoom Panel
 WinSet, AlwaysOnTop, On, ZoomIt - Sysinternals: www.sysinternals.com
-WinWaitClose, ZoomIt - Sysinternals: www.sysinternals.com
-If onTopBit
-	WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-Else
-	WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+;WinWaitClose, ZoomIt - Sysinternals: www.sysinternals.com
+;If onTopBit
+;	WinSet, AlwaysOnTop, On, AeroZoom Panel
+;Else
+;	WinActivate, AeroZoom Panel
 return
 
 ViewFullScreen:
 Process, Exist, magnify.exe
 if not errorlevel ; if not running
 	Run,"%windir%\system32\magnify.exe",,
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+IfWinExist, AeroZoom Panel
 {
 	Menu, ViewsMenu, Check, &Full Screen`tCtrl+Alt+F
 	Menu, ViewsMenu, Uncheck, &Lens`tCtrl+Alt+L
@@ -3369,9 +10475,11 @@ Process, Exist, magnify.exe
 if not errorlevel ; if not running
 {
 	Run,"%windir%\system32\magnify.exe",,
-	WinWait, ahk_class MagUIClass,,3
+	If (OSver>6) {
+		WinWait, ahk_class MagUIClass,,3
+	}
 }
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+IfWinExist, AeroZoom Panel
 {
 	Menu, ViewsMenu, Uncheck, &Full Screen`tCtrl+Alt+F
 	Menu, ViewsMenu, Check, &Lens`tCtrl+Alt+L
@@ -3385,9 +10493,11 @@ Process, Exist, magnify.exe
 if not errorlevel ; if not running
 {
 	Run,"%windir%\system32\magnify.exe",,
-	WinWait, ahk_class MagUIClass,,3
+	If (OSver>6) {
+		WinWait, ahk_class MagUIClass,,3
+	}
 }
-IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+IfWinExist, AeroZoom Panel
 {
 	Menu, ViewsMenu, Uncheck, &Full Screen`tCtrl+Alt+F
 	Menu, ViewsMenu, Uncheck, &Lens`tCtrl+Alt+L
@@ -3397,70 +10507,123 @@ sendinput ^!d
 return
 
 ViewPreview:
+If (OSver<6.1) {
+	return
+}
 Process, Exist, magnify.exe
 if not errorlevel ; if not running
 {
 	Run,"%windir%\system32\magnify.exe",,
-	WinWait, ahk_class MagUIClass,,3
+		WinWait, ahk_class MagUIClass,,3
 }
 sendinput ^!{Space}
 return
 
 ViewStillZoom:
-WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
+if not zoomItGuidance
+	Gosub, ZoomItGuidance
+Process, Close, ZoomPad.exe ; prevent zoompad frame from appearing in zoomit
+process, close, osd.exe ; prevent osd from showing in 'picture'
+WinHide, AeroZoom Panel
+If (A_ThisMenu="ZoomitMenu") ; takes longer to fade out the menu on some system w/o good display
+	Sleep, 225
 sendinput ^1
 WinWait, ahk_class ZoomitClass,,5
+gosub, ZoomItColor
 WinWaitClose, ahk_class ZoomitClass
-If onTopBit
-	WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-Else
-	WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+WinShow, AeroZoom Panel
+return
+
+ViewLiveZoom:
+if (OSver<6.0) {
+	Msgbox, 262192, ERROR, Live Zoom requires Windows Vista or later.
+	return
+}
+	
+IfWinExist, ahk_class MagnifierClass ; if zoomit is working, enhance (stop) it instead
+{
+	sendinput ^4
+	return
+}
+IfWinExist, ahk_class ZoomitClass
+{
+	sendinput ^1
+	WinWaitClose, ahk_class ZoomitClass,, 4
+}
+
+;If not zoomItGuidance
+;	Gosub, ZoomItGuidance
+
+gosub, ZoomItLiveMsg
+
+sendinput ^4
+gosub, WorkaroundFullScrLiveZoom
 return
 
 ViewBlackBoard:
-WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
+if not zoomItGuidance
+	Gosub, ZoomItGuidance
+WinHide, AeroZoom Panel
 sendinput ^2
 WinWait, ahk_class ZoomitClass,,5
+gosub, ZoomItColor
 sendinput kt
 WinWaitClose, ahk_class ZoomitClass
-If onTopBit
-	WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-Else
-	WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+WinShow, AeroZoom Panel
 return
 
 ViewWhiteBoard:
-WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
+if not zoomItGuidance
+	Gosub, ZoomItGuidance
+WinHide, AeroZoom Panel
 sendinput ^2
 WinWait, ahk_class ZoomitClass,,5
+gosub, ZoomItColor
 sendinput wt
 WinWaitClose, ahk_class ZoomitClass
-If onTopBit
-	WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-Else
-	WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+WinShow, AeroZoom Panel
 return
 
 ViewDraw:
-WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
+if not zoomItGuidance
+	Gosub, ZoomItGuidance
+Process, Close, ZoomPad.exe ; prevent zoompad frame from appearing in zoomit
+process, close, osd.exe ; prevent osd from showing in 'picture'
+WinHide, AeroZoom Panel
+If (A_ThisMenu="ZoomitMenu") ; takes longer to fade out the menu on some system w/o good display
+	Sleep, 225
 sendinput ^2
 WinWait, ahk_class ZoomitClass,,5
+gosub, ZoomItColor
 WinWaitClose, ahk_class ZoomitClass
-If onTopBit
-	WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-Else
-	WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+WinShow, AeroZoom Panel
+return
+
+ViewType:
+if not zoomItGuidance
+	Gosub, ZoomItGuidance
+Process, Close, ZoomPad.exe ; prevent zoompad frame from appearing in zoomit
+process, close, osd.exe ; prevent osd from showing in 'picture'
+WinHide, AeroZoom Panel
+If (A_ThisMenu="ZoomitMenu") ; takes longer to fade out the menu on some system w/o good display
+	Sleep, 225
+sendinput ^2
+WinWait, ahk_class ZoomitClass,,5
+gosub, ZoomItColor
+sendinput t
+WinWaitClose, ahk_class ZoomitClass
+WinShow, AeroZoom Panel
 return
 
 ViewBreakTimer:
-WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
+if not zoomItGuidance
+	Gosub, ZoomItGuidance
+WinHide, AeroZoom Panel
 sendinput ^3
 WinWait, ahk_class ZoomitClass,,5
+gosub, ZoomItColor
 WinWaitClose, ahk_class ZoomitClass
-If onTopBit
-	WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-Else
-	WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+WinShow, AeroZoom Panel
 return
 
 ; 1-61
@@ -3468,251 +10631,251 @@ MagReadValues1:
 	
 RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
 if (MagnificationRaw=0x64) { ; 100
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 } else if (MagnificationRaw=0x7D) { ; 125
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 2
 	Magnification=2
 } else if (MagnificationRaw=0x96) { ; 150
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 3
 	Magnification=3
 } else if (MagnificationRaw=0xAF) { ; 175
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 4
 	Magnification=4	
 } else if (MagnificationRaw=0xC8) { ; 200
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 5
 	Magnification=5
 } else if (MagnificationRaw=0xE1) { ; 225
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 6
 	Magnification=6
 } else if (MagnificationRaw=0xFA) { ; 250
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 7
 	Magnification=7
 } else if (MagnificationRaw=0x113) { ; 275
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 8
 	Magnification=8
 } else if (MagnificationRaw=0x12C) { ; 300
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 9
 	Magnification=9
 } else if (MagnificationRaw=0x145) { ; 325
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 10
 	Magnification=10
 } else if (MagnificationRaw=0x15E) { ; 350
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 11
 	Magnification=11
 } else if (MagnificationRaw=0x177) { ; 375
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 12
 	Magnification=12
 } else if (MagnificationRaw=0x190) { ; 400
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 13
 	Magnification=13
 } else if (MagnificationRaw=0x1A9) { ; 425
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 14
 	Magnification=14
 } else if (MagnificationRaw=0x1C2) { ; 450
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 15
 	Magnification=15
 } else if (MagnificationRaw=0x1DB) { ; 475
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 16
 	Magnification=16
 } else if (MagnificationRaw=0x1F4) { ; 500
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 17
 	Magnification=17
 } else if (MagnificationRaw=0x20D) { ; 525
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 18
 	Magnification=18
 } else if (MagnificationRaw=0x226) { ; 550
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 19
 	Magnification=19
 } else if (MagnificationRaw=0x23F) { ; 575
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 20
 	Magnification=20
 } else if (MagnificationRaw=0x258) { ; 600
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 21
 	Magnification=21
 } else if (MagnificationRaw=0x271) { ; 625
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 22
 	Magnification=22
 } else if (MagnificationRaw=0x28A) { ; 650
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 23
 	Magnification=23
 } else if (MagnificationRaw=0x2A3) { ; 675
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 24
 	Magnification=24
 } else if (MagnificationRaw=0x2BC) { ; 700
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 25
 	Magnification=25
 } else if (MagnificationRaw=0x2D5) { ; 725
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 26
 	Magnification=26
 } else if (MagnificationRaw=0x2EE) { ; 750
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 27
 	Magnification=27
 } else if (MagnificationRaw=0x307) { ; 775
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 28
 	Magnification=28
 } else if (MagnificationRaw=0x320) { ; 800
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 29
 	Magnification=29
 } else if (MagnificationRaw=0x339) { ; 825
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 30
 	Magnification=30
 } else if (MagnificationRaw=0x352) { ; 850
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 31
 	Magnification=31
 } else if (MagnificationRaw=0x36B) { ; 875
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 32
 	Magnification=32
 } else if (MagnificationRaw=0x384) { ; 900
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 33
 	Magnification=33
 } else if (MagnificationRaw=0x39D) { ; 925
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 34
 	Magnification=34
 } else if (MagnificationRaw=0x3B6) { ; 950
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 35
 	Magnification=35
 } else if (MagnificationRaw=0x3CF) { ; 975
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 36
 	Magnification=36
 } else if (MagnificationRaw=0x3E8) { ; 1000
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 37
 	Magnification=37
 } else if (MagnificationRaw=0x401) { ; 1025
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 38
 	Magnification=38
 } else if (MagnificationRaw=0x41A) { ; 1050
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 39
 	Magnification=39
 } else if (MagnificationRaw=0x433) { ; 1075
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 40
 	Magnification=40
 } else if (MagnificationRaw=0x44C) { ; 1100
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 41
 	Magnification=41
 } else if (MagnificationRaw=0x465) { ; 1125
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 42
 	Magnification=42
 } else if (MagnificationRaw=0x47E) { ; 1150
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 43
 	Magnification=43
 } else if (MagnificationRaw=0x497) { ; 1175
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 44
 	Magnification=44
 } else if (MagnificationRaw=0x4B0) { ; 1200
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 45
 	Magnification=45
 } else if (MagnificationRaw=0x4C9) { ; 1225
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 46
 	Magnification=46
 } else if (MagnificationRaw=0x4E2) { ; 1250
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 47
 	Magnification=47
 } else if (MagnificationRaw=0x4FB) { ; 1275
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 48
 	Magnification=48
 } else if (MagnificationRaw=0x514) { ; 1300
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 49
 	Magnification=49
 } else if (MagnificationRaw=0x52D) { ; 1325
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 50
 	Magnification=50
 } else if (MagnificationRaw=0x546) { ; 1350
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 51
 	Magnification=51
 } else if (MagnificationRaw=0x55F) { ; 1375
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 52
 	Magnification=52
 } else if (MagnificationRaw=0x578) { ; 1400
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 53
 	Magnification=53
 } else if (MagnificationRaw=0x591) { ; 1425
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 54
 	Magnification=54
 } else if (MagnificationRaw=0x5AA) { ; 1450
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 55
 	Magnification=55
 } else if (MagnificationRaw=0x5C3) { ; 1475
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 56
 	Magnification=56
 } else if (MagnificationRaw=0x5DC) { ; 1500
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 57
 	Magnification=57
 } else if (MagnificationRaw=0x5F5) { ; 1525
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 58
 	Magnification=58
 } else if (MagnificationRaw=0x60E) { ; 1550
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 59
 	Magnification=59
 } else if (MagnificationRaw=0x627) { ; 1575
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 60
 	Magnification=60
 } else if (MagnificationRaw=0x640) { ; 1600
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 61
 	Magnification=61
 } else {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 }
@@ -3724,131 +10887,131 @@ MagReadValues2:
 
 RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
 if (MagnificationRaw=0x64) { ; 100
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 } else if (MagnificationRaw=0x96) { ; 150
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 2
 	Magnification=2
 } else if (MagnificationRaw=0xC8) { ; 200
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 3
 	Magnification=3
 } else if (MagnificationRaw=0xFA) { ; 250
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 4
 	Magnification=4
 } else if (MagnificationRaw=0x12C) { ; 300
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 5
 	Magnification=5
 } else if (MagnificationRaw=0x15E) { ; 350
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 6
 	Magnification=6
 } else if (MagnificationRaw=0x190) { ; 400
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 7
 	Magnification=7
 } else if (MagnificationRaw=0x1C2) { ; 450
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 8
 	Magnification=8
 } else if (MagnificationRaw=0x1F4) { ; 500
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 9
 	Magnification=9
 } else if (MagnificationRaw=0x226) { ; 550
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 10
 	Magnification=10
 } else if (MagnificationRaw=0x258) { ; 600
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 11
 	Magnification=11
 } else if (MagnificationRaw=0x28A) { ; 650
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 12
 	Magnification=12
 } else if (MagnificationRaw=0x2BC) { ; 700
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 13
 	Magnification=13
 } else if (MagnificationRaw=0x2EE) { ; 750
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 14
 	Magnification=14
 } else if (MagnificationRaw=0x320) { ; 800
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 15
 	Magnification=15
 } else if (MagnificationRaw=0x352) { ; 850
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 16
 	Magnification=16
 } else if (MagnificationRaw=0x384) { ; 900
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 17
 	Magnification=17
 } else if (MagnificationRaw=0x3B6) { ; 950
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 18
 	Magnification=18
 } else if (MagnificationRaw=0x3E8) { ; 1000
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 19
 	Magnification=19
 } else if (MagnificationRaw=0x41A) { ; 1050
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 20
 	Magnification=20
 } else if (MagnificationRaw=0x44C) { ; 1100
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 21
 	Magnification=21
 } else if (MagnificationRaw=0x47E) { ; 1150
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 22
 	Magnification=22
 } else if (MagnificationRaw=0x4B0) { ; 1200
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 23
 	Magnification=23
 } else if (MagnificationRaw=0x4E2) { ; 1250
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 24
 	Magnification=24
 } else if (MagnificationRaw=0x514) { ; 1300
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 25
 	Magnification=25
 } else if (MagnificationRaw=0x546) { ; 1350
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 26
 	Magnification=26
 } else if (MagnificationRaw=0x578) { ; 1400
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 27
 	Magnification=27
 } else if (MagnificationRaw=0x5AA) { ; 1450
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 28
 	Magnification=28
 } else if (MagnificationRaw=0x5DC) { ; 1500
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 29
 	Magnification=29
 } else if (MagnificationRaw=0x60E) { ; 1550
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 30
 	Magnification=30
 } else if (MagnificationRaw=0x640) { ; 1600
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 31
 	Magnification=31
 } else {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 }
@@ -3859,71 +11022,71 @@ MagReadValues3:
 
 RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
 if (MagnificationRaw=0x64) { ; 100
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 } else if (MagnificationRaw=0xC8) { ; 200
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 2
 	Magnification=2
 } else if (MagnificationRaw=0x12C) { ; 300
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 3
 	Magnification=3
 } else if (MagnificationRaw=0x190) { ; 400
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 4
 	Magnification=4
 } else if (MagnificationRaw=0x1F4) { ; 500
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 5
 	Magnification=5
 } else if (MagnificationRaw=0x258) { ; 600
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 6
 	Magnification=6
 } else if (MagnificationRaw=0x2BC) { ; 700
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 7
 	Magnification=7
 } else if (MagnificationRaw=0x320) { ; 800
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 8
 	Magnification=8
 } else if (MagnificationRaw=0x384) { ; 900
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 9
 	Magnification=9
 } else if (MagnificationRaw=0x3E8) { ; 1000
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 10
 	Magnification=10
 } else if (MagnificationRaw=0x44C) { ; 1100
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 11
 	Magnification=11
 } else if (MagnificationRaw=0x4B0) { ; 1200
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 12
 	Magnification=12
 } else if (MagnificationRaw=0x514) { ; 1300
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 13
 	Magnification=13
 } else if (MagnificationRaw=0x578) { ; 1400
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 14
 	Magnification=14
 } else if (MagnificationRaw=0x5DC) { ; 1500
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 15
 	Magnification=15
 } else if (MagnificationRaw=0x640) { ; 1600
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 16
 	Magnification=16
 } else {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 }
@@ -3935,51 +11098,51 @@ MagReadValues4:
 
 RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
 if (MagnificationRaw=0x64) { ; 100
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 } else if (MagnificationRaw=0xFA) { ; 250
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 2
 	Magnification=2
 } else if (MagnificationRaw=0x190) { ; 400
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 3
 	Magnification=3
 } else if (MagnificationRaw=0x226) { ; 550
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 4
 	Magnification=4
 } else if (MagnificationRaw=0x2BC) { ; 700
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 5
 	Magnification=5
 } else if (MagnificationRaw=0x352) { ; 850
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 6
 	Magnification=6
 } else if (MagnificationRaw=0x3E8) { ; 1000
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 7
 	Magnification=7
 } else if (MagnificationRaw=0x47E) { ; 1150
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 8
 	Magnification=8
 } else if (MagnificationRaw=0x514) { ; 1300
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 9
 	Magnification=9
 } else if (MagnificationRaw=0x5AA) { ; 1450
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 10
 	Magnification=10
 } else if (MagnificationRaw=0x640) { ; 1600
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 11
 	Magnification=11
 } else {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 }
@@ -3991,71 +11154,71 @@ MagReadValues5:
 
 RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
 if (MagnificationRaw=0x64) { ; 100
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 } else if (MagnificationRaw=0xC8) { ; 200 
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 2
 	Magnification=2
 } else if (MagnificationRaw=0x12C) { ; 300
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 2
 	Magnification=2
 } else if (MagnificationRaw=0x190) { ; 400
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 3
 	Magnification=3
 } else if (MagnificationRaw=0x1F4) { ; 500
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 3
 	Magnification=3
 } else if (MagnificationRaw=0x258) { ; 600
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 4
 	Magnification=4
 } else if (MagnificationRaw=0x2BC) { ; 700
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 4
 	Magnification=4
 } else if (MagnificationRaw=0x320) { ; 800
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 5
 	Magnification=5
 } else if (MagnificationRaw=0x384) { ; 900
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 5
 	Magnification=5
 } else if (MagnificationRaw=0x3E8) { ; 1000
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 6
 	Magnification=6
 } else if (MagnificationRaw=0x44C) { ; 1100
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 6
 	Magnification=6
 } else if (MagnificationRaw=0x4B0) { ; 1200
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 7
 	Magnification=7
 } else if (MagnificationRaw=0x514) { ; 1300
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 7
 	Magnification=7
 } else if (MagnificationRaw=0x578) { ; 1400
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 8
 	Magnification=8
 } else if (MagnificationRaw=0x5DC) { ; 1500 ; when zooming out after zooming in to the max (1600), it reduces to 1400 instead of 1300, so both 1300 and 1400 share the same value, and vice versa
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 8
 	Magnification=8
 } else if (MagnificationRaw=0x640) { ; 1600
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 9
 	Magnification=9
 } else {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 }
@@ -4067,39 +11230,39 @@ MagReadValues6:
 
 RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
 if (MagnificationRaw=0x64) { ; 100
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 } else if (MagnificationRaw=0x190) { ; 400
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 2
 	Magnification=2
 } else if (MagnificationRaw=0x1F4) { ; 500
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 2
 	Magnification=2
 } else if (MagnificationRaw=0x320) { ; 800
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 3
 	Magnification=3
 } else if (MagnificationRaw=0x384) { ; 900
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 3
 	Magnification=3
 } else if (MagnificationRaw=0x4B0) { ; 1200
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 4
 	Magnification=4
 } else if (MagnificationRaw=0x514) { ; 1300
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 4
 	Magnification=4
 } else if (MagnificationRaw=0x640) { ; 1600
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 5
 	Magnification=5
 } else {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=2 AND !zoomitPanel)
 		GuiControl,, Magnification, 1
 	Magnification=1
 }
@@ -4110,38 +11273,38 @@ ReadValueUpdatePanel:
 
 ;if not quickZoomIncChk
 ;{
-	IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+	IfWinExist, AeroZoom Panel
 		ExistAZ=1
 ;}
 
 ; Refresh ZoomIncrement and Magnification ; note this may not be the best way of doing it
 RegRead,zoomIncRaw,HKCU,Software\Microsoft\ScreenMagnifier,ZoomIncrement
 if (zoomIncRaw=0x19) { ; Get values from registry, Hex to Dec
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=1 AND !zoomitPanel)
 		GuiControl,, ZoomInc, 1
 	zoomInc=1
 } else if (zoomIncRaw=0x32) {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=1 AND !zoomitPanel)
 		GuiControl,, ZoomInc, 2
 	zoomInc=2
 } else if (zoomIncRaw=0x64) {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=1 AND !zoomitPanel)
 		GuiControl,, ZoomInc, 3
 	zoomInc=3
 } else if (zoomIncRaw=0x96) {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=1 AND !zoomitPanel)
 		GuiControl,, ZoomInc, 4
 	zoomInc=4
 } else if (zoomIncRaw=0xc8) {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=1 AND !zoomitPanel)
 		GuiControl,, ZoomInc, 5
 	zoomInc=5
 } else if (zoomIncRaw=0x190) {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=1 AND !zoomitPanel)
 		GuiControl,, ZoomInc, 6
 	zoomInc=6
 } else {
-	if ExistAZ
+	if (ExistAZ AND SwitchSlider=1 AND !zoomitPanel)
 		GuiControl,, ZoomInc, 3
 	zoomInc=3
 }
@@ -4150,6 +11313,7 @@ if (zoomIncRaw=0x19) { ; Get values from registry, Hex to Dec
 ;	return	
 
 ; Check which zoom increment to use, then update the corresponding magnification
+
 if (ZoomInc=1) {
 	Gosub, MagReadValues1 ; Get values from registry, Hex to Dec
 } else if (ZoomInc=2) {
@@ -4166,11 +11330,14 @@ if (ZoomInc=1) {
 
 if ExistAZ
 {
-	if (MagnificationMode=0x2) {
-		if (MagnificationRaw=0x64) ; if zoomed out (because Preview Full Screen only works when zoomed in)
-			Menu, ViewsMenu, Disable, &Preview Full Screen`tCtrl+Alt+Space
-		else ; if zoomed in
-			Menu, ViewsMenu, Enable, &Preview Full Screen`tCtrl+Alt+Space
+	If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+		RegRead,MagnificationMode,HKCU,Software\Microsoft\ScreenMagnifier,MagnificationMode
+		if (MagnificationMode=0x2) {
+			if (MagnificationRaw=0x64) ; if zoomed out (because Preview Full Screen only works when zoomed in)
+				Menu, ViewsMenu, Disable, &Preview Full Screen`tCtrl+Alt+Space
+			else ; if zoomed in
+				Menu, ViewsMenu, Enable, &Preview Full Screen`tCtrl+Alt+Space
+		}
 	}
 }
 ExistAZ=
@@ -4186,43 +11353,87 @@ If not StartupMagMode
 }
 StartupMagMode=
 
-if (MagnificationMode=0x2) { ; full screen
-	Menu, ViewsMenu, Enable, &Preview Full Screen`tCtrl+Alt+Space
-	Menu, ViewsMenu, Check, &Full Screen`tCtrl+Alt+F
-	Menu, ViewsMenu, Uncheck, &Lens`tCtrl+Alt+L
-	Menu, ViewsMenu, Uncheck, &Docked`tCtrl+Alt+D
-} else if (MagnificationMode=0x3) { ; lens
-	Menu, ViewsMenu, Disable, &Preview Full Screen`tCtrl+Alt+Space
-	Menu, ViewsMenu, Uncheck, &Full Screen`tCtrl+Alt+F
-	Menu, ViewsMenu, Check, &Lens`tCtrl+Alt+L
-	Menu, ViewsMenu, Uncheck, &Docked`tCtrl+Alt+D
-} else if (MagnificationMode=0x1) { ; docked
-	Menu, ViewsMenu, Disable, &Preview Full Screen`tCtrl+Alt+Space
-	Menu, ViewsMenu, Uncheck, &Full Screen`tCtrl+Alt+F
-	Menu, ViewsMenu, Uncheck, &Lens`tCtrl+Alt+L
-	Menu, ViewsMenu, Check, &Docked`tCtrl+Alt+D
+If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+	if (MagnificationMode=0x2) { ; full screen
+		Menu, ViewsMenu, Enable, &Preview Full Screen`tCtrl+Alt+Space
+		Menu, ViewsMenu, Check, &Full Screen`tCtrl+Alt+F
+		Menu, ViewsMenu, Uncheck, &Lens`tCtrl+Alt+L
+		Menu, ViewsMenu, Uncheck, &Docked`tCtrl+Alt+D
+	} else if (MagnificationMode=0x3) { ; lens
+		Menu, ViewsMenu, Disable, &Preview Full Screen`tCtrl+Alt+Space
+		Menu, ViewsMenu, Uncheck, &Full Screen`tCtrl+Alt+F
+		Menu, ViewsMenu, Check, &Lens`tCtrl+Alt+L
+		Menu, ViewsMenu, Uncheck, &Docked`tCtrl+Alt+D
+	} else if (MagnificationMode=0x1) { ; docked
+		Menu, ViewsMenu, Disable, &Preview Full Screen`tCtrl+Alt+Space
+		Menu, ViewsMenu, Uncheck, &Full Screen`tCtrl+Alt+F
+		Menu, ViewsMenu, Uncheck, &Lens`tCtrl+Alt+L
+		Menu, ViewsMenu, Check, &Docked`tCtrl+Alt+D
+	}
 }
 
 return
 
-SwitchZoomInc:
-; Save last AZ window position before exit so that it shows the GUI after restart
-WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI,
-RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
-RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
-RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
-If SwitchZoomInc
-{
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SwitchZoomInc, 0
-} else {
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SwitchZoomInc, 1
+SwitchSlider:
+IfInString, A_ThisMenuItem, Zoom Speed
+	SwitchSlider=1
+IfInString, A_ThisMenuItem, Magnification
+	SwitchSlider=2
+IfInString, A_ThisMenuItem, AeroSnip
+	SwitchSlider=3
+IfInString, A_ThisMenuItem, Capture-to-Disk
+	SwitchSlider=4
+	
+GuiControl, Disable, ZoomItColor
+GuiControl, Hide, ZoomItColor
+GuiControl, Disable, ZoomInc
+GuiControl, Hide, ZoomInc
+GuiControl, Disable, Magnification
+GuiControl, Hide, Magnification
+GuiControl, Disable, SnipMode
+GuiControl, Hide, SnipMode
+GuiControl, Disable, SnipSlider
+GuiControl, Hide, SnipSlider
+If (OSver>=6.1) {
+	Menu, FileMenu, Uncheck, Switch to &Magnification Slider
+    If !(!A_IsAdmin AND EnableLUA) { ; if Win 7 + Limited Account + UAC, Kill is impossible, so zoom speed slider is unavailable.
+		Menu, FileMenu, Uncheck, Switch to &Zoom Speed Slider
+	}
 }
-reload
+If SnippingToolExists
+	Menu, FileMenu, Uncheck, Switch to &AeroSnip Slider
+If (OSver<6.1)
+	Menu, FileMenu, Uncheck, Switch to Capture-to-&Disk Slider
+if (SwitchSlider=1) {
+	Menu, FileMenu, Check, Switch to &Zoom Speed Slider
+	GuiControl, Enable, ZoomInc
+	GuiControl, Show, ZoomInc
+} else if (SwitchSlider=2) {
+	Menu, FileMenu, Check, Switch to &Magnification Slider
+	GuiControl, Enable, Magnification
+	GuiControl, Show, Magnification
+} else if (SwitchSlider=3) {
+	Menu, FileMenu, Check, Switch to &AeroSnip Slider
+	GuiControl, Enable, SnipMode
+	GuiControl, Show, SnipMode
+} else if (SwitchSlider=4) {
+	Menu, FileMenu, Check, Switch to Capture-to-&Disk Slider
+	GuiControl, Enable, SnipSlider
+	GuiControl, Show, SnipSlider
+}
+	
+; Save last AZ window position before exit so that it shows the GUI after restart
+;WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+;RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
+;RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
+;RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SwitchSlider, %SwitchSlider%
+;reload
 return
 
 SwitchMiniMode:
 ; Save last AZ window position before exit so that it shows the GUI after restart
-WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI,
+WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
@@ -4241,14 +11452,14 @@ updateMouseTextKB:
 
 ; purpose: update the text of mouse/text/keyboard buttons of panel. runs at call of panel and settimer
 ; the values can be wrong if user modify Magnifier Options outside in the original magnigier instead of AZ panel.
-
+	
 if startUpChk
 	goto startUpChkSkip ; Skip in case AZ Panel is called (at start) instead of being monitored using settimer
 
 ; To reduce registry polling by SetTimer, the following conditions must be met
 
 ; confirm AZ Panel is not hidden (if hidden, there is no need to update now, because when AZ panel is called, it is updated.)
-IfWinNotExist, ahk_class AutoHotkeyGUI, AeroZoom 
+IfWinNotExist, AeroZoom Panel
 	return
 	
 ; confirm Magnifier is shown (if magnifier is hidden, user would have no way to change its settings there anyway, so no need to use DetectHiddenWindows)
@@ -4261,18 +11472,20 @@ ZoomIncOld=%ZoomInc%
 ; quickZoomIncChk=1 ; reduce the burden for SetTimer to return more quickly
 Gosub, ReadValueUpdatePanel
 ; quickZoomIncChk=
-If not SwitchZoomInc { ; no need to restart if AZ panel is not in 'magnification slider' mode
-	If (ZoomIncOld<>ZoomInc)
-	{
-		; reload AZ script to update
-		; Save last AZ window position before exit so that it shows the GUI after restart
-		WinGetPos, lastPosX, lastPosY, , , ahk_class AutoHotkeyGUI,
-		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
-		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
-		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
-		reload
-	}
-}
+
+; --- WHY RESTART? ---
+;If (SwitchSlider=1) { ; no need to restart if AZ panel is not in 'zoominc slider' mode
+;	If (ZoomIncOld<>ZoomInc)
+;	{
+;		; reload AZ script to update
+;		; Save last AZ window position before exit so that it shows the GUI after restart
+;		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+;		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
+;		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
+;		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
+;		reload
+;	}
+;}
 
 MagnificationModeOld=%MagnificationMode%
 Gosub, ReadValueUpdateMenu
@@ -4313,14 +11526,17 @@ if (magnifierSetting=0x1) {
   TextNext = On
 }
 
+if zoomitPanel
+return
+
 ; if panel GUI is already created, update using GuiControl
 
 If (MouseLast<>MouseCurrent)
-	GuiControl,,Mouse,&Mouse %MouseCurrent% => %MouseNext%
+	GuiControl,,Mouse,&Mouse %MouseCurrent% > %MouseNext%
 If (KeyboardLast<>KeyboardCurrent)
-	GuiControl,,Keyboard,&Keyboard %KeyboardCurrent% => %KeyboardNext%
+	GuiControl,,Keyboard,&Keyboard %KeyboardCurrent% > %KeyboardNext%
 If (TextLast<>TextCurrent)
-	GuiControl,,Text,Te&xt %TextCurrent% => %TextNext%
+	GuiControl,,Text,Te&xt %TextCurrent% > %TextNext%
 
 return
 
@@ -4328,11 +11544,23 @@ startupTips:
 if (TipDisabled=1) {
 	TipDisabled=0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, TipDisabled, 0
-	Menu, AboutMenu, Uncheck, &Disable Startup Tips
+	Menu, AboutMenu, Uncheck, Disable Startup &Tips
 } else {
 	TipDisabled=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, TipDisabled, 1
-	Menu, AboutMenu, Check, &Disable Startup Tips
+	Menu, AboutMenu, Check, Disable Startup &Tips
+}
+return
+
+firstUseGuide:
+if (GuideDisabled=1) {
+	GuideDisabled=0
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, GuideDisabled, 0
+	Menu, AboutMenu, Uncheck, Disable First-Use &Guide
+} else {
+	GuideDisabled=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, GuideDisabled, 1
+	Menu, AboutMenu, Check, Disable First-Use &Guide
 }
 return
 
@@ -4344,6 +11572,18 @@ WinCMD:
 Run, %windir%\System32\cmd.exe
 return
 
+WinCmdAdmin:
+Run, *RunAs cmd
+return
+
+WinNetworkProjector:
+Run, %windir%\system32\NetProj.exe
+return
+
+WinProjector:
+Run, %windir%\system32\displayswitch.exe
+return
+	
 WinControl:
 Run, %windir%\System32\control.exe
 return
@@ -4353,7 +11593,7 @@ Run, %CommonProgramFiles%\Microsoft Shared\Ink\mip.exe
 return
 
 WinNote:
-Run, C:\Windows\System32\notepad.exe
+Run, %windir%\System32\notepad.exe
 return
 
 WinKB:
@@ -4366,6 +11606,34 @@ return
 
 WinPaint:
 Run, %windir%\System32\mspaint.exe
+return
+
+ChMac:
+Run, "%comspec%" /k "%systemdrive%\ChMac\ChMac.bat",%systemdrive%\ChMac
+return
+
+CmdDict1:
+Run, "%comspec%" /k "%systemdrive%\Cmd Dict\Cmd Dict.bat",%systemdrive%\Cmd Dict
+return
+
+CmdDict2:
+Run, "%comspec%" /k "%systemdrive%\Cmd Dict\Portable.cmd",%systemdrive%\Cmd Dict
+return
+
+ECPP1:
+Run, "%systemdrive%\ECPP\CommandPromptPortable.exe",%systemdrive%\ECPP
+return
+
+ECPP2:
+Run, "%systemdrive%\ECPP\ECPP.exe",%systemdrive%\ECPP
+return
+	
+TMS1:
+Run, "%comspec%" /k "%systemdrive%\Total Malware Scanner\Total Malware Scanner.bat",%systemdrive%\Total Malware Scanner
+return
+
+TMS2:
+Run, "%comspec%" /k "%systemdrive%\Total Malware Scanner\Total Malware Scanner.exe",%systemdrive%\Total Malware Scanner
 return
 
 WinPSR:
@@ -4389,11 +11657,22 @@ Run, %ProgramFiles%\Windows Journal\Journal.exe
 return
 
 WinWord:
-Run, %ProgramFiles%\Windows NT\Accessories\wordpad.exe
+IfExist, %ProgramFiles%\Windows NT\Accessories\wordpad.exe
+	Run, %ProgramFiles%\Windows NT\Accessories\wordpad.exe
+	
+IfNotExist, %ProgramFiles%\Windows NT\Accessories\wordpad.exe ; for vista's file virtualization
+{
+	IfExist, C:\Program Files\Windows NT\Accessories\wordpad.exe
+		Run, C:\Program Files\Windows NT\Accessories\wordpad.exe
+}
 return
 
 WinTask:
 Run, %windir%\System32\taskmgr.exe
+return
+
+WinTabletInput:
+Run, %CommonProgramFiles%\Microsoft Shared\Ink\TabTip.exe
 return
 
 WinSpeech:
@@ -4406,7 +11685,7 @@ if (chkMod>4)
 {
 	if zoomPad ; if zoompad is NOT disabled
 	{
-		IfWinNotActive, ahk_class AutoHotkeyGUI, AeroZoom ;if current win is not the panel (zooming over the panel does not require zoompad)
+		IfWinNotActive, AeroZoom Panel ;if current win is not the panel (zooming over the panel does not require zoompad)
 		{
 			; ZoomPad to prevent accidental clicks
 			IfWinExist, AeroZoom Pad
@@ -4421,26 +11700,142 @@ if (chkMod>4)
 return
 
 SnippingTool:
+If (A_ThisHotkey="~MButton")
+	click middle ; prevents captureing the anchor
+	
+If not SnippingToolExists
+{
+	IfInString, A_ThisHotkey, MButton
+		MButtonErrorMsg=`n`nTip: You may define the Middle button to do things other than snipping in 'Tool > Preferences > Custom Hotkeys > Holding Middle'.
+	Else
+		MButtonErrorMsg=
+	If (OSver=6.0) {
+		If (EditionID="HomeBasic" OR EditionID="Starter") {
+			msgbox, 262192, ERROR, Snipping Tool is unavailable for Windows Vista Home Basic and Starter. The minimum requirement is Home Premium.`n`nIf you still have a problem, please post it on the AeroZoom page.%MButtonErrorMsg%
+		} else {
+			msgbox, 262192, ERROR, Snipping Tool.exe is not found in %windir%\system32.`n`nWindows Vista Home Premium or above comes with Snipping Tool but may be disabled by default. Users can enable it by following these steps:`n`n1. Click 'Start', type 'optionalfeatures', wait a second then press enter.`n`n(Alternatively, you can go to Start -> Control Panel -> Programs and Features -> Turn Windows Features on or off.)`n`n2. Select 'Tablet PC Optional Components' then click OK.`n`nIf you still have a problem, please post it on the AeroZoom page.
+		}
+	} else if (OSver=6.1) {
+		If (EditionID="HomeBasic" OR EditionID="Starter") {
+			msgbox, 262192, ERROR, Snipping Tool is unavailable for Windows 7 Home Basic and Starter. The minimum requirement is Home Premium.`n`nIf you still have a problem, please post it on the AeroZoom page.%MButtonErrorMsg%
+		} else {
+			msgbox, 262192, ERROR, SnippingTool.exe is not found in %windir%\system32.`n`nWindows 7 Home Premium or above should come pre-installed with Snipping Tool by default. If you still cannot use it, there is a problem with your system. Please search for the specific error on the web or post the question on the AeroZoom page.
+		}
+	} else {
+		msgbox, 262192, ERROR, Snipping Tool is unsupported for your system. The minimum requirement is Windows Vista Home Premium.`n`nIf unsure, you may ask in the AeroZoom page.%MButtonErrorMsg%
+	}
+	SnipModeOnce= ; free up for next individual launch
+	return
+}
+
+;RegRead,AutoCopyToClipboard,HKCU,Software\Microsoft\Windows\TabletPC\Snipping Tool,AutoCopyToClipboard
+;If (SnipToClipboard<>AutoCopyToClipboard) { ; if user has changed the setting from AeroZoom
+;	Process, Exist, SnippingTool.exe
+;	If errorlevel
+;		Process, Close, SnippingTool.exe
+;	If SnipToClipboard
+;		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool, AutoCopyToClipboard, 0x1
+;	Else 
+;		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool, AutoCopyToClipboard, 0x0
+;}
+
+gosub, EnsureAutoCopyToClipboard
+
+If SnipModeOnce ; if user uses the hotkey or the Snip menu
+	SnipModeNow=%SnipModeOnce%
+Else
+	SnipModeNow=%SnipMode%
+
+If (SnipModeNow=4) { ; if full-screen
+	RegRead,SnipFullScreenMsg,HKCU,Software\WanderSick\AeroZoom,SnipFullScreenMsg
+	if errorlevel
+	{
+		if not GuideDisabled
+		{
+			Msgbox,262208,This message will only be shown once,Loading may take a while for full-screen snipping, please be patient and do not press any button until a capture is done.
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipFullScreenMsg, 1
+		}
+	}
+}
+	
+RegRead,CaptureMode,HKCU,Software\Microsoft\Windows\TabletPC\Snipping Tool,CaptureMode
+If (SnipModeNow<>CaptureMode) {
+	Process, Exist, SnippingTool.exe
+	If errorlevel
+		Process, Close, SnippingTool.exe
+	If (SnipModeNow=1) { ; 1 free-form snip
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool, CaptureMode, 0x1
+	} else if (SnipModeNow=3) { ; 3 window snip
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool, CaptureMode, 0x3
+	} else if (SnipModeNow=4) { ; 4 full-screen snip (be careful of hangs)
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool, CaptureMode, 0x4
+	} else { ; 2 rectangular snip (default)
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool, CaptureMode, 0x2
+	}
+}
+
+If SnipDelay
+	Sleep, %SnipDelay%
+	
+If (SnipRunBeforeCommandCheckbox AND SnipRunBeforeCommand)
+{
+	RunWait, %SnipRunBeforeCommand% ; wait until the command exits
+}
+
+process, close, zoompad.exe
+process, close, osd.exe ; prevent osd from showing in capture
+
 IfWinExist, ahk_class Microsoft-Windows-Tablet-SnipperToolbar
 {
-	WinHide, ahk_class AutoHotkeyGUI,AeroZoom
-	WinRestore, ahk_class Microsoft-Windows-Tablet-SnipperEditor
-	WinActivate, ahk_class Microsoft-Windows-Tablet-SnipperToolbar
+	WinHide, AeroZoom Panel
+	WinActivate, ahk_class Microsoft-Windows-Tablet-SnipperToolbar ; WinRestore is unneeded as WinActivate covers it
 	Sleep, 50
+	If SnippingToolSetting ; go to Snipping Tool program settings (if user clicked Settings within AeroSnip Options)
+	{
+		sendinput !o
+		SnippingToolSetting=
+		return
+	}
 	sendinput ^n
-	WinWait, ahk_class Microsoft-Windows-Tablet-SnipperCaptureForm,,4
-	If Errorlevel
-		Gosub, SnippingToolRestart
-	WinActivate, ahk_class Microsoft-Windows-Tablet-SnipperCaptureForm
-	Sleep, 900
+	if !(SnipModeNow=4) { ; full-screen snip doesn't require this
+		WinWait, ahk_class Microsoft-Windows-Tablet-SnipperCaptureForm,,4
+		If Errorlevel
+			Gosub, SnippingToolRestart
+		WinActivate, ahk_class Microsoft-Windows-Tablet-SnipperCaptureForm
+		Sleep, 900
+	}
 	WinWaitClose, ahk_class Microsoft-Windows-Tablet-SnipperCaptureForm,,8
-	WinShow, ahk_class AutoHotkeyGUI,AeroZoom
+	If (SnipWin="1") {
+		WinHide, ahk_class Microsoft-Windows-Tablet-SnipperEditor
+	} else if (SnipWin="2") {
+		WinMinimize, ahk_class Microsoft-Windows-Tablet-SnipperEditor
+	}
+	If NirCmd
+	{
+		IfExist, %A_WorkingDir%\Data\NirCmd.exe ; NirCmd is checked but could be missing
+			Run, "%A_WorkingDir%\Data\NirCmd.exe" clipboard saveimage "%SnipSaveDir%\Snip%A_YYYY%%A_MM%%A_DD%%A_Hour%%A_Min%%A_Sec%.%SnipSaveFormat%", ,min
+	}
+	If (SnipRunCommandCheckbox AND SnipRunCommand)
+	{
+		Process, WaitClose, NirCmd.exe, 5 ; ensure capture is complete before running a command
+		Run, %SnipRunCommand%,,,SnipCommandPID
+		If SnipPasteCheckbox
+		{
+			WinWait, ahk_pid %SnipCommandPID%,,10
+			WinActivate
+			sendinput ^v
+		}
+	}
+	if (SnipModeNow=4) { ; to avoid capturing AeroZoom panel
+		Sleep, 850
+	}
+	WinShow, AeroZoom Panel
+	SnipModeOnce=
 	return
 }
 IfWinExist, ahk_class Microsoft-Windows-Tablet-SnipperEditor
 {
-	WinHide, ahk_class AutoHotkeyGUI,AeroZoom
-	WinRestore, ahk_class Microsoft-Windows-Tablet-SnipperEditor
+	WinHide, AeroZoom Panel
 	WinActivate, ahk_class Microsoft-Windows-Tablet-SnipperEditor
 	Sleep, 50
 	sendinput ^n
@@ -4449,19 +11844,95 @@ IfWinExist, ahk_class Microsoft-Windows-Tablet-SnipperEditor
 		Gosub, SnippingToolRestart
 	WinActivate, ahk_class Microsoft-Windows-Tablet-SnipperCaptureForm
 	Sleep, 900
+	If SnippingToolSetting ; go to Snipping Tool program settings (if user clicked Settings within AeroSnip Options)
+	{
+		sendinput {Esc}
+		WinWait, ahk_class Microsoft-Windows-Tablet-SnipperToolbar,,6
+		sendinput !o
+		SnippingToolSetting=
+		return
+	}
+	if (SnipModeNow=4) { ; full-screen snip is strange when launched from start or from the editor
+		sendinput {Esc}
+		WinWait, ahk_class Microsoft-Windows-Tablet-SnipperToolbar,,6
+		sendinput ^n
+	}
 	WinWaitClose, ahk_class Microsoft-Windows-Tablet-SnipperCaptureForm,,8
-	WinShow, ahk_class AutoHotkeyGUI,AeroZoom
+	If (SnipWin="1") {
+		WinHide, ahk_class Microsoft-Windows-Tablet-SnipperEditor
+	} else if (SnipWin="2") {
+		WinMinimize, ahk_class Microsoft-Windows-Tablet-SnipperEditor
+	}
+	If NirCmd
+	{
+		IfExist, %A_WorkingDir%\Data\NirCmd.exe ; NirCmd is checked but could be missing
+			Run, "%A_WorkingDir%\Data\NirCmd.exe" clipboard saveimage "%SnipSaveDir%\Snip%A_YYYY%%A_MM%%A_DD%%A_Hour%%A_Min%%A_Sec%.%SnipSaveFormat%", ,min
+	}
+	If (SnipRunCommandCheckbox AND SnipRunCommand)
+	{
+		Process, WaitClose, NirCmd.exe, 5 ; ensure capture is complete before running a command
+		Run, %SnipRunCommand%,,,SnipCommandPID
+		If SnipPasteCheckbox
+		{
+			WinWait, ahk_pid %SnipCommandPID%,,10
+			WinActivate
+			sendinput ^v
+		}
+	}
+	if (SnipModeNow=4) { ; to avoid capturing AeroZoom panel
+		Sleep, 850
+	}
+	WinShow, AeroZoom Panel
+	SnipModeOnce=
 	return
 }
-WinHide, ahk_class AutoHotkeyGUI,AeroZoom
+WinHide, AeroZoom Panel
 Run,"%windir%\system32\SnippingTool.exe",,
 WinWait, ahk_class Microsoft-Windows-Tablet-SnipperCaptureForm,,6
 If Errorlevel
 	Gosub, SnippingToolRestart
 WinActivate, ahk_class Microsoft-Windows-Tablet-SnipperCaptureForm
 Sleep, 900
+If SnippingToolSetting ; go to Snipping Tool program settings (if user clicked Settings within AeroSnip Options)
+{
+	sendinput {Esc}
+	WinWait, ahk_class Microsoft-Windows-Tablet-SnipperToolbar,,6
+	sendinput !o
+	SnippingToolSetting=
+	return
+}
+if (SnipModeNow=4) { ; full-screen snip is strange when launched from start or from the editor
+	sendinput {Esc}
+	WinWait, ahk_class Microsoft-Windows-Tablet-SnipperToolbar,,6
+	sendinput ^n
+}
 WinWaitClose, ahk_class Microsoft-Windows-Tablet-SnipperCaptureForm,,8
-WinShow, ahk_class AutoHotkeyGUI,AeroZoom
+If (SnipWin="1") {
+	WinHide, ahk_class Microsoft-Windows-Tablet-SnipperEditor
+} else if (SnipWin="2") {
+	WinMinimize, ahk_class Microsoft-Windows-Tablet-SnipperEditor
+}
+If NirCmd
+{
+	IfExist, %A_WorkingDir%\Data\NirCmd.exe ; NirCmd is checked but could be missing
+		Run, "%A_WorkingDir%\Data\NirCmd.exe" clipboard saveimage "%SnipSaveDir%\Snip%A_YYYY%%A_MM%%A_DD%%A_Hour%%A_Min%%A_Sec%.%SnipSaveFormat%", ,min
+}
+If (SnipRunCommandCheckbox AND SnipRunCommand)
+{
+	Process, WaitClose, NirCmd.exe, 5 ; ensure capture is complete before running a command
+	Run, %SnipRunCommand%,,,SnipCommandPID
+	If SnipPasteCheckbox
+	{
+		WinWait, ahk_pid %SnipCommandPID%,,10
+		WinActivate
+		sendinput ^v
+	}
+}
+if (SnipModeNow=4) { ; to avoid capturing AeroZoom panel
+	Sleep, 850
+}
+WinShow, AeroZoom Panel
+SnipModeOnce= ; free up for next individual launch
 return
 
 SnippingToolRestart:
@@ -4471,48 +11942,1211 @@ Run,"%windir%\system32\SnippingTool.exe",,
 return
 
 ZoomItDownload:
-Gui, 4:+owner1 
-Gui, +Disabled
-Gui, 4:-MinimizeBox -MaximizeBox 
+IfWinExist, AeroZoom Panel
+	Gui, 4:+owner1 
+;Gui, +Disabled
+;Gui, 4:-MinimizeBox -MaximizeBox 
+Gui, 4:+ToolWindow
+Gui, 4:Font, s8, Tahoma
 userZoomItPath = http://live.sysinternals.com/ZoomIt.exe
 Gui, 4:Add, Edit, x12 y140 w210 h20 -Multi -WantTab -WantReturn vUserZoomItPath, %UserZoomItPath%
 userZoomItPath_TT := "Input the path to ZoomIt.exe"
-Gui, 4:Add, Text, x12 y170 w270 h30 , Note: If it begins with 'http://'`, it will be downloaded.`n         (AeroZoom must not be used during download.)
+Gui, 4:Add, Text, x12 y170 w270 h30 , Note: If the head is http`, it'll be downloaded (500+ KB)`n         (AeroZoom must not be used during download.)
 Gui, 4:Add, Button, x222 y139 w60 h22 v4ButtonBrowse g4ButtonBrowse, &Browse
 4ButtonBrowse_TT := "Browse for ZoomIt.exe"
 Gui, 4:Add, Button, x142 y210 w70 h30 Default g4ButtonOK v4ButtonOKTemp, &OK
 4ButtonOKTemp_TT := "Click to continue"
 Gui, 4:Add, Button, x212 y210 w70 h30 g4ButtonCancel v4ButtonCancelTemp, &Cancel
 4ButtonCancelTemp_TT := "Click to withdraw"
-Gui, 4:Add, Text, x12 y10 w270 h120 , AeroZoom enhances mouse operations of Sysinternals ZoomIt`, a Microsoft freeware screen magnifier`, through providing access to its non-live zoom (still zoom) function by holding the [Middle] mouse button`; Draw`, Timer and more functions via buttons/menus on the panel.`n`nZoomIt's hotkeys will be set to defaults for that to work.`n`nTo continue`, please specify the path to ZoomIt.exe:
+Gui, 4:Add, Text, x12 y10 w270 h120 , AeroZoom eases mouse operations of Sysinternals ZoomIt`, a free Microsoft magnifier`, with features as ZoomIt Panel`, wheel zoom`, elastic zoom`, Customizable mouse hotkeys`, timer, pen color, black or white board and more via panel slider, buttons and menus.`n`nZoomIt's hotkeys will be set to defaults for it to work.`n`nTo continue`, please specify the path to ZoomIt.exe:
 Gui, 4:Show, h252 w298, ZoomIt Enhancements Setup
+return
+
+NirCmdDownload:
+IfWinExist, AeroZoom Panel
+	Gui, 6:+owner1 
+;Gui, +Disabled
+Gui, 6:-MinimizeBox -MaximizeBox 
+Gui, 6:+ToolWindow
+Gui, 6:Font, s8, Tahoma
+userNirCmdPath = http://www.nirsoft.net/panel/nircmd.exe
+Gui, 6:Add, Edit, x12 y190 w210 h20 -Multi -WantTab -WantReturn vuserNirCmdPath, %userNirCmdPath%
+userNirCmdPath_TT := "Input the path to NirCmd.exe"
+Gui, 6:Add, Text, x12 y220 w270 h30 , Note: If the head is http`, it'll be downloaded (30+ KB)`n         (AeroZoom must not be used during download.)
+Gui, 6:Add, Button, x222 y189 w60 h22 v6ButtonBrowse g6ButtonBrowse, &Browse
+6ButtonBrowse_TT := "Browse for NirCmd.exe"
+Gui, 6:Add, Button, x142 y260 w70 h30 Default g6ButtonOK v6ButtonOKTemp, &OK
+6ButtonOKTemp_TT := "Click to continue"
+Gui, 6:Add, Button, x212 y260 w70 h30 g6ButtonCancel v6ButtonCancelTemp, &Cancel
+6ButtonCancelTemp_TT := "Click to withdraw"
+Gui, 6:Add, Text, x12 y10 w270 h178 , AeroSnip enhances the regional screen capturing of Snipping Tool. To begin a new snip after an old one, there's no need wasting time locating Snipping Tool to click the 'New' button - Just press Win+Alt+F/R/W/S or hold the middle button. We can even set it to run an editor other than Snipping Tool after a snip, e.g. Paint.`n`nNormally captures are only saved to clipboard. With NirSoft NirCmd, AeroZoom can save them on disk as well, like the capture hotkeys of Mac OS X and Linux (Compiz). PrintScreen is also enhanced by default.`n`nTo continue`, please specify the path to NirCmd.exe:
+Gui, 6:Show, h300 w298, AeroSnip Enhancements Setup
+return
+
+NirCmdDownloadAlt: ; this section is used not by AeroSnip but by other nircmd tasks
+onlyDownloadNirCmd = 1
+IfWinExist, AeroZoom Panel
+	Gui, 6:+owner1 
+;Gui, +Disabled
+Gui, 6:-MinimizeBox -MaximizeBox 
+Gui, 6:Font, s8, Tahoma
+userNirCmdPath = http://www.nirsoft.net/panel/nircmd.exe
+Gui, 6:Add, Edit, x12 y116 w210 h20 -Multi -WantTab -WantReturn vuserNirCmdPath, %userNirCmdPath%
+userNirCmdPath_TT := "Input the path to NirCmd.exe"
+Gui, 6:Add, Text, x12 y150 w270 h30 , Note: If the head is http`, it'll be downloaded (30+ KB)`n         (AeroZoom must not be used during download.)
+Gui, 6:Add, Button, x222 y115 w60 h22 v6ButtonBrowse g6ButtonBrowse, &Browse
+6ButtonBrowse_TT := "Browse for NirCmd.exe"
+Gui, 6:Add, Button, x142 y190 w70 h30 Default g6ButtonOK v6ButtonOKTemp, &OK
+6ButtonOKTemp_TT := "Click to continue"
+Gui, 6:Add, Button, x212 y190 w70 h30 g6ButtonCancel v6ButtonCancelTemp, &Cancel
+6ButtonCancelTemp_TT := "Click to withdraw"
+Gui, 6:Add, Text, x12 y10 w270 h100 , This is a feature that requires NirSoft NirCmd but it has not been installed yet.`n`nAeroZoom makes use of NirCmd to provide optional enhancements.`n`nTo continue`, please specify the path to NirCmd.exe:
+Gui, 6:Show, h230 w298, NirCmd Enhancements Setup
+return
+
+CustomizeMiddle:
+if (chkMod=7) {
+RegRead,MiddleTriggerMsg,HKCU,Software\WanderSick\AeroZoom,MiddleTriggerMsg
+	if errorlevel
+	{
+		if not GuideDisabled
+		{
+			Msgbox, 262208, This message will be shown once only, Since you're using the middle button for zoom already, holding it will have no effect. However, you may still access the function with another hotkey: [Middle]+[Left]
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MiddleTriggerMsg, 1
+		}
+	}
+}
+if not HoldMiddle
+{
+	Msgbox, 262180, Umm, 'Hold Middle as Trigger' is currently disabled. Enable it?
+	IfMsgbox Yes
+		gosub, HoldMiddle
+}
+Gui, 7:+owner1
+;Gui, +Disabled
+;Gui, 7:-MinimizeBox -MaximizeBox 
+Gui, 7:+ToolWindow
+Gui, 7:Font, s8, Tahoma
+Gui, 7:Add, Edit, x62 y40 w180 h20 -Multi -WantTab -WantReturn vCustomMiddlePath, %CustomMiddlePath%
+Gui, 7:Add, DropDownList, x186 y10 w115 h10 R40 +AltSubmit vMiddleButtonAction Choose%MiddleButtonAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Preview full screen (7)|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Custom (define)|None
+MiddleButtonAction_TT := "Choose an action"
+Gui, 7:Add, Text, x12 y16 w172 h20 , Pick an action or 'Custom (define)':
+Gui, 7:Add, Button, x242 y39 w60 h22 v7BrowseTemp, &Browse
+7BrowseTemp_TT := "Browse for an executable"
+CustomMiddlePath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+Gui, 7:Add, Text, x12 y45 w50 h20 , Custom:
+Gui, 7:Add, Button, x122 y130 w60 h30 v7OKtemp Default, &OK
+7OKtemp_TT := "Click to save changes"
+Gui, 7:Add, Button, x242 y130 w60 h30 v7HelpTemp, &Help
+7HelpTemp_TT := "Click to get help"
+Gui, 7:Add, Button, x182 y130 w60 h30 v7CancelTemp, &Cancel
+7CancelTemp_TT := "Click to cancel changes"
+Gui, 7:Add, Text, x72 y100 w210 h20 , How long to hold the middle button (in ms)
+Gui, 7:Add, Edit, x12 y98 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vStillZoomDelayTemp, 
+StillZoomDelayTemp_TT := "How long holding [Middle] button triggers snip/preview. Default: 750 ms"
+Gui, 7:Add, UpDown, x44 y98 w18 h20 vStillZoomDelay Range0-9999, %stillZoomDelay%
+
+if DisableZoomItMiddle ; if checkbox was checked
+{
+	Checked=Checked1
+}
+else
+{
+	Checked=Checked0
+}
+;Gui, 7:Font, Bold s8, Tahoma
+Gui, 7:Add, CheckBox, %Checked% -Wrap x12 y65 w290 h30 vDisableZoomItMiddle, Legacy: &Disable dynamic switching
+;Gui, 7:Font, s8, Tahoma
+DisableZoomItMiddle_TT := "If this is checked, middle button performs 'still zoom' instead of the action here when 'Tool > Enable ZoomIt' is on."
+Gui, 7:Show, h168 w312, Holding Middle as Trigger
+
+;if (chkMod=7) { ; if MButton ahk, disable the menu item
+;	GuiControl,7:Disable,7BrowseTemp
+;	GuiControl,7:Disable,CustomMiddlePath
+;	GuiControl,7:Disable,MiddleButtonAction
+;	GuiControl,7:Disable,7OKtemp
+;	GuiControl,7:Disable,StillZoomDelay
+;	GuiControl,7:Disable,StillZoomDelayTemp
+;	GuiControl,7:Disable,DisableZoomItMiddle
+;}
+;Return
+return
+
+7ButtonHelp:
+Msgbox, 262208, Help: Customize Holding Middle, Hey! Before I help, I hope you don't mix up this feature with the radio button named 'Middle' down the panel. While that Middle button is held for zooming, this one is about holding the Middle button to run Customizable tasks.`n`nIntroduction: AeroZoom creates a hotkey out of 'holding the middle button'. By default, it automatically switches between 2 operations.`n`n1. When zoomed in`, enter a full screen preview.`n2. When unzoomed`, starts an enhanced regional screen capture with Snipping Tool (AeroSnip).`n`nAlso, if 'Disable dynamic switching' is not on, when unzoomed and ZoomIt is on`, still zoom of ZoomIt will be entered. (As this may interfere with the hotkey customization, it is by default on and disabled since AeroZoom 3.0).`n`nThe default actions above can be customized here, with built-in functions such as these less known ones: Speak, Google, Timer, Eject CD, Monitor Off, Always On Top or any external application or command.`n`nNote 1: Choose 'Custom (define)' from the built-in functions (dropdown menu) before specifying an action in the Custom bar.`n`nNote 2: If the Middle button is used for zoom, this feature needs to be called with another hotkey: [Middle]+[Left].
+return
+
+7ButtonBrowse:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomMiddlePath, 3, , Select something to launch by middle button, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomMiddlePath
+{
+	GuiControl,7:,CustomMiddlePath,%CustomMiddlePath%
+}
+return
+
+7ButtonOK:
+Gui, 1:-Disabled  ; Re-enable the main window
+Gui, Submit ; required to update the user-submitted variable
+Gui, Destroy
+if CustomMiddlePath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomMiddlePath, %CustomMiddlePath%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MiddleButtonAction, %MiddleButtonAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, DisableZoomItMiddle, %DisableZoomItMiddle%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, stillZoomDelay, %stillZoomDelay%
+
+return
+
+CustomizeForwardBack:
+Gui, 8:+owner1
+;Gui, +Disabled
+;Gui, 8:-MinimizeBox -MaximizeBox 
+Gui, 8:+ToolWindow
+Gui, 8:Font, s8, Tahoma
+Gui, 8:Add, Edit, x12 y37 w140 h20 -Multi -WantTab -WantReturn vCustomBackLeftPath, %CustomBackLeftPath%
+Gui, 8:Add, Text, x12 y13 w75 h20 , Back + Left
+Gui, 8:Add, Button, x152 y36 w60 h22 g8ButtonBrowse1 v8ButtonBrowse1Temp, &Browse
+Gui, 8:Add, DropDownList, x97 y10 w115 h21 R37 +AltSubmit vBackLeftAction Choose%BackLeftAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 8:Add, Text, x12 y73 w75 h20 , Back + Right
+Gui, 8:Add, DropDownList, x97 y70 w115 h21 R37 +AltSubmit vBackRightAction Choose%BackRightAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 8:Add, DropDownList, x97 y130 w115 h21 R37 +AltSubmit vForwardLeftAction Choose%ForwardLeftAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 8:Add, Edit, x12 y97 w140 h20 -Multi -WantTab -WantReturn vCustomBackRightPath, %CustomBackRightPath%
+Gui, 8:Add, Button, x152 y96 w60 h22 g8ButtonBrowse2 v8ButtonBrowse2Temp, B&rowse
+Gui, 8:Add, Text, x12 y133 w75 h20 , Fwd + Left
+Gui, 8:Add, Edit, x12 y157 w140 h20 -Multi -WantTab -WantReturn vCustomForwardLeftPath, %CustomForwardLeftPath%
+Gui, 8:Add, Button, x152 y156 w60 h22 g8ButtonBrowse3 v8ButtonBrowse3Temp, Bro&wse
+Gui, 8:Add, Text, x12 y193 w75 h20 , Fwd + Right
+Gui, 8:Add, DropDownList, x97 y190 w115 h21 R37 +AltSubmit vForwardRightAction Choose%ForwardRightAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 8:Add, Edit, x12 y217 w140 h20 -Multi -WantTab -WantReturn vCustomForwardRightPath, %CustomForwardRightPath%
+Gui, 8:Add, Button, x152 y216 w60 h22 g8ButtonBrowse4 v8ButtonBrowse4Temp, Brow&se
+Gui, 8:Add, Button, x242 y247 w60 h30 Default v8OKtemp, &OK
+Gui, 8:Add, Button, x362 y247 w60 h30 v8HelpTemp, &Help
+Gui, 8:Add, Button, x302 y247 w60 h30 v8CancelTemp, &Cancel
+Gui, 8:Add, Text, x222 y13 w75 h20 , Back + Wup
+Gui, 8:Add, DropDownList, x307 y10 w115 h21 R37 +AltSubmit vBackWupAction Choose%BackWupAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 8:Add, Edit, x222 y37 w140 h20 -Multi -WantTab -WantReturn vCustomBackWupPath, %CustomBackWupPath%
+Gui, 8:Add, Button, x362 y36 w60 h22 g8ButtonBrowse1a v8ButtonBrowse1aTemp, &Browse
+Gui, 8:Add, Text, x222 y73 w75 h20 , Back + Wdown
+Gui, 8:Add, DropDownList, x307 y70 w115 h21 R37 +AltSubmit vBackWdownAction Choose%BackWdownAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 8:Add, Edit, x222 y97 w140 h20 -Multi -WantTab -WantReturn vCustomBackWdownPath, %CustomBackWdownPath%
+Gui, 8:Add, Button, x362 y96 w60 h22 g8ButtonBrowse2a v8ButtonBrowse2aTemp, &Browse
+Gui, 8:Add, Text, x222 y133 w75 h20 , Fwd + Wup
+Gui, 8:Add, DropDownList, x307 y130 w115 h21 R37 +AltSubmit vForwardWupAction Choose%ForwardWupAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 8:Add, Edit, x222 y157 w140 h20 -Multi -WantTab -WantReturn vCustomForwardWupPath, %CustomForwardWupPath%
+Gui, 8:Add, Button, x362 y156 w60 h22 g8ButtonBrowse3a v8ButtonBrowse3aTemp, &Browse
+Gui, 8:Add, Text, x222 y193 w75 h20 , Fwd + Wdown
+Gui, 8:Add, DropDownList, x307 y190 w115 h21 R37 +AltSubmit vForwardWdownAction Choose%ForwardWdownAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 8:Add, Edit, x222 y217 w140 h20 -Multi -WantTab -WantReturn vCustomForwardWdownPath, %CustomForwardWdownPath%
+Gui, 8:Add, Button, x362 y216 w60 h22 g8ButtonBrowse4a v8ButtonBrowse4aTemp, &Browse
+Gui, 8:Font, CMaroon s9, Arial, 
+Gui, 8:Add, Text, x12 y245 w230 h30 , Left / Right :  Mouse click`nWup / Wdown :  Scroll wheel
+Gui, 8:Font, norm, 
+BackLeftAction_TT := "Choose an action to run on pressing Back and Left mouse buttons"
+BackRightAction_TT := "Choose an action to run on pressing Back and Right mouse buttons"
+BackWupAction_TT := "Choose an action to run on pressing Back and Wheel-up mouse buttons"
+BackWdownAction_TT := "Choose an action to run on pressing Back and Wheel-down mouse buttons"
+ForwardLeftAction_TT := "Choose an action to run on pressing Forward and Left mouse buttons"
+ForwardRightAction_TT := "Choose an action to run on pressing Forward and Right mouse buttons"
+ForwardWupAction_TT := "Choose an action to run on pressing Forward and Wheel-up mouse buttons"
+ForwardWdownAction_TT := "Choose an action to run on pressing Forward and Wheel-down mouse buttons"
+CustomBackLeftPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomBackRightPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomBackWupPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomBackWdownPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomForwardLeftPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomForwardRightPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomForwardWupPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomForwardWdownPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+8ButtonBrowse1Temp_TT := "Browse for an executable"
+8ButtonBrowse2Temp_TT := "Browse for an executable"
+8ButtonBrowse3Temp_TT := "Browse for an executable"
+8ButtonBrowse4Temp_TT := "Browse for an executable"
+8ButtonBrowse1aTemp_TT := "Browse for an executable"
+8ButtonBrowse2aTemp_TT := "Browse for an executable"
+8ButtonBrowse3aTemp_TT := "Browse for an executable"
+8ButtonBrowse4aTemp_TT := "Browse for an executable"
+8OKtemp_TT := "Click to save changes"
+8HelpTemp_TT := "Click to get help"
+8CancelTemp_TT := "Click to save changes"
+
+Gui, 8:Show, h285 w432, Custom Hotkeys: Forward and Back
+
+If (chkMod=9) { ; if xbutton1
+	GuiControl,8:Disable,8ButtonBrowse1aTemp
+	GuiControl,8:Disable,8ButtonBrowse2aTemp
+	GuiControl,8:Disable,BackWupAction
+	GuiControl,8:Disable,BackWdownAction
+	GuiControl,8:Disable,CustomBackWupPath
+	GuiControl,8:Disable,CustomBackWdownPath
+} else if (chkMod=8) { ; if xbutton2
+	GuiControl,8:Disable,8ButtonBrowse3aTemp
+	GuiControl,8:Disable,8ButtonBrowse4aTemp
+	GuiControl,8:Disable,ForwardWupAction
+	GuiControl,8:Disable,ForwardWdownAction
+	GuiControl,8:Disable,CustomForwardWupPath
+	GuiControl,8:Disable,CustomForwardWdownPath
+}
+
+Return
+
+8ButtonHelp:
+Msgbox, 262208, Help: Customize Forward and Back, AeroZoom enhances mouse devices with Back and Forward buttons by adding 8 more mouse hotkeys`, which can be customized here for doing tasks such as Speak, Google, Eject CD, Timer, Monitor Off, Always On Top or running any command or application.`n`nNote: Choose 'Custom (define)' from the built-in functions (dropdown menu) before specifying an action in the Custom bar.`n`nTip 1: Some functions may not be suitable for Back or Forward. Use other 'Custom Hotkeys' options in 'Tool > Preferences' instead.`n`nTip 2: Hold 'Back'/'Forward' longer before release to avoid sending a click (of Back/Forward) to the app behind.
+return
+
+CustomizeKeys:
+;RegRead,CustomizeKeysIntro,HKCU,Software\WanderSick\AeroZoom,CustomizeKeysIntro
+;if errorlevel
+;{
+	;Msgbox, 262180, This message will be shown once only, Hey! Since this is the first time you run this feature, would you like some command examples as a template for editing?`n`nThey should be usable right away (except the first and last ones). To try them, choose 'Custom (define)' from the drop-down menu.
+	;IfMsgBox, No
+	;{
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomCtrlLeftPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomCtrlRightPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomCtrlWupPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomCtrlWdownPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomAltRightPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomAltWupPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomAltWdownPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomShiftLeftPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomShiftRightPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomShiftWupPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomShiftWdownPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomWinLeftPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomWinRightPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomWinWupPath, 
+	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomWinWdownPath,
+	;	CustomCtrlLeftPath=
+	;	CustomCtrlRightPath=
+	;	CustomCtrlWupPath=
+	;	CustomCtrlWdownPath=
+	;	CustomAltRightPath=
+	;	CustomAltWupPath=
+	;	CustomAltWdownPath=
+	;	CustomShiftLeftPath=
+	;	CustomShiftRightPath=
+	;	CustomShiftWupPath=
+	;	CustomShiftWdownPath= 
+	;	CustomWinLeftPath=
+	;	CustomWinRightPath=
+	;	CustomWinWupPath=
+	;	CustomWinWdownPath=
+	;}
+	;RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomizeKeysIntro, 1
+;}
+Gui, 9:+owner1
+;Gui, +Disabled
+;Gui, 9:-MinimizeBox -MaximizeBox
+Gui, 9:+ToolWindow
+Gui, 9:Font, s8, Tahoma
+Gui, 9:Add, Edit, x12 y37 w140 h20 -Multi -WantTab -WantReturn vCustomAltLeftPath, %CustomAltLeftPath%
+Gui, 9:Add, Text, x12 y13 w75 h20 , Alt + Left
+Gui, 9:Add, DropDownList, x97 y10 w115 h21 R41 +AltSubmit vAltLeftAction Choose%AltLeftAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Button, x152 y36 w60 h22 g9ButtonBrowse3 v9ButtonBrowse3Temp, &Browse
+Gui, 9:Add, Text, x12 y73 w75 h20 , Alt + Right
+Gui, 9:Add, DropDownList, x97 y70 w115 h21 R41 +AltSubmit vAltRightAction Choose%AltRightAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x12 y97 w140 h20 -Multi -WantTab -WantReturn vCustomAltRightPath, %CustomAltRightPath%
+Gui, 9:Add, Button, x152 y96 w60 h22 g9ButtonBrowse4 v9ButtonBrowse4Temp, &Browse
+Gui, 9:Add, Edit, x12 y156 w140 h20 -Multi -WantTab -WantReturn vCustomCtrlLeftPath, %CustomCtrlLeftPath%
+Gui, 9:Add, Text, x12 y133 w75 h20 , Ctrl + Left
+Gui, 9:Add, Button, x152 y155 w60 h22 g9ButtonBrowse1 v9ButtonBrowse1Temp, &Browse
+Gui, 9:Add, DropDownList, x97 y130 w115 h21 R41 +AltSubmit vCtrlLeftAction Choose%CtrlLeftAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Text, x12 y193 w75 h20 , Ctrl + Right
+Gui, 9:Add, DropDownList, x97 y190 w115 h21 R41 +AltSubmit vCtrlRightAction Choose%CtrlRightAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x12 y216 w140 h20 -Multi -WantTab -WantReturn vCustomCtrlRightPath, %CustomCtrlRightPath%
+Gui, 9:Add, Button, x152 y215 w60 h22 g9ButtonBrowse2 v9ButtonBrowse2Temp, &Browse
+Gui, 9:Add, Text, x12 y253 w75 h20 , Shift + Left
+Gui, 9:Add, DropDownList, x97 y250 w115 h21 R41 +AltSubmit vShiftLeftAction Choose%ShiftLeftAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x12 y276 w140 h20 -Multi -WantTab -WantReturn vCustomShiftLeftPath, %CustomShiftLeftPath%
+Gui, 9:Add, Button, x152 y275 w60 h22 g9ButtonBrowse5 v9ButtonBrowse5Temp, &Browse
+Gui, 9:Add, Text, x12 y313 w75 h20 , Shift + Right
+Gui, 9:Add, DropDownList, x97 y310 w115 h21 R41 +AltSubmit vShiftRightAction Choose%ShiftRightAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x12 y336 w140 h20 -Multi -WantTab -WantReturn vCustomShiftRightPath, %CustomShiftRightPath%
+Gui, 9:Add, Button, x152 y335 w60 h22 g9ButtonBrowse6 v9ButtonBrowse6Temp, &Browse
+Gui, 9:Add, Text, x12 y373 w75 h20 , Win + Left
+Gui, 9:Add, DropDownList, x97 y370 w115 h21 R41 +AltSubmit vWinLeftAction Choose%WinLeftAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x12 y396 w140 h20 -Multi -WantTab -WantReturn vCustomWinLeftPath, %CustomWinLeftPath%
+Gui, 9:Add, Button, x152 y395 w60 h22 g9ButtonBrowse7 v9ButtonBrowse7Temp, &Browse
+Gui, 9:Add, Text, x12 y433 w75 h20 , Win + Right
+Gui, 9:Add, DropDownList, x97 y430 w115 h21 R41 +AltSubmit vWinRightAction Choose%WinRightAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x12 y456 w140 h20 -Multi -WantTab -WantReturn vCustomWinRightPath, %CustomWinRightPath%
+Gui, 9:Add, Button, x152 y455 w60 h22 g9ButtonBrowse8 v9ButtonBrowse8Temp, &Browse
+Gui, 9:Add, Button, x362 y494 w60 h30 v9HelpTemp, &Help
+Gui, 9:Add, Button, x302 y494 w60 h30 v9CancelTemp, &Cancel
+Gui, 9:Add, Button, x242 y494 w60 h30 Default v9OKtemp, &OK
+Gui, 9:Add, Text, x222 y133 w75 h20 , Ctrl + Wup
+Gui, 9:Add, DropDownList, x307 y130 w115 h21 R39 +AltSubmit vCtrlWupAction Choose%CtrlWupAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Highlight|Search: Clipboard|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x222 y156 w140 h20 -Multi -WantTab -WantReturn vCustomCtrlWupPath, %CustomCtrlWupPath%
+Gui, 9:Add, Button, x362 y155 w60 h22 g9ButtonBrowse1a v9ButtonBrowse1aTemp, &Browse
+Gui, 9:Add, Text, x222 y193 w75 h20 , Ctrl + Wdown
+Gui, 9:Add, DropDownList, x307 y190 w115 h21 R39 +AltSubmit vCtrlWdownAction Choose%CtrlWdownAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Highlight|Search: Clipboard|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x222 y216 w140 h20 -Multi -WantTab -WantReturn vCustomCtrlWdownPath, %CustomCtrlWdownPath%
+Gui, 9:Add, Button, x362 y215 w60 h22 g9ButtonBrowse2a v9ButtonBrowse2aTemp, &Browse
+Gui, 9:Add, Text, x222 y13 w75 h20 , Alt + Wup
+Gui, 9:Add, DropDownList, x307 y10 w115 h20 R39 +AltSubmit vAltWupAction Choose%AltWupAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Highlight|Search: Clipboard|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x222 y37 w140 h20 -Multi -WantTab -WantReturn vCustomAltWupPath, %CustomAltWupPath%
+Gui, 9:Add, Button, x362 y36 w60 h22 g9ButtonBrowse3a v9ButtonBrowse3aTemp, &Browse
+Gui, 9:Add, Text, x222 y73 w75 h20 , Alt + Wdown
+Gui, 9:Add, DropDownList, x307 y70 w115 h20 R39 +AltSubmit vAltWdownAction Choose%AltWdownAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Highlight|Search: Clipboard|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x222 y97 w140 h20 -Multi -WantTab -WantReturn vCustomAltWdownPath, %CustomAltWdownPath%
+Gui, 9:Add, Button, x362 y96 w60 h22 g9ButtonBrowse4a v9ButtonBrowse4aTemp, &Browse
+Gui, 9:Add, Text, x222 y253 w75 h20 , Shift + Wup
+Gui, 9:Add, DropDownList, x307 y250 w115 h21 R39 +AltSubmit vShiftWupAction Choose%ShiftWupAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Highlight|Search: Clipboard|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x222 y276 w140 h20 -Multi -WantTab -WantReturn vCustomShiftWupPath, %CustomShiftWupPath%
+Gui, 9:Add, Button, x362 y275 w60 h22 g9ButtonBrowse5a v9ButtonBrowse5aTemp, &Browse
+Gui, 9:Add, Text, x222 y313 w75 h20 , Shift + Wdown
+Gui, 9:Add, DropDownList, x307 y310 w115 h21 R39 +AltSubmit vShiftWdownAction Choose%ShiftWdownAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Highlight|Search: Clipboard|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x222 y336 w140 h20 -Multi -WantTab -WantReturn vCustomShiftWdownPath, %CustomShiftWdownPath%
+Gui, 9:Add, Button, x362 y335 w60 h22 g9ButtonBrowse6a v9ButtonBrowse6aTemp, &Browse
+Gui, 9:Add, Text, x222 y373 w75 h20 , Win + Wup
+Gui, 9:Add, DropDownList, x307 y370 w115 h21 R39 +AltSubmit vWinWupAction Choose%WinWupAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Highlight|Search: Clipboard|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x222 y396 w140 h20 -Multi -WantTab -WantReturn vCustomWinWupPath, %CustomWinWupPath%
+Gui, 9:Add, Button, x362 y395 w60 h22 g9ButtonBrowse7a v9ButtonBrowse7aTemp, &Browse
+Gui, 9:Add, Text, x222 y433 w75 h20 , Win + Wdown
+Gui, 9:Add, DropDownList, x307 y430 w115 h21 R39 +AltSubmit vWinWdownAction Choose%WinWdownAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Highlight|Search: Clipboard|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 9:Add, Edit, x222 y456 w140 h20 -Multi -WantTab -WantReturn vCustomWinWdownPath, %CustomWinWdownPath%
+Gui, 9:Add, Button, x362 y455 w60 h22 g9ButtonBrowse8a v9ButtonBrowse8aTemp, &Browse
+Gui, 9:Font, CMaroon s9, Arial, 
+Gui, 9:Add, Text, x12 y491 w230 h40 , Left / Right :  Mouse click`nWup / Wdown :  Scroll wheel
+Gui, 9:Font, norm, 
+CustomCtrlLeftPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomCtrlRightPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomCtrlWupPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomCtrlWdownPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomAltLeftPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomAltRightPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomAltWupPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomAltWdownPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomShiftLeftPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomShiftRightPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomShiftWupPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomShiftWdownPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomWinLeftPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomWinRightPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomWinWupPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomWinWdownPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+9ButtonBrowse1Temp_TT := "Browse for an executable"
+9ButtonBrowse2Temp_TT := "Browse for an executable"
+9ButtonBrowse3Temp_TT := "Browse for an executable"
+9ButtonBrowse4Temp_TT := "Browse for an executable"
+9ButtonBrowse5Temp_TT := "Browse for an executable"
+9ButtonBrowse6Temp_TT := "Browse for an executable"
+9ButtonBrowse7Temp_TT := "Browse for an executable"
+9ButtonBrowse8Temp_TT := "Browse for an executable"
+9ButtonBrowse1aTemp_TT := "Browse for an executable"
+9ButtonBrowse2aTemp_TT := "Browse for an executable"
+9ButtonBrowse3aTemp_TT := "Browse for an executable"
+9ButtonBrowse4aTemp_TT := "Browse for an executable"
+9ButtonBrowse5aTemp_TT := "Browse for an executable"
+9ButtonBrowse6aTemp_TT := "Browse for an executable"
+9ButtonBrowse7aTemp_TT := "Browse for an executable"
+9ButtonBrowse8aTemp_TT := "Browse for an executable"
+CtrlLeftAction_TT := "Choose an action to run on pressing Ctrl and Left mouse buttons"
+CtrlRightAction_TT := "Choose an action to run on pressing Ctrl and Right mouse buttons"
+CtrlWupAction_TT := "Choose an action to run on pressing Ctrl and Wheel-up mouse buttons"
+CtrlWdownAction_TT := "Choose an action to run on pressing Ctrl and Wheel-down mouse buttons"
+AltLeftAction_TT := "Choose an action to run on pressing Alt and Left mouse buttons"
+AltRightAction_TT := "Choose an action to run on pressing Alt and Right mouse buttons"
+AltWupAction_TT := "Choose an action to run on pressing Alt and Wheel-up mouse buttons"
+AltWdownAction_TT := "Choose an action to run on pressing Alt and Wheel-down mouse buttons"
+ShiftLeftAction_TT := "Choose an action to run on pressing Shift and Left mouse buttons"
+ShiftRightAction_TT := "Choose an action to run on pressing Shift and Right mouse buttons"
+ShiftWupAction_TT := "Choose an action to run on pressing Shift and Wheel-up mouse buttons"
+ShiftWdownAction_TT := "Choose an action to run on pressing Shift and Wheel-down mouse buttons"
+WinLeftAction_TT := "Choose an action to run on pressing Win and Left mouse buttons"
+WinRightAction_TT := "Choose an action to run on pressing Win and Right mouse buttons"
+WinWupAction_TT := "Choose an action to run on pressing Win and Wheel-up mouse buttons"
+WinWdownAction_TT := "Choose an action to run on pressing Win and Wheel-down mouse buttons"
+9OKtemp_TT := "Click to save changes"
+9HelpTemp_TT := "Click to get help"
+9CancelTemp_TT := "Click to save changes"
+; Generated using SmartGUI Creator 4.0
+Gui, 9:Show, h532 w432, Custom Hotkeys: Ctrl/Alt/Shift/Win
+If (chkMod=1) { ; if ctrl
+	GuiControl,9:Disable,9ButtonBrowse1aTemp
+	GuiControl,9:Disable,9ButtonBrowse2aTemp
+	GuiControl,9:Disable,CtrlWupAction
+	GuiControl,9:Disable,CtrlWdownAction
+	GuiControl,9:Disable,CustomCtrlWupPath
+	GuiControl,9:Disable,CustomCtrlWdownPath
+} else if (chkMod=2) { ; if alt
+	GuiControl,9:Disable,9ButtonBrowse3aTemp
+	GuiControl,9:Disable,9ButtonBrowse4aTemp
+	GuiControl,9:Disable,AltWupAction
+	GuiControl,9:Disable,AltWdownAction
+	GuiControl,9:Disable,CustomAltWupPath
+	GuiControl,9:Disable,CustomAltWdownPath
+} else if (chkMod=3) { ; if shift
+	GuiControl,9:Disable,9ButtonBrowse5aTemp
+	GuiControl,9:Disable,9ButtonBrowse6aTemp
+	GuiControl,9:Disable,ShiftWupAction
+	GuiControl,9:Disable,ShiftWdownAction
+	GuiControl,9:Disable,CustomShiftWupPath
+	GuiControl,9:Disable,CustomShiftWdownPath
+} else if (chkMod=4) { ; if win
+	GuiControl,9:Disable,9ButtonBrowse7aTemp
+	GuiControl,9:Disable,9ButtonBrowse8aTemp
+	GuiControl,9:Disable,WinWupAction
+	GuiControl,9:Disable,WinWdownAction
+	GuiControl,9:Disable,CustomWinWupPath
+	GuiControl,9:Disable,CustomWinWdownPath
+}
+
+return
+
+9ButtonHelp:
+Msgbox, 262208, Help: Customize Ctrl/Alt/Shift/Win, 16 hotkeys made of modifier keys (Ctrl, Alt, Shift and Win) are customizable for doing anything such as Speak, Google, Timer, Eject CD, Monitor Off, Always On Top, or running any application or command. Their actions can be specified here.`n`nFor example, to make any window "Always on top" with an [Alt+Wheel-up] hotkey, at 'Alt + Wup', choose 'Always on top'.`n`nNote: Choose 'Custom (define)' from the built-in functions (dropdown menu) before specifying an action in the Custom bar. `n`nTip 1: Some functions are better done with Wheel-up/down, while some are better with Left/Right click. It takes some time/patience/curiosity to find out.`n`nTip 2: Chrome users should avoid using Ctrl+Wheelup or Wheeldown as Chrome uses those for enlarging page size.
+return
+
+
+9ButtonOK:
+Gui, 1:-Disabled  ; Re-enable the main window
+Gui, Submit ; required to update the user-submitted variable
+Gui, Destroy
+if CustomCtrlLeftPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomCtrlLeftPath, %CustomCtrlLeftPath%
+if CustomCtrlRightPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomCtrlRightPath, %CustomCtrlRightPath%
+if CustomCtrlWupPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomCtrlWupPath, %CustomCtrlWupPath%
+if CustomCtrlWdownPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomCtrlWdownPath, %CustomCtrlWdownPath%
+if CustomAltLeftPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomAltLeftPath, %CustomAltLeftPath%
+if CustomAltRightPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomAltRightPath, %CustomAltRightPath%
+if CustomAltWupPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomAltWupPath, %CustomAltWupPath%
+if CustomAltWdownPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomAltWdownPath, %CustomAltWdownPath%
+if CustomShiftLeftPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomShiftLeftPath, %CustomShiftLeftPath%
+if CustomShiftRightPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomShiftRightPath, %CustomShiftRightPath%
+if CustomShiftWupPath
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomShiftWupPath, %CustomShiftWupPath%
+if CustomShiftWdownPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomShiftWdownPath, %CustomShiftWdownPath%
+if CustomWinLeftPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomWinLeftPath, %CustomWinLeftPath%
+if CustomWinRightPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomWinRightPath, %CustomWinRightPath%
+if CustomWinWupPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomWinWupPath, %CustomWinWupPath%
+if CustomWinWdownPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomWinWdownPath, %CustomWinWdownPath%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CtrlLeftAction, %CtrlLeftAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CtrlRightAction, %CtrlRightAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CtrlWupAction, %CtrlWupAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CtrlWdownAction, %CtrlWdownAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, AltLeftAction, %AltLeftAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, AltRightAction, %AltRightAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, AltWupAction, %AltWupAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, AltWdownAction, %AltWdownAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ShiftLeftAction, %ShiftLeftAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ShiftRightAction, %ShiftRightAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ShiftWupAction, %ShiftWupAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ShiftWdownAction, %ShiftWdownAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WinLeftAction, %WinLeftAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WinRightAction, %WinRightAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WinWupAction, %WinWupAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WinWdownAction, %WinWdownAction%
+return
+
+9ButtonBrowse1:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomCtrlLeftPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomCtrlLeftPath
+{
+	GuiControl,9:,CustomCtrlLeftPath,%CustomCtrlLeftPath%
+}
+return
+
+9ButtonBrowse2:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomCtrlRightPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomCtrlRightPath
+{
+	GuiControl,9:,CustomCtrlRightPath,%CustomCtrlRightPath%
+}
+return
+
+9ButtonBrowse3:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomAltLeftPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomAltLeftPath
+{
+	GuiControl,9:,CustomAltLeftPath,%CustomAltLeftPath%
+}
+return
+
+9ButtonBrowse4:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomAltRightPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomAltRightPath
+{
+	GuiControl,9:,CustomAltRightPath,%CustomAltRightPath%
+}
+return
+
+9ButtonBrowse5:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomShiftLeftPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomShiftLeftPath
+{
+	GuiControl,9:,CustomShiftLeftPath,%CustomShiftLeftPath%
+}
+return
+
+9ButtonBrowse6:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomShiftRightPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomShiftRightPath
+{
+	GuiControl,9:,CustomShiftRightPath,%CustomShiftRightPath%
+}
+return
+
+9ButtonBrowse7:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomWinLeftPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomWinLeftPath
+{
+	GuiControl,9:,CustomWinLeftPath,%CustomWinLeftPath%
+}
+return
+
+9ButtonBrowse8:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomWinRightPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomWinRightPath
+{
+	GuiControl,9:,CustomWinRightPath,%CustomWinRightPath%
+}
+return
+
+
+9ButtonBrowse1a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomCtrlWupPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomCtrlWupPath
+{
+	GuiControl,9:,CustomCtrlWupPath,%CustomCtrlWupPath%
+}
+return
+
+9ButtonBrowse2a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomCtrlWdownPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomCtrlWdownPath
+{
+	GuiControl,9:,CustomCtrlWdownPath,%CustomCtrlWdownPath%
+}
+return
+
+9ButtonBrowse3a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomAltWupPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomAltWupPath
+{
+	GuiControl,9:,CustomAltWupPath,%CustomAltWupPath%
+}
+return
+
+9ButtonBrowse4a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomAltWdownPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomAltWdownPath
+{
+	GuiControl,9:,CustomAltWdownPath,%CustomAltWdownPath%
+}
+return
+
+9ButtonBrowse5a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomShiftWupPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomShiftWupPath
+{
+	GuiControl,9:,CustomShiftWupPath,%CustomShiftWupPath%
+}
+return
+
+9ButtonBrowse6a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomShiftWdownPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomShiftWdownPath
+{
+	GuiControl,9:,CustomShiftWdownPath,%CustomShiftWdownPath%
+}
+return
+
+9ButtonBrowse7a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomWinWupPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomWinWupPath
+{
+	GuiControl,9:,CustomWinWupPath,%CustomWinWupPath%
+}
+return
+
+9ButtonBrowse8a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomWinWdownPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomWinWdownPath
+{
+	GuiControl,9:,CustomWinWdownPath,%CustomWinWdownPath%
+}
+return
+
+8ButtonOK:
+Gui, 1:-Disabled  ; Re-enable the main window
+Gui, Submit ; required to update the user-submitted variable
+Gui, Destroy
+if CustomBackLeftPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomBackLeftPath, %CustomBackLeftPath%
+if CustomBackRightPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomBackRightPath, %CustomBackRightPath%
+if CustomBackWupPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomBackWupPath, %CustomBackWupPath%
+if CustomBackWdownPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomBackWdownPath, %CustomBackWdownPath%
+if CustomForwardLeftPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomForwardLeftPath, %CustomForwardLeftPath%
+if CustomForwardRightPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomForwardRightPath, %CustomForwardRightPath%
+if CustomForwardWupPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomForwardWupPath, %CustomForwardWupPath%
+if CustomForwardWdownPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomForwardWdownPath, %CustomForwardWdownPath%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, BackLeftAction, %BackLeftAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, BackRightAction, %BackRightAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, BackWupAction, %BackWupAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, BackWdownAction, %BackWdownAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ForwardLeftAction, %ForwardLeftAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ForwardRightAction, %ForwardRightAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ForwardWupAction, %ForwardWupAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ForwardWdownAction, %ForwardWdownAction%
+return
+
+8ButtonBrowse1:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomBackLeftPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomBackLeftPath
+{
+	GuiControl,8:,CustomBackLeftPath,%CustomBackLeftPath%
+}
+return
+
+8ButtonBrowse2:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomBackRightPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomBackRightPath
+{
+	GuiControl,8:,CustomBackRightPath,%CustomBackRightPath%
+}
+return
+
+8ButtonBrowse3:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomForwardLeftPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomForwardLeftPath
+{
+	GuiControl,8:,CustomForwardLeftPath,%CustomForwardLeftPath%
+}
+return
+
+8ButtonBrowse4:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomForwardRightPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomForwardRightPath
+{
+	GuiControl,8:,CustomForwardRightPath,%CustomForwardRightPath%
+}
+return
+
+8ButtonBrowse1a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomBackWupPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomBackWupPath
+{
+	GuiControl,8:,CustomBackWupPath,%CustomBackWupPath%
+}
+return
+
+8ButtonBrowse2a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomBackWdownPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomBackWdownPath
+{
+	GuiControl,8:,CustomBackWdownPath,%CustomBackWdownPath%
+}
+return
+
+8ButtonBrowse3a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomForwardWupPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomForwardWupPath
+{
+	GuiControl,8:,CustomForwardWupPath,%CustomForwardWupPath%
+}
+return
+
+8ButtonBrowse4a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomForwardWdownPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomForwardWdownPath
+{
+	GuiControl,8:,CustomForwardWdownPath,%CustomForwardWdownPath%
+}
+return
+
+CustomizeLeftRight:
+Gui, 11:+owner1
+;Gui, +Disabled
+;Gui, 11:-MinimizeBox -MaximizeBox 
+Gui, 11:+ToolWindow
+Gui, 11:Font, s8, Tahoma
+Gui, 11:Add, Edit, x12 y37 w140 h20 -Multi -WantTab -WantReturn vCustomLeftMiddlePath, %CustomLeftMiddlePath%
+Gui, 11:Add, Text, x12 y13 w75 h20 , Left + Middle
+Gui, 11:Add, Button, x152 y36 w60 h22 g11ButtonBrowse1 v11ButtonBrowse1Temp, &Browse
+Gui, 11:Add, DropDownList, x97 y10 w115 h21 R41 +AltSubmit vLeftMiddleAction Choose%LeftMiddleAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 11:Add, Text, x12 y73 w75 h20 , Left + Right
+Gui, 11:Add, DropDownList, x97 y70 w115 h21 R41 +AltSubmit vLeftRightAction Choose%LeftRightAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 11:Add, DropDownList, x97 y130 w115 h21 R41 +AltSubmit vRightLeftAction Choose%RightLeftAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 11:Add, Edit, x12 y97 w140 h20 -Multi -WantTab -WantReturn vCustomLeftRightPath, %CustomLeftRightPath%
+Gui, 11:Add, Button, x152 y96 w60 h22 g11ButtonBrowse2 v11ButtonBrowse2Temp, B&rowse
+Gui, 11:Add, Text, x12 y133 w75 h20 , Right + Left
+Gui, 11:Add, Edit, x12 y157 w140 h20 -Multi -WantTab -WantReturn vCustomRightLeftPath, %CustomRightLeftPath%
+Gui, 11:Add, Button, x152 y156 w60 h22 g11ButtonBrowse3 v11ButtonBrowse3Temp, Bro&wse
+Gui, 11:Add, Text, x12 y193 w75 h20 , Right + Middle
+Gui, 11:Add, DropDownList, x97 y190 w115 h21 R41 +AltSubmit vRightMiddleAction Choose%RightMiddleAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 11:Add, Edit, x12 y217 w140 h20 -Multi -WantTab -WantReturn vCustomRightMiddlePath, %CustomRightMiddlePath%
+Gui, 11:Add, Button, x152 y216 w60 h22 g11ButtonBrowse4 v11ButtonBrowse4Temp, Brow&se
+Gui, 11:Add, Button, x242 y247 w60 h30 Default v11OKtemp, &OK
+Gui, 11:Add, Button, x362 y247 w60 h30 v11HelpTemp, &Help
+Gui, 11:Add, Button, x302 y247 w60 h30 v11CancelTemp, &Cancel
+Gui, 11:Add, Text, x222 y13 w75 h20 , Left + Wup
+Gui, 11:Add, DropDownList, x307 y10 w115 h21 R37 +AltSubmit vLeftWupAction Choose%LeftWupAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 11:Add, Edit, x222 y37 w140 h20 -Multi -WantTab -WantReturn vCustomLeftWupPath, %CustomLeftWupPath%
+Gui, 11:Add, Button, x362 y36 w60 h22 g11ButtonBrowse1a v11ButtonBrowse1aTemp, &Browse
+Gui, 11:Add, Text, x222 y73 w75 h20 , Left + Wdown
+Gui, 11:Add, DropDownList, x307 y70 w115 h21 R37 +AltSubmit vLeftWdownAction Choose%LeftWdownAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 11:Add, Edit, x222 y97 w140 h20 -Multi -WantTab -WantReturn vCustomLeftWdownPath, %CustomLeftWdownPath%
+Gui, 11:Add, Button, x362 y96 w60 h22 g11ButtonBrowse2a v11ButtonBrowse2aTemp, &Browse
+Gui, 11:Add, Text, x222 y133 w75 h20 , Right + Wup
+Gui, 11:Add, DropDownList, x307 y130 w115 h21 R37 +AltSubmit vRightWupAction Choose%RightWupAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 11:Add, Edit, x222 y157 w140 h20 -Multi -WantTab -WantReturn vCustomRightWupPath, %CustomRightWupPath%
+Gui, 11:Add, Button, x362 y156 w60 h22 g11ButtonBrowse3a v11ButtonBrowse3aTemp, &Browse
+Gui, 11:Add, Text, x222 y193 w75 h20 , Right + Wdown
+Gui, 11:Add, DropDownList, x307 y190 w115 h21 R37 +AltSubmit vRightWdownAction Choose%RightWdownAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Paint|Search: Clipboard|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic live zoom|Elastic still zoom (fixed)|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Preview full screen (7)|Custom (define)|None
+Gui, 11:Add, Edit, x222 y217 w140 h20 -Multi -WantTab -WantReturn vCustomRightWdownPath, %CustomRightWdownPath%
+Gui, 11:Add, Button, x362 y216 w60 h22 g11ButtonBrowse4a v11ButtonBrowse4aTemp, &Browse
+Gui, 11:Font, CMaroon s9, Arial
+Gui, 11:Add, Text, x12 y247 w230 h30 , Left / Middle / Right :  Mouse click`nWup / Wdown :  Scroll wheel
+Gui, 11:Font, norm, 
+LeftMiddleAction_TT := "Choose an action to run on pressing Left and Middle mouse buttons"
+LeftRightAction_TT := "Choose an action to run on pressing Left and Right mouse buttons"
+LeftWupAction_TT := "Choose an action to run on pressing Left and Wheel-up mouse buttons"
+LeftWdownAction_TT := "Choose an action to run on pressing Left and Wheel-down mouse buttons"
+RightLeftAction_TT := "Choose an action to run on pressing Right and Left mouse buttons"
+RightMiddleAction_TT := "Choose an action to run on pressing Right and Middle mouse buttons"
+RightWupAction_TT := "Choose an action to run on pressing Right and Wheel-up mouse buttons"
+RightWdownAction_TT := "Choose an action to run on pressing Right and Wheel-down mouse buttons"
+CustomLeftMiddlePath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomLeftRightPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomLeftWupPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomLeftWdownPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomRightLeftPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomRightMiddlePath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomRightWupPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+CustomRightWdownPath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
+11ButtonBrowse1Temp_TT := "Browse for an executable"
+11ButtonBrowse2Temp_TT := "Browse for an executable"
+11ButtonBrowse3Temp_TT := "Browse for an executable"
+11ButtonBrowse4Temp_TT := "Browse for an executable"
+11ButtonBrowse1aTemp_TT := "Browse for an executable"
+11ButtonBrowse2aTemp_TT := "Browse for an executable"
+11ButtonBrowse3aTemp_TT := "Browse for an executable"
+11ButtonBrowse4aTemp_TT := "Browse for an executable"
+11OKtemp_TT := "Click to save changes"
+11HelpTemp_TT := "Click to get help"
+11CancelTemp_TT := "Click to save changes"
+Gui, 11:Show, h285 w432, Customize Left and Right
+
+; disable in all ahk because left and right / right and left dont work yet.
+; GuiControl,11:Disable,LeftRightAction
+; GuiControl,11:Disable,CustomLeftRightPath
+; GuiControl,11:Disable,11ButtonBrowse2Temp
+
+; GuiControl,11:Disable,RightLeftAction
+; GuiControl,11:Disable,CustomRightLeftPath
+; GuiControl,11:Disable,11ButtonBrowse3Temp
+
+If (chkMod=5) { ; if Left
+	GuiControl,11:Disable,11ButtonBrowse1Temp
+;	GuiControl,11:Disable,LeftWupAction
+;	GuiControl,11:Disable,LeftWdownAction
+	GuiControl,11:Disable,LeftMiddleAction
+;	GuiControl,11:Disable,11ButtonBrowse1aTemp
+;	GuiControl,11:Disable,11ButtonBrowse2aTemp
+;	GuiControl,11:Disable,CustomLeftWupPath
+;	GuiControl,11:Disable,CustomLeftWdownPath
+	GuiControl,11:Disable,CustomLeftMiddlePath
+;	GuiControl,11:Disable,11ButtonBrowse3Temp ; disable right and left/left and right in both too
+;	GuiControl,11:Disable,RightLeftAction ; disable ...
+;	GuiControl,11:Disable,CustomRightLeftPath  ; disable ...
+} else if (chkMod=6) { ; if Right
+	GuiControl,11:Disable,11ButtonBrowse4Temp
+;	GuiControl,11:Disable,RightWupAction
+;	GuiControl,11:Disable,RightWdownAction
+	GuiControl,11:Disable,RightMiddleAction
+;	GuiControl,11:Disable,11ButtonBrowse3aTemp
+;	GuiControl,11:Disable,11ButtonBrowse4aTemp
+;	GuiControl,11:Disable,CustomRightWupPath
+;	GuiControl,11:Disable,CustomRightWdownPath
+	GuiControl,11:Disable,CustomRightMiddlePath
+;	GuiControl,11:Disable,11ButtonBrowse2Temp ; disable right and left/left and right in both too
+;	GuiControl,11:Disable,LeftRightAction ; disable ...
+;	GuiControl,11:Disable,CustomLeftRightPath ; disable ...
+}
+Return
+
+11ButtonHelp:
+Msgbox, 262208, Help: Customize Left and Right, AeroZoom enhances mouse devices with Left and Right buttons by adding 8 more mouse hotkeys`, which can be customized here for doing tasks such as Speak, Google, Eject CD, ZoomIt, Monitor Off or running any command or application.`n`nNote: Choose 'Custom (define)' from the built-in functions (dropdown menu) before specifying an action in the Custom bar.`n`nTip 1: Some functions may not be suitable for Left or Right. Use other 'Custom Hotkeys' options in 'Tool > Preferences' instead.`n`nTip 2: Hold 'Left'/'Right' longer before release to avoid sending a click (of Left/Right) to the app behind.
+return
+
+
+11ButtonOK:
+Gui, 1:-Disabled  ; Re-enable the main window
+Gui, Submit ; required to update the user-submitted variable
+Gui, Destroy
+if CustomLeftMiddlePath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomLeftMiddlePath, %CustomLeftMiddlePath%
+if CustomLeftRightPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomLeftRightPath, %CustomLeftRightPath%
+if CustomLeftWupPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomLeftWupPath, %CustomLeftWupPath%
+if CustomLeftWdownPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomLeftWdownPath, %CustomLeftWdownPath%
+if CustomRightLeftPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomRightLeftPath, %CustomRightLeftPath%
+if CustomRightMiddlePath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomRightMiddlePath, %CustomRightMiddlePath%
+if CustomRightWupPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomRightWupPath, %CustomRightWupPath%
+if CustomRightWdownPath 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomRightWdownPath, %CustomRightWdownPath%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, LeftMiddleAction, %LeftMiddleAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, LeftRightAction, %LeftRightAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, LeftWupAction, %LeftWupAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, LeftWdownAction, %LeftWdownAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RightLeftAction, %RightLeftAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RightMiddleAction, %RightMiddleAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RightWupAction, %RightWupAction%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, RightWdownAction, %RightWdownAction%
+return
+
+11ButtonBrowse1:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomLeftMiddlePath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomLeftMiddlePath
+{
+	GuiControl,11:,CustomLeftMiddlePath,%CustomLeftMiddlePath%
+}
+return
+
+11ButtonBrowse2:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomLeftRightPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomLeftRightPath
+{
+	GuiControl,11:,CustomLeftRightPath,%CustomLeftRightPath%
+}
+return
+
+11ButtonBrowse3:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomRightLeftPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomRightLeftPath
+{
+	GuiControl,11:,CustomRightLeftPath,%CustomRightLeftPath%
+}
+return
+
+11ButtonBrowse4:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomRightMiddlePath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomRightMiddlePath
+{
+	GuiControl,11:,CustomRightMiddlePath,%CustomRightMiddlePath%
+}
+return
+
+11ButtonBrowse1a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomLeftWupPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomLeftWupPath
+{
+	GuiControl,11:,CustomLeftWupPath,%CustomLeftWupPath%
+}
+return
+
+11ButtonBrowse2a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomLeftWdownPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomLeftWdownPath
+{
+	GuiControl,11:,CustomLeftWdownPath,%CustomLeftWdownPath%
+}
+return
+
+11ButtonBrowse3a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomRightWupPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomRightWupPath
+{
+	GuiControl,11:,CustomRightWupPath,%CustomRightWupPath%
+}
+return
+
+11ButtonBrowse4a:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, CustomRightWdownPath, 3, , Select something to launch, 
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if CustomRightWdownPath
+{
+	GuiControl,11:,CustomRightWdownPath,%CustomRightWdownPath%
+}
+return
+
+6ButtonCancel:
+6GuiClose:
+6GuiEscape:
+If (OSver<6.1) { ; vista or xp uses the snipslider
+	GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
+}
+onlyDownloadNirCmd = ; Button 6 requires this to skip displaying unrelated message
+11ButtonCancel:
+11GuiClose:
+11GuiEscape:
+10ButtonCancel:
+10GuiClose:
+10GuiEscape:
+9ButtonCancel:
+9GuiClose:
+9GuiEscape:
+8ButtonCancel:
+8GuiClose:
+8GuiEscape:
+7ButtonCancel:
+7GuiClose:
+7GuiEscape:
+Gui, 1:-Disabled  ; Re-enable the main window (must be done prior to the next step).
+Gui, Destroy
 return
 
 4ButtonCancel:
 4GuiClose:   ; On "Close" button press
 4GuiEscape:   ; On ESC press
 Gui, 1:-Disabled  ; Re-enable the main window (must be done prior to the next step).
+Menu, ToolboxMenu, Uncheck, &Enable ZoomIt
+Menu, ViewsMenu, Disable, Sysinternals &ZoomIt
+zoomit=0
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomIt, 0
 Gui, Destroy
 return
 
+6ButtonBrowse:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, userNirCmdPath, 3, , Select NirCmd.exe, NirCmd v2.05+ (NirCmd.exe)
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if userNirCmdPath
+{
+	GuiControl,6:,userNirCmdPath,%userNirCmdPath%
+}
+return
+
 4ButtonBrowse:
-Gui, -AlwaysOnTop
+Gui, 1:-AlwaysOnTop
 FileSelectFile, userZoomItPath, 3, , Select ZoomIt.exe, ZoomIt v4.0+ (ZoomIt.exe)
-Gui, +AlwaysOnTop
+If onTopBit
+	Gui, 1:+AlwaysOnTop
 if userZoomItPath
 {
 	GuiControl,4:,userZoomItPath,%userZoomItPath%
 }
 return
 
+6ButtonOK:
+Gui, 1:-Disabled  ; Re-enable the main window
+Gui, Submit ; required to update the user-submitted variable
+Gui, Destroy
+IfWinExist, AeroZoom Panel
+	Menu, ToolboxMenu, Disable, Save &Captures to Disk
+Gui, 1:Font, CRed,
+GuiControl,1:Font,Txt, ; to apply the color change 
+GuiControl,1:,Txt,- Please Wait -
+Haystack = %userNirCmdPath%
+Needle = http://
+IfNotInString, Haystack, %Needle%
+{
+	IfNotExist, %userNirCmdPath%
+	{
+		Msgbox, 262192, ERROR, File does not exist:`n`n%userNirCmdPath%
+		Gui, 1:Font, CDefault,
+		GuiControl,1:Font,Txt,	
+		GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+		;Gui,-Disabled
+		IfWinExist, AeroZoom Panel
+			Menu, ToolboxMenu, Enable, Save &Captures to Disk
+		If (OSver<6.1) { ; vista or xp uses the snipslider
+			GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
+		}
+		return
+	}
+	FileCopy, %userNirCmdPath%, %A_WorkingDir%\Data\NirCmd.exe
+	IfNotExist, %userNirCmdPath%
+	{
+		Msgbox, 262192, ERROR, File copy failed:`n`n%userNirCmdPath%`n`nEnsure destination is not locked.
+		Gui, 1:Font, CDefault,
+		GuiControl,1:Font,Txt,	
+		GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+		;Gui,-Disabled
+		IfWinExist, AeroZoom Panel
+			Menu, ToolboxMenu, Enable, Save &Captures to Disk
+		If (OSver<6.1) { ; vista or xp uses the snipslider
+			GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
+		}
+		return
+	}
+	goto, SkipNirCmdDownload
+}
+GuiControl,1:Disable,Bye
+if not GuideDisabled
+	Msgbox, 262208, IMPORTANT, Please do not close or use AeroZoom during download.`n`nIf you suspect the download failed and NirCmd.exe (30+ KB) is corrupt (sign: strange errors during snipping), do a reset in Tool > Preferences > Advanced Options.`n`nAlternatively, you can manually delete or put NirCmd.exe into:`n`n%A_WorkingDir%\Data
+GuiControl,1:,Txt,- Downloading -
+Gui, 1:-AlwaysOnTop 
+;Gui,+Disabled ; To prevent user from moving panel. Now allow commented user to do so as download may take long.
+RunWait, "%A_WorkingDir%\Data\3rdparty\wget.exe" -U "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.7) Gecko/20040613 Firefox/0.8.0+" --output-document="%A_WorkingDir%\Data\NirCmd.exe" "%userNirCmdPath%"
+;UrlDownloadToFile, %userNirCmdPath%, %A_WorkingDir%\Data\NirCmd.exe
+if (errorlevel<>0) {
+	Msgbox, 262192, AeroZoom, Cannot download the file. Check Internet connection.`n`nYou may also manually put NirCmd.exe into:`n`n%A_WorkingDir%\Data
+	FileDelete, %A_WorkingDir%\Data\NirCmd.exe
+	Gui, 1:Font, CDefault,
+	GuiControl,1:Font,Txt,	
+	GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+	;Gui,-Disabled
+	GuiControl,1:Enable,Bye
+	IfWinExist, AeroZoom Panel
+		Menu, ToolboxMenu, Enable, Save &Captures to Disk
+	If (OSver<6.1) { ; vista or xp uses the snipslider
+		GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
+	}
+	If onTopBit
+		Gui, 1:+AlwaysOnTop
+	return
+}
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+SkipNirCmdDownload:
+Gui, 1:Font, CDefault,
+GuiControl,1:Font,Txt,	
+GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+GuiControl,1:Enable,Bye
+;Gui,-Disabled
+IfWinExist, AeroZoom Panel
+	Menu, ToolboxMenu, Enable, Save &Captures to Disk
+if not onlyDownloadNirCmd
+{
+	Msgbox, 262144, AeroZoom, Success.
+	goto, NirCmd
+} else {
+	Msgbox, 262144, AeroZoom, Success.
+}
+onlyDownloadNirCmd=
+return
+
 4ButtonOK:
 Gui, 1:-Disabled  ; Re-enable the main window
 Gui, Submit ; required to update the user-submitted variable
 Gui, Destroy
-Menu, ToolboxMenu, Disable, &Sysinternals ZoomIt
+Menu, ToolboxMenu, Disable, &Enable ZoomIt
 Gui, 1:Font, CRed,
 GuiControl,1:Font,Txt, ; to apply the color change 
 GuiControl,1:,Txt,- Please Wait -
+
+; The followings need to be the default hotkeys, i.e. Ctrl+3 (Timer) and Ctrl+2 (Draw) for the function to work.
+RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, DrawToggleKey
+RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, BreakTimerKey
+RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, ToggleKey
+RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, LiveZoomToggleKey
+RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, EulaAccepted ; force user to reaccept EULA
+
 Haystack = %userZoomItPath%
 Needle = http://
 IfNotInString, Haystack, %Needle%
@@ -4522,9 +13156,9 @@ IfNotInString, Haystack, %Needle%
 		Msgbox, 262192, ERROR, File does not exist:`n`n%userZoomItPath%
 		Gui, 1:Font, CDefault,
 		GuiControl,1:Font,Txt,	
-		GuiControl,1:,Txt, AeroZoom %verAZ% ; v%verAZ%
+		GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
 		;Gui,-Disabled
-		Menu, ToolboxMenu, Enable, &Sysinternals ZoomIt
+		Menu, ToolboxMenu, Enable, &Enable ZoomIt
 		return
 	}
 	FileCopy, %userZoomItPath%, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4533,43 +13167,1244 @@ IfNotInString, Haystack, %Needle%
 		Msgbox, 262192, ERROR, File copy failed:`n`n%userZoomItPath%`n`nEnsure destination is not locked.
 		Gui, 1:Font, CDefault,
 		GuiControl,1:Font,Txt,	
-		GuiControl,1:,Txt, AeroZoom %verAZ% ; v%verAZ%
+		GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
 		;Gui,-Disabled
-		Menu, ToolboxMenu, Enable, &Sysinternals ZoomIt
+		Menu, ToolboxMenu, Enable, &Enable ZoomIt
 		return
 	}
 	goto, SkipZoomItDownload
 }
 GuiControl,1:Disable,Bye
+if not GuideDisabled
+	Msgbox, 262208, IMPORTANT, Please do not close or use AeroZoom during download.`n`nIf you suspect the download failed and ZoomIt.exe (500+ KB) is corrupt (sign: strange errors during use), do a reset in Tool > Preferences > Advanced Options.`n`nAlternatively, you can manually delete or put ZoomIt.exe into:`n`n%A_WorkingDir%\Data
 GuiControl,1:,Txt,- Downloading -
-; The followings need to be the default hotkeys, i.e. Ctrl+3 (Timer) and Ctrl+2 (Draw) for the function to work.
-RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, DrawToggleKey
-RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, BreakTimerKey
-RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, ToggleKey
-RegDelete, HKEY_CURRENT_USER, Software\Sysinternals\ZoomIt, EulaAccepted ; force user to reaccept EULA
+Gui, 1:-AlwaysOnTop
 ;Gui,+Disabled ; To prevent user from moving panel. Now allow commented user to do so as download may take long.
-UrlDownloadToFile, %userZoomItPath%, %A_WorkingDir%\Data\ZoomIt.exe
+RunWait, "%A_WorkingDir%\Data\3rdparty\wget.exe" -U "Mozilla/5.0 (Windows; U; Windows NT 5.1; en-US; rv:1.7) Gecko/20040613 Firefox/0.8.0+" --output-document="%A_WorkingDir%\Data\ZoomIt.exe" "%userZoomItPath%"
+;UrlDownloadToFile, %userZoomItPath%, %A_WorkingDir%\Data\ZoomIt.exe
 if (errorlevel<>0) {
 	Msgbox, 262192, AeroZoom, Cannot download the file. Check Internet connection.`n`nYou may also manually put zoomit.exe into:`n`n%A_WorkingDir%\Data
+	FileDelete, %A_WorkingDir%\Data\ZoomIt.exe
 	Gui, 1:Font, CDefault,
 	GuiControl,1:Font,Txt,	
-	GuiControl,1:,Txt, AeroZoom %verAZ% ; v%verAZ%
+	GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
 	;Gui,-Disabled
 	GuiControl,1:Enable,Bye
-	Menu, ToolboxMenu, Enable, &Sysinternals ZoomIt
+	Menu, ToolboxMenu, Enable, &Enable ZoomIt
+	If onTopBit
+		Gui, 1:+AlwaysOnTop
 	return
 }
+If onTopBit
+	Gui, 1:+AlwaysOnTop
 SkipZoomItDownload:
 Gui, 1:Font, CDefault,
 GuiControl,1:Font,Txt,	
-Menu, ToolboxMenu, Enable, &Sysinternals ZoomIt
-GuiControl,1:,Txt, AeroZoom %verAZ% ; v%verAZ%
+Menu, ToolboxMenu, Enable, &Enable ZoomIt
+GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
 GuiControl,1:Enable,Bye
 ;Gui,-Disabled
-Msgbox, 262144, AeroZoom, Success.`n`nZoomIt will run in system tray alongside AeroZoom from now on.`n`n[Timer] and [Draw] are now available as buttons on the panel.`nConfigure their options in ZoomIt's tray icon or Tool > ZoomIt Options.`n`nStill zoom can be triggered/toggled by holding [Middle] mouse button for a specified time set in Tool > Advanced Options. Note it only works when zoomed out. If zoomed in, holding [Middle] triggers Full Screen Preview feature instead.`n`nFor usage and help, see '? > Quick Instructions > ZoomIt'.
+Msgbox, 262144, AeroZoom, Success.`n`nZoomIt will run in system tray alongside AeroZoom from now on.`n`nFunctions of ZoomIt such as pen color are accessible with slider and buttons on the AeroZoom Panel. Enable/disable this feature (ZoomIt Panel) anytime by clicking the small 'zoom' button near the bottom of the panel.`n`nElastic still zoom is also available now. You may press [Shift+Caps Lock] to try it after clicking OK. (Note: Elastic live zoom [Ctrl+Caps Lock] requires Vista or later.)`n`nYou may also define hotkeys to access any ZoomIt functions more conveniently at 'Tool > Preferences > Custom Hotkeys.`n`nStill/Live Zoom of ZoomIt is automatically used for wheel-zoom on systems without Aero (Windows 7 Home Basic/Starter) or older systems (Vista/XP).`n`nFor usage and help, press [Win]+[Alt]+[Q] anytime, or go to '? > Quick Instructions > ZoomIt'.
 skipEulaChk=1
 ZoomItFirstRun=1
 goto, ZoomIt
+return
+
+ZoomItGuidance:
+if not GuideDisabled
+{
+	Msgbox, 262144, This message will only be shown once, For first-timers, the hotkeys of ZoomIt have been remapped the same in all modes. Just remember: To adjust, [Modifier]+[Wheel-up/down]. To exit, [Modifier]+[Middle]. To leave a sub mode, [Esc]/right-click. (For Live Zoom, holding the modifier is required; for Still Zoom, it is optional.)`n`nCurrent modifier: %modDisp%`n`nAfter clicking OK, a list of all keyboard shortcuts of ZoomIt will be presented for once. It can be viewed anytime at '? > Quick Instructions > ZoomIt', or by pressing [Win]+[Alt]+[Q], Z.
+	gosub, ZoomItInstButton
+	ZoomItGuidance = 1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomItGuidance, 1
+}
+Sleep, 500
+return
+
+ExportConfig:
+gosub, configGuidance
+ExportPath=
+Gui, 1:-AlwaysOnTop
+FileSelectFile, ExportPath, S16, Data\ConfigBackup\ManualBackup.reg, Export config file to, Registry (*.reg)
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if ExportPath
+	Run, "%windir%\regedit.exe" /E "%ExportPath%" "HKEY_CURRENT_USER\Software\WanderSick\AeroZoom", ,min
+return
+
+ImportConfig:
+gosub, configGuidance
+ImportPath=
+Gui, 1:-AlwaysOnTop
+FileSelectFile, ImportPath, , Data\ConfigBackup\AutoBackup.reg, Import config file from, Registry (*.reg)
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if ImportPath
+{
+	IfExist, %ImportPath%
+	{
+		RunWait, "%windir%\system32\reg.exe" import "%ImportPath%" , ,min
+	}
+	Else
+	{
+		Msgbox, 262192, ERROR, File does not exist.
+		return
+	}
+} else {
+	return
+}
+Msgbox, 262208, AeroZoom, AeroZoom will now restart to apply new settings.
+; Save last AZ window position before exit so that it shows the GUI after restart
+WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
+GoSub, CloseMagnifier
+restartRequired=
+reload
+return
+
+AutoConfigBackup:
+; auto config backup
+If EnableAutoBackup
+	Run, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\ConfigBackup\Day%A_DD%_%A_OSVersion%_%A_ComputerName%_%A_UserName%.reg" "HKEY_CURRENT_USER\Software\WanderSick\AeroZoom", ,min
+return
+
+MSPaint:
+IfWinExist, ahk_class MSPaintApp
+	WinActivate
+else
+	Run,"%windir%\system32\mspaint.exe",,
+;Gui, %guiDestroy%
+If onTopBit
+{
+	WinWait, ahk_class MSPaintApp,,3 ; Loop to ensure to wait until the program is run before setting it to Always on Top 
+	WinSet, AlwaysOnTop, on, ahk_class MSPaintApp
+}
+return
+
+Notepad:
+IfWinExist, ahk_class Notepad
+	WinActivate
+else
+	Run,"%windir%\system32\notepad.exe",,
+;Gui, %guiDestroy%
+If onTopBit
+{
+	WinWait, ahk_class Notepad,,3
+	WinSet, AlwaysOnTop, on, ahk_class Notepad
+}
+return
+
+WordPad:
+IfWinExist, ahk_class WordPadClass
+	WinActivate
+else
+{
+	IfExist, %ProgramFiles%\Windows NT\Accessories\wordpad.exe
+		Run, %ProgramFiles%\Windows NT\Accessories\wordpad.exe
+	IfNotExist, %ProgramFiles%\Windows NT\Accessories\wordpad.exe ; for vista's file virtualization
+	{
+		IfExist, C:\Program Files\Windows NT\Accessories\wordpad.exe
+			Run, C:\Program Files\Windows NT\Accessories\wordpad.exe
+	}
+}
+;Gui, %guiDestroy%
+If onTopBit
+{
+	WinWait, ahk_class WordPadClass,,3
+	WinSet, AlwaysOnTop, on, ahk_class WordPadClass
+}
+return
+
+mscalc:
+IfWinExist, ahk_class %calcClass%
+	WinActivate
+else
+	Run,"%windir%\system32\calc.exe",,
+;Gui, %guiDestroy%
+If onTopBit
+{
+	WinWait, ahk_class %calcClass%,,3 ; Loop to ensure to wait until the program is run before setting it to Always on Top 
+	WinSet, AlwaysOnTop, on, ahk_class %calcClass%
+}
+return
+
+configGuidance:
+If not configGuidance
+{
+	if not GuideDisabled
+	{
+		Msgbox, 262144, This message will only be shown once, While the program of AeroZoom is portable, its settings are specific to each PC, so that incompatibility between different Windows versions can be prevented. In case you really want to use the old settings, the automatic backup may be used. AeroZoom automatically backs up its settings up to last 30 days on exit (for user accounts with admin rights only) in the following folder:`n`n%A_WorkingDir%\Data\ConfigBackup\`n`nYou can import them at 'Az > Configuration File > Import Settings'.`nOr, manually export them anytime at 'Configuration File > Export Settings'.`n`nNote: If possible, do not import settings from a different Windows version. In any case, AeroZoom tries it best to avoid misbehavior.
+		configGuidance = 1
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, configGuidance, 1
+	}
+}
+return
+
+;unicode (non-ANSI) version of AutoHotKey is required for searching Chinese texts
+Google:
+IfInString, A_ThisHotkey, LButton
+	SendInput {LButton 1}^c ; send once only for Left click to make it double click
+Else
+	SendInput {LButton 2}^c
+Sleep, %delayButton%
+Run, http://%googleUrl%/search?&q=%clipboard%
+return
+
+GoogleHighlight:
+SendInput ^c
+Sleep, %delayButton%
+Run, http://%googleUrl%/search?&q=%clipboard%
+return
+
+GoogleClipboard:
+Sleep, %delayButton%
+Run, http://%googleUrl%/search?&q=%clipboard%
+return
+
+SpeakIt:
+IfNotExist, %A_WorkingDir%\Data\NirCmd.exe
+	Goto, NirCmdDownloadAlt
+IfInString, A_ThisHotkey, LButton
+	SendInput {LButton 1}^c ; send once only for Left click to make it double click
+Else
+	SendInput {LButton 2}^c
+Sleep, %delayButton%
+Run, "%A_WorkingDir%\Data\NirCmd.exe" speak text %clipboard%,,min ; min is required to avoid nircmd help dialog from prompting at times
+return
+
+SpeakHighlight:
+IfNotExist, %A_WorkingDir%\Data\NirCmd.exe
+	Goto, NirCmdDownloadAlt
+SendInput ^c
+Sleep, %delayButton%
+Run, "%A_WorkingDir%\Data\NirCmd.exe" speak text "%clipboard%",,min
+return
+
+SpeakClipboard:
+IfNotExist, %A_WorkingDir%\Data\NirCmd.exe
+	Goto, NirCmdDownloadAlt
+Sleep, %delayButton%
+Run, "%A_WorkingDir%\Data\NirCmd.exe" speak text "%clipboard%",,min
+return
+
+MonitorOff:
+IfNotExist, %A_WorkingDir%\Data\NirCmd.exe
+	Goto, NirCmdDownloadAlt
+Run, "%A_WorkingDir%\Data\NirCmd.exe" monitor off,,min
+return
+
+OpenTray:
+Run, "%A_WorkingDir%\Data\OpenTray.exe"
+return
+
+AlwaysOnTop:
+Winset, AlwaysOnTop, Toggle, A
+return
+
+WebTimer:
+RegRead,WebTimer1Msg,HKCU,Software\WanderSick\AeroZoom,WebTimer1Msg
+if errorlevel
+{
+	if not GuideDisabled
+	{
+		Msgbox, 262208, This message will be shown once only, Aero Timer Web is a beautiful timer web app by Chinese developer YuAo (www.imyuao.com)`n`nInternet connection is required for use.
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WebTimer1Msg, 1
+	}
+}
+Run, http://aerotimer.com
+return
+
+TimerTab:
+RegRead,WebTimer2Msg,HKCU,Software\WanderSick\AeroZoom,WebTimer2Msg
+if errorlevel
+{
+	if not GuideDisabled
+	{
+		Msgbox, 262208, This message will be shown once only, Timer Tab is a multi-use web app (stopwatch + countdown timer + alarm clock) by developer Romuald Brillout (www.brillout.com)`n`nIt can be used online or offline with Google Chrome or Chrome Frame for IE.
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WebTimer2Msg, 1
+	}
+}
+Run, www.timer-tab.com
+return
+
+ElasticZoom:
+Process, Close, ZoomPad.exe ; prevent zoompad frame from appearing in zoomit
+process, close, osd.exe ; prevent osd from showing
+if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) { ; elastic zoom with zoomit live zoom
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	IfWinExist, ahk_class MagnifierClass ; ZoomIt Live Zoom
+	{
+		sendinput ^{Up} ; zoom deeper if already in live zoom
+	} else {
+		sendinput ^4
+	}
+		KeyWait %hotkeyMod%
+		sendinput ^4
+} else if (OSver<6 OR zoomitStill) { ; elastic zoom with zoomit still zoom
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	IfWinExist, ahk_class ZoomitClass ; ZoomIt Still Zoom
+	{
+		sendinput {esc} ; exit if already in zoom
+	} else {
+		WinHide, AeroZoom Panel
+		sendinput ^1
+		WinWait, ahk_class ZoomitClass,,5
+		gosub, ZoomItColor
+		KeyWait %hotkeyMod%
+		sendinput {esc}
+		WinShow, AeroZoom Panel
+	}
+} else if (OSver>6) {
+	SendInput #{NumpadAdd} ; elastic zoom with win 7 magnifier
+	KeyWait %hotkeyMod%
+	SendInput #{NumpadSub}
+}
+return
+
+ElasticStillZoom:
+; elastic zoom with zoomit still zoom
+Process, Exist, zoomit.exe
+If not errorlevel
+{
+	Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+	return
+}
+IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+	goto, zoomit
+IfWinExist, ahk_class ZoomitClass ; ZoomIt Still Zoom
+{
+	sendinput {esc} ; exit if already in zoom
+} else {
+	Process, Close, ZoomPad.exe ; prevent zoompad frame from appearing in zoomit
+	process, close, osd.exe ; prevent osd from showing in 'picture'
+	WinHide, AeroZoom Panel
+	sendinput ^1
+	WinWait, ahk_class ZoomitClass,,5
+	gosub, ZoomItColor
+	KeyWait %hotkeyMod%
+	sendinput {esc}
+	WinShow, AeroZoom Panel
+}
+return
+
+ZoomFaster: ; this needs to perform better before it can promoted
+if (OSver<6.1) {
+	return
+}
+
+IfWinExist, AeroZoom Panel
+	ExistAZ=1
+RegRead,zoomIncRaw,HKCU,Software\Microsoft\ScreenMagnifier,ZoomIncrement
+if (zoomIncRaw=0x19) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 2
+	zoomInc=2
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x32
+} else if (zoomIncRaw=0x32) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 3
+	zoomInc=3
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
+} else if (zoomIncRaw=0x64) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 4
+	zoomInc=4
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x96
+} else if (zoomIncRaw=0x96) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 5
+	zoomInc=5
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0xc8
+} else if (zoomIncRaw=0xc8) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 6
+	zoomInc=6
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x190
+}
+ExistAZ=
+
+; check if a last magnifier window is available and record its status
+; so that after it restores it will remain hidden/minimized/normal
+
+; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
+; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
+Process, Exist, magnify.exe
+If errorlevel
+{
+	IfWinExist, ahk_class MagUIClass
+	{
+		WinGet, chkMin, MinMax, ahk_class MagUIClass
+		if (chkMin<0) { ; minimized
+			hideOrMinLast=2 ; minimized
+		} else {
+			hideOrMinLast=3 ; normal
+		}
+	} else {
+		hideOrMinLast=1 ; hidden
+	}
+	GoSub, CloseMagnifier ; !!!!!! If magnifier is running, rerun Magnifier to apply the setting
+	sleep, %delayButton%
+	Run,"%windir%\system32\magnify.exe",,Min
+} else {
+	hideOrMinLast= ; if not defined, use default settings
+}
+
+Gosub, MagWinRestore
+return
+
+ZoomSlower:
+if (OSver<6.1) {
+	return
+}
+IfWinExist, AeroZoom Panel
+	ExistAZ=1
+	
+RegRead,zoomIncRaw,HKCU,Software\Microsoft\ScreenMagnifier,ZoomIncrement
+if (zoomIncRaw=0x32) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 1
+	zoomInc=1
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x19
+} else if (zoomIncRaw=0x64) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 2
+	zoomInc=2
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x32
+} else if (zoomIncRaw=0x96) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 3
+	zoomInc=3
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
+} else if (zoomIncRaw=0xc8) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 4
+	zoomInc=4
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x96
+} else if (zoomIncRaw=0x190) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 5
+	zoomInc=5
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0xc8
+}
+ExistAZ=
+
+; check if a last magnifier window is available and record its status
+; so that after it restores it will remain hidden/minimized/normal
+
+; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
+; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
+Process, Exist, magnify.exe
+If errorlevel
+{
+	IfWinExist, ahk_class MagUIClass
+	{
+		WinGet, chkMin, MinMax, ahk_class MagUIClass
+		if (chkMin<0) { ; minimized
+			hideOrMinLast=2 ; minimized
+		} else {
+			hideOrMinLast=3 ; normal
+		}
+	} else {
+		hideOrMinLast=1 ; hidden
+	}
+	GoSub, CloseMagnifier ; !!!!!! If magnifier is running, rerun Magnifier to apply the setting
+	sleep, %delayButton%
+	Run,"%windir%\system32\magnify.exe",,Min
+} else {
+	hideOrMinLast= ; if not defined, use default settings
+}
+Gosub, MagWinRestore
+return
+
+RunUACoff:
+RunWait, *Runas "%A_WorkingDir%\Data\DisableUAC.exe" ; disable UAC
+If (errorlevel=100) { ; if success and reboot is pending
+	Exitapp
+}
+return
+
+RunAsAdmin:
+Gui, 1:Font, CRed, 
+GuiControl,1:Font,Txt,
+GuiControl,1:,Txt,- Please Wait -
+; GoSub, CloseMagnifier ; this fails under limited acc with UAC on
+Process, Exist, magnify.exe
+if errorlevel
+	Msgbox, 262192, AeroZoom, Please locate Magnifier and close it now, then press OK to continue.
+Run, *Runas "%A_WorkingDir%\AeroZoom.exe"
+Exitapp
+return ; this is unneeded
+
+TogglePaintKill:
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
+	return
+}
+RegRead,legacyKill,HKCU,Software\WanderSick\AeroZoom,legacyKill
+if (legacyKill=1) {
+	legacyKill=2
+	GuiControl,,KillMagnifier,&Paint
+	Menu, MiscToolsMenu, Check, Legacy: Change Kill to Paint
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, legacyKill, 2
+} else {
+	legacyKill=1
+	GuiControl,,KillMagnifier,Kil&l
+	Menu, MiscToolsMenu, Uncheck, Legacy: Change Kill to Paint
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, legacyKill, 1
+}
+
+;Msgbox, 262208, AeroZoom, AeroZoom will now restart to apply new settings.
+; Save last AZ window position before exit so that it shows the GUI after restart
+;WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+;RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
+;RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
+;RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
+;GoSub, CloseMagnifier
+;restartRequired=
+;reload
+
+return
+
+ZoomItLive:
+if zoomitLive
+{
+	zoomitLive=
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLive, 0
+	Menu, ToolboxMenu, Uncheck, Wheel with ZoomIt (&Live)
+	IfWinExist, ahk_class MagnifierClass ; restore zoom level (if zoomed in)
+	{
+		sendinput ^4 ; Side-note: WinActivate unzooms too!
+	}
+} else {
+	gosub, ZoomItLiveMsg
+	Process, Close, magnify.exe ; cursor would be gone if magnifier is running (bug). and who needs 2 magnifiers at the same time?
+	zoomitLive=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLive, 1
+	Menu, ToolboxMenu, Check, Wheel with ZoomIt (&Live)
+	zoomitStill=
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitStill, 0
+	Menu, ToolboxMenu, Uncheck, Wheel with ZoomIt (&Still)
+	gosub, resetZoom ; restore zoom level (if zoomed in)
+	Process, Exist, ZoomIt.exe
+	if not errorlevel
+		goto, zoomit
+}
+return
+
+ZoomitStill:
+if zoomitStill
+{
+	zoomitStill=
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitStill, 0
+	Menu, ToolboxMenu, Uncheck, Wheel with ZoomIt (&Still)
+	IfWinExist, ahk_class ZoomitClass ; restore zoom level (if zoomed in)
+	{
+		sendinput {esc}
+	}
+} else {
+	zoomitStill=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitStill, 1
+	Menu, ToolboxMenu, Check, Wheel with ZoomIt (&Still)
+	zoomitLive=
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLive, 0
+	Menu, ToolboxMenu, Uncheck, Wheel with ZoomIt (&Live)
+	gosub, resetZoom ; restore zoom level (if zoomed in)
+	Process, Exist, ZoomIt.exe
+	if not errorlevel
+		goto, zoomit
+}
+return
+
+CloseMagnifier:
+Process, Exist, magnify.exe
+if errorlevel
+{
+	if (OSver<6) ; xp
+	{
+		IfExist, %windir%\system32\taskkill.exe ; not for xp home
+		{
+			RunWait, "%windir%\system32\taskkill.exe" /im magnify.exe,,Min
+		}
+		Else ;supports non-eng systems
+		{
+			;WinClose, ahk_class #32770, 2nd focus ; this is unreliable as the hidden texts is differrent in non-en systems
+			WinClose, ahk_class #32770 ; this may cloose non-magnifier windows too, beware.
+		}
+		Process, WaitClose, magnify.exe, 5 ; required to ensure it has exited reliably
+	} else {
+		Process, Close, magnify.exe ; (not good for xp as it leaves empty space at the top)
+	}
+}
+return
+
+MagWinBeforeRestore:
+; check if a last magnifier window is available and record its status
+; so that after it restores it will remain hidden/minimized/normal
+
+; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
+; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
+if (OSver>6) {
+	Process, Exist, magnify.exe
+	If errorlevel
+	{
+		IfWinExist, ahk_class MagUIClass
+		{
+			WinGet, chkMin, MinMax, ahk_class MagUIClass
+			if (chkMin<0) { ; minimized
+				hideOrMinLast=2 ; minimized
+			} else {
+				hideOrMinLast=3 ; normal
+			}
+		} else {
+			hideOrMinLast=1 ; hidden
+		}
+	} else {
+		hideOrMinLast= ; if not defined, use default settings
+	}
+}
+return
+
+MagWinRestore:
+
+If (OSver>6) {
+	Process, Exist, magnify.exe
+	if errorlevel ; without this clicking the slider takes a long time to apply.
+		WinWait, ahk_class MagUIClass,,3 
+	; Hide or minimize or normalize magnifier window
+	If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
+		if (hideOrMin=1) {
+			WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
+			WinHide, ahk_class MagUIClass
+		} else if (hideOrMin=2) {
+			WinMinimize, ahk_class MagUIClass
+		}
+	} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
+		WinMinimize, ahk_class MagUIClass
+		WinHide, ahk_class MagUIClass
+	} else if (hideOrMinLast=2) {
+		WinMinimize, ahk_class MagUIClass
+	}
+}
+return
+
+CaptureOptions:
+Gui, 10:+owner1
+Gui, 10:+ToolWindow
+Gui, 10:Font, s8, Tahoma
+
+Gui, 10:Add, Text, x22 y133 w110 h20 , Default snip type
+Gui, 10:Add, DropDownList, x170 y130 w82 h20 R4 +AltSubmit vSnipMode Choose%SnipMode%, Free-form|Rectangular|Window|Screen
+Gui, 10:Add, Text, x22 y163 w120 h20 , Format for 'Save to Disk'
+;if SnipToClipboard ; if checkbox was checked
+;{
+;	Checked=Checked1
+;}
+;else
+;{
+;	Checked=Checked0
+;}
+;Gui, 10:Add, CheckBox, %Checked% -Wrap x142 y30 w110 h20 vSnipToClipboard, Save to &Clipboard
+
+SnipToDiskCheckbox=%NirCmd%
+if SnipToDiskCheckbox ; if checkbox was checked
+{
+	Checked=Checked1
+	CheckboxDisable=
+}
+else
+{
+	Checked=Checked0
+	CheckboxDisable=+Disabled
+}
+
+Gui, 10:Add, CheckBox, %Checked% -Wrap x22 y30 w120 h20 gSnipToDiskCheckbox vSnipToDiskCheckbox, Save to &Disk
+Gui, 10:Add, Edit, %CheckboxDisable% x22 y50 w180 h20 -Multi -WantTab -WantReturn vSnipSaveDir, %SnipSaveDir%
+Gui, 10:Add, Button, %CheckboxDisable% x202 y49 w50 h22 g10ButtonBrowse1 v10ButtonBrowse1Temp, &Browse
+Gui, 10:Add, DropDownList, %CheckboxDisable% x192 y160 w60 h20 R4 +AltSubmit vSnipSaveFormatNo Choose%SnipSaveFormatNo%, BMP|GIF|JPEG|TIFF|PNG
+if PrintScreenEnhanceCheckbox ; if checkbox was checked
+{
+	Checked=Checked1
+}
+else
+{
+	Checked=Checked0
+}
+Gui, 10:Add, CheckBox, %Checked% %CheckboxDisable% -Wrap x22 y340 w230 h20 gPrintScreenEnhanceCheckbox vPrintScreenEnhanceCheckbox, &Enhance Print Screen button*
+Gui, 10:Add, GroupBox, x12 y10 w250 h210 , Before capture
+Gui, 10:Add, Text, x22 y192 w150 h20 , Delay before capture (in ms)
+Gui, 10:Add, Edit, x192 y190 w60 h20 +Center +Limit5 -Multi +Number -WantTab -WantReturn vSnipDelayTemp,
+Gui, 10:Add, UpDown, x224 y190 w18 h20 vSnipDelay Range0-99999, %SnipDelay%
+Gui, 10:Add, GroupBox, x12 y230 w250 h100 , After capture
+if SnipRunBeforeCommandCheckbox ; if checkbox was checked
+{
+	Checked=Checked1
+	CheckboxDisable=
+}
+else
+{
+	Checked=Checked0
+	CheckboxDisable=+Disabled
+}
+Gui, 10:Add, CheckBox, %Checked% -Wrap x22 y80 w230 h20 gSnipRunBeforeCommandCheckbox vSnipRunBeforeCommandCheckbox, &Run a file/command
+Gui, 10:Add, Edit, %CheckboxDisable% x22 y100 w180 h20 -Multi -WantTab -WantReturn vSnipRunBeforeCommand, %SnipRunBeforeCommand%
+Gui, 10:Add, Button, %CheckboxDisable% x202 y99 w50 h22 g10ButtonBrowse3 v10ButtonBrowse3Temp, &Browse
+if SnipRunCommandCheckbox ; if checkbox was checked
+{
+	Checked=Checked1
+	CheckboxDisable=
+}
+else
+{
+	Checked=Checked0
+	CheckboxDisable=+Disabled
+}
+Gui, 10:Add, CheckBox, %Checked% -Wrap x22 y250 w130 h20 gSnipRunCommandCheckbox vSnipRunCommandCheckbox, &Run a file/command
+Gui, 10:Add, Edit, %CheckboxDisable% x22 y270 w180 h20 -Multi -WantTab -WantReturn vSnipRunCommand, %SnipRunCommand%
+Gui, 10:Add, Button, %CheckboxDisable% x202 y269 w50 h22 g10ButtonBrowse2 v10ButtonBrowse2Temp, &Browse
+if SnipPasteCheckbox ; if checkbox was checked
+{
+	Checked=Checked1
+}
+else
+{
+	Checked=Checked0
+}
+Gui, 10:Add, CheckBox, %Checked% %CheckboxDisable% -Wrap x160 y250 w100 h20 vSnipPasteCheckbox, &Paste capture
+Gui, 10:Add, Text, x22 y303 w130 h20 , Snipping Tool Editor state
+Gui, 10:Add, DropDownList, x172 y300 w80 h20 R3 +AltSubmit vSnipWin Choose%SnipWin%, Hide|Minimize|Show
+If SnippingToolExists
+{
+	Gui, 10:Add, Button, x82 y370 w60 h30 Default v10OKtemp, &OK
+	Gui, 10:Add, Button, x142 y370 w60 h30 v10Canceltemp, &Cancel
+	Gui, 10:Add, Button, x202 y370 w60 h30 gSnippingToolOptions vSettingsTemp, &More
+} else {
+	Gui, 10:Add, Button, x142 y370 w60 h30 Default v10OKtemp, &OK
+	Gui, 10:Add, Button, x202 y370 w60 h30 v10Canceltemp, &Cancel
+}
+SnipSaveDir_TT := "Folder to save captures"
+SnipToClipboard_TT := "Save to clipboard (Snipping Tool)"
+SnipToDiskCheckbox_TT := "Save capture as file automatically"
+10ButtonBrowse1Temp_TT := "Browse for a folder"
+SnipSaveFormatNo_TT := "Save in this picture format"
+SnipDelayTemp_TT := "Delay before the shooting action (1 second = 1000 milliseconds)"
+SnipDelay_TT := "Delay before the shooting action (in milliseconds)"
+SnipRunBeforeCommandCheckbox_TT := "Run a command/file (until it exits) before capture"
+SnipRunBeforeCommand_TT := "Type a command or file path"
+10ButtonBrowse3Temp_TT := "Browse for a file"
+SnipRunCommandCheckbox_TT := "Run a command/file after capture"
+SnipRunCommand_TT := "Type a command or file path"
+10ButtonBrowse2Temp_TT := "Browse for a file"
+SnipWin_TT := "If you don't use the editor, hide/minimize it after capture; or show it if you do."
+PrintScreenEnhanceCheckbox_TT := "Enhance PrintScreen with 'Save to Disk', 'Run a file/command (after capture)' and 'Paste capture'."
+10OKtemp_TT := "Click to save changes"
+10CancelTemp_TT := "Click to save changes"
+SettingsTemp_TT := "Snipping Tool Program Settings"
+Gui, 10:Show, h411 w276, AeroSnip Options
+If !SnippingToolExists
+{
+	GuiControl,10:Disable, SnipMode
+	GuiControl,10:Disable, SnipDelayTemp
+	GuiControl,10:Disable, SnipRunBeforeCommandCheckbox
+	GuiControl,10:Disable, SnipWin
+	GuiControl,10:Disable, PrintScreenEnhanceCheckbox
+	RegRead,PrintScreenMsg2,HKCU,Software\WanderSick\AeroZoom,PrintScreenMsg2
+	if errorlevel
+	{
+		if not GuideDisabled
+		{
+			Msgbox,262208,This message will only be shown once,Snipping Tool is not available for your system, therefore some unavailable options have been greyed out.`n`nOnly the following are configurable:`n`n1. Save to Disk`n2. Run a command or file (after capture)`n3. Paste capture
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, PrintScreenMsg2, 1
+		}
+	}
+}
+Return
+
+SnipToDiskCheckbox:
+GuiControl,10:Enable, SnipSaveDir
+GuiControl,10:Enable, 10ButtonBrowse1Temp
+GuiControl,10:Enable, SnipSaveFormatNo
+If SnippingToolExists
+	GuiControl,10:Enable, PrintScreenEnhanceCheckbox
+return
+
+SnipRunCommandCheckbox:
+GuiControl,10:Enable, SnipRunCommand
+GuiControl,10:Enable, 10ButtonBrowse2Temp
+GuiControl,10:Enable, SnipPasteCheckbox
+return
+
+SnipRunBeforeCommandCheckbox:
+GuiControl,10:Enable, SnipRunBeforeCommand
+GuiControl,10:Enable, 10ButtonBrowse3Temp
+return
+
+PrintScreenEnhanceCheckbox:
+RegRead,PrintScreenMsg,HKCU,Software\WanderSick\AeroZoom,PrintScreenMsg
+if errorlevel
+{
+	if not GuideDisabled
+	{
+		Msgbox,262208,This message will only be shown once,When this is turned on, the following settings will be effective for the Print Screen button.`n`n1. Save to Disk`n2. Run a command or file (after capture)`n3. Paste capture
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, PrintScreenMsg, 1
+	}
+}
+Gui, 10:Font, s8 Bold, Tahoma
+GuiControl,10:,SnipToDiskCheckbox,Save to &Disk
+GuiControl, 10:Font, SnipToDiskCheckbox
+GuiControl,10:,SnipPasteCheckbox,Paste capture
+GuiControl, 10:Font, SnipPasteCheckbox
+GuiControl,10:,SnipRunCommandCheckbox,&Run a file/command
+GuiControl, 10:Font, SnipRunCommandCheckbox
+Gui, 10:Font, s8 Bold, Tahoma
+return
+
+10ButtonBrowse1:
+Gui, 1:-AlwaysOnTop
+FileSelectFolder, SnipSaveDir, , 3, Select a folder to save captures
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if SnipSaveDir
+{
+	GuiControl,10:,SnipSaveDir,%SnipSaveDir%
+}
+return
+
+10ButtonBrowse2:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, SnipRunCommand, 3, , Select a file to run after capture
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if SnipRunCommand
+{
+	GuiControl,10:,SnipRunCommand,%SnipRunCommand%
+}
+return
+
+10ButtonBrowse3:
+Gui, 1:-AlwaysOnTop
+FileSelectFile, SnipRunBeforeCommand, 3, , Select a file to run before capture
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if SnipRunBeforeCommand
+{
+	GuiControl,10:,SnipRunBeforeCommand,%SnipRunBeforeCommand%
+}
+return
+
+SnippingToolOptions:
+SnippingToolSetting=1
+RegRead,SnippingToolSettingMsg,HKCU,Software\WanderSick\AeroZoom,SnippingToolSettingMsg
+if errorlevel
+{
+	if not GuideDisabled
+	{
+		Msgbox,262208,This message will only be shown once,Please do not disable 'Always copy snips to the Clipboard' setting if you use the 'Save to Disk' option.`n`nLoading may take a while, please be patient and do not press any button until the Options dialog shows.
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnippingToolSettingMsg, 1
+	}
+}
+Gui, Destroy
+gosub, SnippingTool
+WinWait, ahk_class #32770
+IfWinExist, Snipping Tool Options
+	WinWaitClose, Snipping Tool Options
+Else
+	WinWaitClose, ahk_class #32770
+WinShow, AeroZoom Panel
+return
+
+10ButtonOK:
+Gui, 1:-Disabled  ; Re-enable the main window
+Gui, Submit ; required to update the user-submitted variable
+Gui, Destroy
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipMode, %SnipMode%
+if (SwitchSlider=3) {
+	GuiControl,1:,SnipMode,%SnipMode%
+}
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipSaveFormatNo, %SnipSaveFormatNo%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipWin, %SnipWin%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipDelay, %SnipDelay%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, PrintScreenEnhanceCheckbox, %PrintScreenEnhanceCheckbox%
+;RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipToClipboard, %SnipToClipboard%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipRunBeforeCommandCheckbox, %SnipRunBeforeCommandCheckbox%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipRunCommandCheckbox, %SnipRunCommandCheckbox%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipPasteCheckbox, %SnipPasteCheckbox%
+
+if SnipSaveDir 
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipSaveDir, %SnipSaveDir%
+if SnipRunBeforeCommand
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipRunBeforeCommand, %SnipRunBeforeCommand%
+if SnipRunCommand
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipRunCommand, %SnipRunCommand%
+
+If (SnipSaveFormatNo=1) {
+	SnipSaveFormat=bmp
+} else if (SnipSaveFormatNo=2) {
+	SnipSaveFormat=gif
+} else if (SnipSaveFormatNo=3) {
+	SnipSaveFormat=jpg
+} else if (SnipSaveFormatNo=4) {
+	SnipSaveFormat=tiff
+} else {
+	SnipSaveFormat=png
+}
+
+If not NirCmd ; required to remove 0. otherwise the <> matching will not work sometimes.
+	NirCmd=
+if not SnipToDiskCheckbox 
+	SnipToDiskCheckbox=
+
+
+If (SnipToDiskCheckbox<>NirCmd) {
+	goto, NirCmd
+}
+return
+
+
+SnipFree:
+SnipModeOnce=1
+Goto, SnippingTool
+return
+
+SnipRect:
+SnipModeOnce=2
+Goto, SnippingTool
+return
+
+SnipWin:
+SnipModeOnce=3
+Goto, SnippingTool
+return
+
+SnipScreen:
+SnipModeOnce=4
+Goto, SnippingTool
+return
+
+EnsureAutoCopyToClipboard:
+; ensure this setting is not disabled externally in snipping tool if 'save to disk' is enabled
+If NirCmd
+{
+	RegRead,AutoCopyToClipboard,HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool,AutoCopyToClipboard
+	If not (AutoCopyToClipboard=0x1) {
+		Process, Exist, SnippingTool.exe
+		If errorlevel
+			Process, Close, SnippingTool.exe
+		RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\Windows\TabletPC\Snipping Tool, AutoCopyToClipboard, 0x1
+	}
+}
+return
+
+SnipBarUpdate: ; a g-label is required for the variable to update immediately
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipMode, %SnipMode%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipModeOSD, %SnipMode%
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomIncTextOSD
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomitColorOSD
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CaptureDiskOSD
+If (OSD=1)
+	Run, "%A_WorkingDir%\Data\OSD.exe"
+return
+
+CaptureDiskOSD:
+Gosub, NirCmd
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomIncTextOSD
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomitColorOSD
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipModeOSD
+If NirCmd
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CaptureDiskOSD, 1
+Else
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CaptureDiskOSD, 2
+If (OSD=1)
+	Run, "%A_WorkingDir%\Data\OSD.exe"
+return
+
+ZoomItColorPreview:
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomitColor, %ZoomitColor%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomitColorOSD, %ZoomitColor%
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomIncTextOSD
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, SnipModeOSD
+RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CaptureDiskOSD
+If (OSD=1)
+	Run, "%A_WorkingDir%\Data\OSD.exe"
+return
+
+ZoomItColor:
+If (ZoomitColor=1) {
+	sendinput r
+} else if (ZoomitColor=2) {
+	sendinput g
+} else if (ZoomitColor=3) {
+	sendinput b
+} else if (ZoomitColor=4) {
+	sendinput y
+} else if (ZoomitColor=5) {
+	sendinput p
+} else if (ZoomitColor=6) {
+	sendinput o
+}
+return
+
+ZoomitPanel:
+if zoomitPanel
+{
+	Gui, Font, s8 Norm, Arial
+	GuiControl,,ZoomItButton,&zoom
+	GuiControl, Font, ZoomItButton
+	Gui, Font, s10 Norm, Tahoma
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitPanel, 0
+	if (OSver<6.1) OR (OSver>=6.1 AND !A_IsAdmin AND EnableLUA) { ; reload is required to update the top 4 buttons as non-win-7 OSes dont get them.
+		Gui, 1:Font, CRed,
+		GuiControl,1:Font,Txt, ; to apply the color change
+		GuiControl,1:,Txt,- Please Wait -
+		GuiControl,Disable,Bye
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
+		reload
+		return
+	}
+	zoomitPanel=
+	GuiControl, Disable, ZoomItColor
+	GuiControl, Hide, ZoomItColor
+	If (OSver>=6.1) {
+		If !(!A_IsAdmin AND EnableLUA) { ; if Win 7 + Limited Account + UAC, Kill is impossible, so zoom speed slider is unavailable.
+			Menu, FileMenu, Uncheck, Switch to &Zoom Speed Slider
+		}
+		Menu, FileMenu, Uncheck, Switch to &Magnification Slider
+	}
+	If SnippingToolExists
+	{
+		Menu, FileMenu, Uncheck, Switch to &AeroSnip Slider
+	}
+	If (OSver<6.1) {
+		Menu, FileMenu, Uncheck, Switch to Capture-to-&Disk Slider
+	}
+	Menu, FileMenu, Rename, Disable ZoomIt &Panel, Enable ZoomIt &Panel
+	if (SwitchSlider=1) {
+		GuiControl, Enable, ZoomInc
+		GuiControl, Show, ZoomInc
+		Menu, FileMenu, Check, Switch to &Zoom Speed Slider
+	} else if (SwitchSlider=2) {
+		GuiControl, Enable, Magnification
+		GuiControl, Show, Magnification
+		Menu, FileMenu, Check, Switch to &Magnification Slider
+	} else if (SwitchSlider=3) {
+		GuiControl, Enable, SnipMode
+		GuiControl, Show, SnipMode
+		Menu, FileMenu, Check, Switch to &AeroSnip Slider
+	} else if (SwitchSlider=4) {
+		GuiControl, Enable, SnipSlider
+		GuiControl, Show, SnipSlider
+		Menu, FileMenu, Check, Switch to Capture-to-&Disk Slider
+	}
+	ZoomItButton_TT := "ZoomIt/Windows Magnifier Panel Switch"
+	if not (KeepSnip=1) { ; if KeepSnip is not set in the Advanced Options
+		If (OSver<6) OR (EditionID="HomeBasic" OR EditionID="Starter") {
+			GuiControl,, &Draw, &Paint
+		} else {
+			GuiControl,, &Draw, &Snip
+		}
+		if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
+			GuiControl,, Tim&er, &Paint
+			KillMagnifier_TT := "Kill magnifier process [Win+Shift+K]"
+		} else {
+			if (legacyKill=1) {
+				; Change text 'Timer' to 'Kill'
+				GuiControl,, Tim&er, Kil&l
+				;GuiControl,, Paus&e, Kil&l
+			} else {
+				GuiControl,, Tim&er, &Paint
+				;GuiControl,, Paus&e, &Paint
+			}
+			if (legacyKill=1) {
+				KillMagnifier_TT := "Kill magnifier process [Win+Shift+K]"
+			} else {
+				KillMagnifier_TT := "Create and edit drawings"
+			}
+		}
+		if (OSver<6 OR EditionID="HomeBasic" OR EditionID="Starter") {
+			Draw_TT := "Create and edit drawings"
+		} else {
+			Draw_TT := "Copy a portion of screen for annotation [Win+Alt+F/R/W/S]"
+		}
+		GuiControl,, ShowMagnifier, &Mag
+		ShowMagnifier_TT := "Show/hide magnifier [Win+Shift+``]"
+		GuiControl,, Color, Color &Inversion
+		Color_TT := "Turn on/off color inversion [Win+Alt+I]"
+		GuiControl,, Mouse, &Mouse %MouseCurrent% > %MouseNext%
+		Mouse_TT := "Follow the mouse pointer [Win+Alt+M]"
+		GuiControl,, Keyboard, &Keyboard %KeyboardCurrent% > %KeyboardNext%
+		Keyboard_TT := "Follow the keyboard focus [Win+Alt+K]"
+		GuiControl,, Text, Te&xt %TextCurrent% > %TextNext%
+		Text_TT := "Have magnifier follow the text insertion point [Win+Alt+T]"
+		GuiControl,, Calc, %customCalcMsg%
+		if not customCalcPath
+		{
+			if (customCalcMsg = "&Calc" OR customCalcMsg = "Calc" OR customCalcMsg = "C&alc" OR customCalcMsg = "Ca&lc" OR customCalcMsg = "Cal&c")
+			{
+				Calc_TT := "Show calculator" ; show tooltip only if the button is for launching the caluculator, not user-defined
+			}
+		}
+		GuiControl,, Type, %customTypeMsg%
+		if not customEdPath
+		{
+			if (customTypeMsg = "T&ype" OR customTypeMsg = "Type" OR customTypeMsg = "&Type" OR customTypeMsg = "Ty&pe" OR customTypeMsg = "Typ&e")
+			{
+				Type_TT := "Input text"
+			}
+		}
+	}
+} else {
+	if !zoomit
+		gosub, zoomit
+	; WinWaitClose, ZoomIt Enhancements Setup, , 3 ; to wait for gosub and not continue immediately
+	Gui, Font, s8 Bold, Arial
+	GuiControl,,ZoomItButton,&zoom
+	GuiControl, Font, ZoomItButton
+	Gui, Font, s10 Norm, Tahoma
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitPanel, 1
+	if (OSver<6.1) OR (OSver>=6.1 AND !A_IsAdmin AND EnableLUA) { ; reload is required to update the top 4 buttons as non-win-7 OSes (or Win7+Limited Mode+UAC) dont get them.
+		Gui, 1:Font, CRed,
+		GuiControl,1:Font,Txt, ; to apply the color change
+		GuiControl,1:,Txt,- Please Wait -
+		GuiControl,Disable,Bye
+		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosX, %lastPosX%
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, lastPosY, %lastPosY%
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, reload, 1
+		reload
+		return
+	}
+	zoomitPanel=1
+	If (OSver>=6.1) {
+		If !(!A_IsAdmin AND EnableLUA) { ; if Win 7 + Limited Account + UAC, Kill is impossible, so zoom speed slider is unavailable.
+			Menu, FileMenu, Uncheck, Switch to &Zoom Speed Slider
+		}
+		Menu, FileMenu, Uncheck, Switch to &Magnification Slider
+		GuiControl, Disable, ZoomInc
+		GuiControl, Hide, ZoomInc
+		GuiControl, Disable, Magnification
+		GuiControl, Hide, Magnification
+	} else {
+		Menu, FileMenu, Uncheck, Switch to Capture-to-&Disk Slider
+		GuiControl, Disable, SnipSlider
+		GuiControl, Hide, SnipSlider
+	}
+	If SnippingToolExists
+	{
+		Menu, FileMenu, Uncheck, Switch to &AeroSnip Slider
+		GuiControl, Disable, SnipMode
+		GuiControl, Hide, SnipMode
+	}
+	Menu, FileMenu, Rename, Enable ZoomIt &Panel, Disable ZoomIt &Panel
+	GuiControlGet, SliderExists, , ZoomItColor
+	if errorlevel ;if slider not created yet
+		Gui, Add, Slider, TickInterval1 Range1-6 x12 y3 w120 h25 vZoomItColor gZoomItColorPreview, %ZoomItColor%
+	Else
+		GuiControl, Enable, ZoomItColor
+		GuiControl, Show, ZoomItColor
+	ZoomItColor_TT := "Pen color: (1) Red / (2) Green / (3) Blue / (4) Yellow / (5) Pink / (6) Orange"
+	ZoomItButton_TT := "ZoomIt/Windows Magnifier Panel Switch"
+	if not (KeepSnip=1) { ; if KeepSnip is not set in the Advanced Options
+		if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
+			GuiControl,1:, &Paint, Tim&er
+		} else {
+			if (legacyKill=1) {
+				; Change text 'Kill' to 'Timer'
+				GuiControl,1:, Kil&l, Tim&er
+			} else {
+				GuiControl,1:, &Paint, Tim&er
+			}
+		}
+		If (OSver<6) OR (EditionID="HomeBasic" OR EditionID="Starter") {
+			GuiControl,1:, &Paint, &Draw
+		} else {
+			GuiControl,1:, &Snip, &Draw
+		}
+		KillMagnifier_TT := "ZoomIt: Break timer [Ctrl+3]"
+		Draw_TT := "ZoomIt: Draw [Ctrl+2]"
+		GuiControl,, Color, Zoom (&Still)
+		Color_TT := "ZoomIt: Still zoom [Ctrl+1]"
+		GuiControl,, Mouse, Zoom (&Live)
+		Mouse_TT := "ZoomIt: Live zoom [Ctrl+2]"
+		GuiControl,, Keyboard, Board (&White)
+		Keyboard_TT := "ZoomIt: White board [Ctrl+2, W]"
+		GuiControl,, Text, Board (&Black)
+		Text_TT := "ZoomIt: Black board [Ctrl+2, K]"
+		GuiControl,, Calc, &Help
+		Calc_TT := "ZoomIt: Hotkey list [Win+Alt+Q, Z]"
+		GuiControl,, ShowMagnifier, O&ption
+		ShowMagnifier_TT := "ZoomIt: ZoomIt Options"
+		GuiControl,, KillMagnifier, Tim&er
+		KillMagnifier_TT := "ZoomIt: Break timer [Ctrl+3]"
+		GuiControl,, Draw, &Draw ; Change text 'Snip' to 'Draw'	
+		Draw_TT := "ZoomIt: Draw [Ctrl+2]"
+		GuiControl,, Type, T&ype
+		Type_TT := "ZoomIt: Type [Ctrl+2, T]"
+	}
+}
+return
+
+ZoomItLiveMsg:
+If (OSver>=6.1 AND (EditionID="HomeBasic" OR EditionID="Starter")) ; no need to show the msg for win 7 home basic/starter
+	return
+RegRead,zoomitLiveMsg,HKCU,Software\WanderSick\AeroZoom,zoomitLiveMsg
+if errorlevel
+{
+	If (OSver>=6.1) AND !(!A_IsAdmin AND EnableLUA)
+	{
+		zoomitLiveTempMsg=`n`nAlso, there is a problem with the Full Screen view of Windows Magnifier and the Live Zoom mode of ZoomIt working together, where the cursor is lost after zooming out. As a workaround, AeroZoom will kill the magnifier (in affected situations only) right after 'Live Zoom' is triggered. (If you do want to use Live Zoom with AeroZoom on Windows 7, you may also go to 'Tool > Preferences > Advanced Options', uncheck 'Run Magnifier with AeroZoom'.)
+	}
+	If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic")
+		zoomitLiveTempMsg2=`n`nIf you are already using Windows 7 Home Premium (or better) and have Aero, it is suggested not using this as Windows 7 Magnifier's own full-screen zoom is already great.
+	if not GuideDisabled
+	{
+		Msgbox, 262208, This message will be shown once only, This option is not recommended for Windows 7 Home Premium or above, but Home Basic and Starter of Windows 7, and Home Premium and above editions of Vista.`n`nDue to the old magnifier in Vista or the lack of Aero in elementary OS editions, full-screen zoom is unavailable. However, you can use this so that AeroZoom adds wheel-zoom capability to ZoomIt's Live Zoom function which is full-screen and is usable on those platforms (where all 'elastic zoom' modes are also handled by ZoomIt).`n`nNote: A black screen may show if Aero is unavailable. In that case, please use 'Tool > Wheel with ZoomIt (Still)' instead.%zoomitLiveTempMsg2%%zoomitLiveTempMsg%
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLiveMsg, 1
+	}
+}
+return
+
+WorkaroundFullScrLiveZoom: ; solves the bug stated above by killing magnifier
+if (OSver>=6.1 AND EditionID<>"Home Basic" AND EditionID<>"Starter") {
+	RegRead,MagnificationMode,HKCU,Software\Microsoft\ScreenMagnifier,MagnificationMode
+	if (MagnificationMode=0x2) {
+		Process, Close, magnify.exe
+	}
+}
+return
+
+W7HBCantRun2MagMsg:
+If (OSver>=6.1 AND (EditionID="Starter" OR EditionID="HomeBasic")) ; if win7 home basic/starter, cannot have 2 magnifiers zoom in together
+{
+	If zoomitLive {
+		If not W7HBCantRun2MagMsg
+		{
+			if not GuideDisabled
+			{
+				Msgbox, 262208, Information (This message will only be shown once), 'Live Zoom' of ZoomIt is currently on. Running 2 magnifiers (ZoomIt and Windows Magnifier) together under Windows 7 Home Basic/Starter will cause problems, so it is disencouraged.`n`nIf you really need to use Windows Magnifier, please disable 'Live Zoom' first at 'Tool > Wheel-Zoom by ZoomIt."
+				W7HBCantRun2MagMsg=1
+				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, W7HBCantRun2MagMsg, 1
+			}
+			; Exit
+		}
+	}
+}
 return
 
 ; Code from AutoHotkey help on GUI
@@ -4599,6 +14434,15 @@ WM_MOUSEMOVE()
     return
 }
 
+;WinHide WinShow is preferred than below because unlike win7, 'bottom' is still in front of the desktop in vista/xp:
+
+;WinSet, Bottom,,AeroZoom Panel
+;...
+;If onTopBit
+;	WinSet, AlwaysOnTop, On, AeroZoom Panel
+;Else
+;	WinActivate, AeroZoom Panel
+
 ; Drag the borders to move the panel.
 ; http://www.autohotkey.com/forum/viewtopic.php?p=64185#64185 ; thanks to SKAN
 uiMove:
@@ -4609,4 +14453,4 @@ Return
 ; Run, mailto:wandersick+aerozoom@gmail.com?subject=AeroZoom %verAZ% Bug Report&body=Please describe your problem.
 ; return
 
-; AeroZoom by WanderSick | http://wandersick.blogspot.com
+; (c) Copyright 2009-2011 AeroZoom by wandersick | http://wandersick.blogspot.com
