@@ -1,67 +1,9 @@
-; AeroZoom by WanderSick | http://wandersick.blogspot.com
+; (c) Copyright 2009-2012 AeroZoom by Ning Ng (Wandersick) | http://wandersick.blogspot.com
 ;
 ; This is the Setup. See main script for more.
 ;
-; ------------------------------------------
-; Some unorganized notes for internal use:
-;
-; ** Compile this with AutoHotKey Basic (as it does not need to query WMI anymore)
-; ** RunAsHighest for ONLY this script and AeroZoom ahk. (All mod scripts w/o manifest)
-; So this setup.exe uses the current user's profile to install (in case of AsHighest/AsInvoker, not the elevated user's (in case of AsAdmin)
-; Running AeroZoom with admin rights is better under win7 (due to OS limitations). So the elevated user might share settings
-; with the standard user as both would share the same registry user hive that way. (This problem assumes running from a standard user account,
-; for admin accounts with/without UAC on, no problem.)
-;
-; For unattended install, set unattendAZ=1, see below or setup.exe /?
-; (Also, a MSI may be available on the web site above)
 
-; Uninstallation will automatically take place instead if an installed copy is found in %targetDir%
-; * No need to compile this with UAC RunAsAdmin manifest or name it setup.exe as the installation does not depend on admin rights *
-; * To name it setup.exe yet not get auto elevation in Standard User accounts, try asInvoker/asHighest. The latter elevates in admin
-;   accounts with UAC on, but the former does not (unless UAC is off, then admin rights always).
-
-; The following switches can be set by either setup.exe /unattendAZ=1 or, in a command prompt, set unattendAZ=1
-
-; /unattendAZ=1 : for unattended installation/uninstallation using setup.exe
-;                 (also used by menu 'Tool > Uninstall AeroZoom from this Computer' although it wont allow uninstallation)
-;                 to suspress all dialogs. no running executables is closed -- so that would fail if its trying to delete itself
-;                 so it doesnt do that. in that case it would prompt user to uninstall in Program and Features (i.e. below, unattendAZ=2)
-;            =2 : for uninstallation in Program and Features. will present uninstallation dialogs (attended)
-;                 to users when they uninstall using Program and Features.
-;                 cancelled --> the most obvious different from 1 is it includes using AT.exe to schedule deletion of this setup.exe
-;                 also it wont check for working directory
-;     undefined : for setup.exe to install/uninstall in attended mode. (most usual)
-
-; /programfiles : install into Program Files for all users
-
-; e.g. Setup.exe /unattendAZ=1 /programfiles
-
-	; MSI installer making steps: (cancelled as MSI created this way does not work with UAC on)
-	; 1. Embed these files in a batch file for Batch To Exe Converter 1.5: 
-	; AeroZoom_Task.bat, AeroZoom_Task_Body.xml 7z.exe, 7z.dll, AeroZoom.7z (the whole AeroZoom folder compressed), setup.exe (this ahk file after being compiled.)
-	; 2. Batch To Exe Converter Settings:
-	; Invisible application, Temporary directory (Submit current directory), Overwrite existing files
-	; 3. Batch file content:
-
-	; @echo off
-	; "setup.exe" /unattendAZ=1
-	; goto :EOF
-
-	; 4. AHK content: This file and uncomment the following line in around line 53
-	; RunWait, 7z.exe -y x AeroZoom.7z -o"%localappdata%\WanderSick\",%A_ScriptDir%
-	; Comment the following line around line 54
-	; FileCopyDir, %A_WorkingDir%, %localappdata%\WanderSick\AeroZoom, 1
-	
-	; 5. Use Exe To Msi Converter Free (1.0) by QwertyLabs to convert.
-	; Specify no switch
-	; Other tools/versions may not work without specific settings
-	; For v3.1, check 'Do not Register Package (suppress Uninstall)'
-	
-	; 6. Since v1 displays exe2msi and QwentyLabs as Product Name. Use Orca to correct it.
-	
-	; When creating an single-file installer, remove the missing component check below
-
-verAZ = 3.0
+verAZ = 3.1
 	
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
@@ -330,3 +272,91 @@ Process, Close, AeroZoom_Shift.exe
 Process, Close, AeroZoom_Win.exe
 Process, Close, ZoomPad.exe
 return
+
+; ------------------------------------------
+; Some unorganized notes for internal use:
+;
+; ** Compile this with AutoHotKey Basic (as it does not need to query WMI anymore)
+; ** RunAsHighest for ONLY this script and AeroZoom ahk. (All mod scripts w/o manifest)
+; So this setup.exe uses the current user's profile to install (in case of AsHighest/AsInvoker, not the elevated user's (in case of AsAdmin)
+; Running AeroZoom with admin rights is better under win7 (due to OS limitations). So the elevated user might share settings
+; with the standard user as both would share the same registry user hive that way. (This problem assumes running from a standard user account,
+; for admin accounts with/without UAC on, no problem.)
+;
+; For unattended install, set unattendAZ=1, see below or setup.exe /?
+; (Also, a MSI may be available on the web site above)
+
+; Uninstallation will automatically take place instead if an installed copy is found in %targetDir%
+; * No need to compile this with UAC RunAsAdmin manifest or name it setup.exe as the installation does not depend on admin rights *
+; * To name it setup.exe yet not get auto elevation in Standard User accounts, try asInvoker/asHighest. The latter elevates in admin
+;   accounts with UAC on, but the former does not (unless UAC is off, then admin rights always).
+
+; The following switches can be set by either setup.exe /unattendAZ=1 or, in a command prompt, set unattendAZ=1
+
+; /unattendAZ=1 : for unattended installation/uninstallation using setup.exe
+;                 (also used by menu 'Tool > Uninstall AeroZoom from this Computer' although it wont allow uninstallation)
+;                 to suspress all dialogs. no running executables is closed -- so that would fail if its trying to delete itself
+;                 so it doesnt do that. in that case it would prompt user to uninstall in Program and Features (i.e. below, unattendAZ=2)
+;            =2 : for uninstallation in Program and Features. will present uninstallation dialogs (attended)
+;                 to users when they uninstall using Program and Features.
+;                 cancelled --> the most obvious different from 1 is it includes using AT.exe to schedule deletion of this setup.exe
+;                 also it wont check for working directory
+;     undefined : for setup.exe to install/uninstall in attended mode. (most usual)
+
+; /programfiles : install into Program Files for all users
+
+; e.g. Setup.exe /unattendAZ=1 /programfiles
+
+	; OLD MSI installer making steps: (cancelled as MSI created this way does not work with UAC on)
+	
+	; 1. Embed these files in a batch file for Batch To Exe Converter 1.5: 
+	; AeroZoom_Task.bat, AeroZoom_Task_Body.xml 7z.exe, 7z.dll, AeroZoom.7z (the whole AeroZoom folder compressed), setup.exe (this ahk file after being compiled.)
+	; 2. Batch To Exe Converter Settings:
+	; Invisible application, Temporary directory (Submit current directory), Overwrite existing files
+	; 3. Batch file content:
+
+	; @echo off
+	; "setup.exe" /unattendAZ=1
+	; goto :EOF
+
+	; 4. AHK content: This file and uncomment the following line in around line 53
+	; RunWait, 7z.exe -y x AeroZoom.7z -o"%localappdata%\WanderSick\",%A_ScriptDir%
+	; Comment the following line around line 54
+	; FileCopyDir, %A_WorkingDir%, %localappdata%\WanderSick\AeroZoom, 1
+	
+	; 5. Use Exe To Msi Converter Free (1.0) by QwertyLabs to convert.
+	; Specify no switch
+	; Other tools/versions may not work without specific settings
+	; For v3.1, check 'Do not Register Package (suppress Uninstall)'
+	
+	; 6. Since v1 displays exe2msi and QwentyLabs as Product Name. Use Orca to correct it.
+	
+	; When creating an single-file installer, remove the missing component check below
+	
+	; ---------------------------------------------------------------
+	
+	; NEW method simply uses AutoHotkey_L built-in FileInstall. Use no batch to exe converter.
+	
+	; There're 3 setup.exe in total. One contains FileInstall command which extracts the 2nd setup.exe,
+	; AeroZoom.7z, 7z.exe, etc. then execute the 2nd AZ_setup.exe which extracts the 7z and install the extracted files
+	
+	; (diff between 2nd and 3rd setup is step 4 above, plus the component check at the top... 2nd doesnt check it)
+	
+	; The third setup.exe is in extracted folder for uninstallation. It is also for the Portable version
+	; of AeroZoom, where if users install the program, the subfolder gets copied to the destination
+	; (since there's no one single 7z archive and 7z.exe).
+	
+	; The first setup.exe (named setup.exe to get auto-elevated) extracts files to temp folder
+	
+	; (Before compile, put these in C:\AZ_whatever_temp_folder to include in Setup.exe)
+	
+	; FileInstall, C:\AZ_whatever_temp_folder\AeroZoom_Task.bat, %A_Temp%, 1
+	; FileInstall, C:\AZ_whatever_temp_folder\AeroZoom_Task_Body.xml, %A_Temp%, 1
+	; FileInstall, C:\AZ_whatever_temp_folder\7z.exe, %A_Temp%, 1
+	; FileInstall, C:\AZ_whatever_temp_folder\7z.dll, %A_Temp%, 1
+	; FileInstall, C:\AZ_whatever_temp_folder\AeroZoom.7z, %A_Temp%, 1
+	
+	; Run, "%A_Temp%\Setup_2nd.exe" /unattendAZ=1,%A_ScriptDir%
+	
+	; Use Intel's tool (based on Wix) to convert exe to msi.
+	
