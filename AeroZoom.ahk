@@ -11,6 +11,34 @@ IfNotExist, %A_WorkingDir%\Data
 	ExitApp
 }
 
+; Check if WizMouse is running
+RegRead,WizMouseChk,HKCU,Software\WanderSick\AeroZoom,WizMouseChk
+if not WizMouseChk {
+	Process, Exist, WizMouse.exe
+	if errorlevel
+	{
+		Msgbox, 262160, Notice (This message will be shown once only), WizMouse is found running on this system.`n`nWizMouse is incompatible with AeroZoom. If you must use AeroZoom with WizMouse, a semi-workaround is go to WizMouse's Settings and check 'Left click tray icon to enable/disable', so that left-clicking WizMouse's tray icon easily disables WizMouse and enables AeroZoom, or vice versa.
+	}
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WizMouseChk, 1
+	WizMouseChk=1
+}
+
+
+RegRead,OSver,HKLM,SOFTWARE\Microsoft\Windows NT\CurrentVersion,CurrentVersion
+if (OSver>6) { ; if newer than vista
+	; Check if WMC is running
+	RegRead,WmcChk,HKCU,Software\WanderSick\AeroZoom,WmcChk
+	if not WmcChk {
+		Process, Exist, ehshell.exe
+		if errorlevel
+		{
+			Msgbox, 262160, Notice (This message will be shown once only), Windows Media Center is found running on this system.`n`nThere's a Windows bug that hides the cursor when both Windows Magnifier and Windows Media Center are running and in full screen. This version of AeroZoom provides a workaround--the 'Kill magnifier' hotkey Win+Shift+K to end the Magnifier process so that the cursor shows in such case.`n`nIf mouse is preferred over keyboard, we may also call the AeroZoom panel then press 'Kill'. An easier way of doing it is customize a hotkey action, e.g. the middle mouse button, so that we can just hold it to kill magnifier. To do that, go to 'Tool > Custom Hotkeys > Holding Middle' and set its action to 'Kill magnifier'.
+		}
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WmcChk, 1
+		WmcChk=1
+	}
+}
+
 ; check if OS is x64
 if ProgramW6432
 	goto, x64

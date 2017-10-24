@@ -1,102 +1,157 @@
+
+                     [ AeroZoom 3.0 with AeroSnip ]
   
-                              [ AeroZoom 2.0a ]
-  
-          The smooth wheel-zoom, keyboard-free presentation tool
+       The smooth wheel-zoom, keyboard-free presentation/HTPC tool
 
        
   #  AeroZoom enhances upon the new smooth-zooming Magnifier in Windows
      7 to simulate a presentation mouse, where zooming in/out and 
      positioning is a breeze without a keyboard.
-  
-  #  Enhances mouse operations of Snipping Tool and ZoomIt too since v2.
-  
-     [ Main Features ]
+
+  #  Version 3 features AeroSnip (Snipping Tool enhancer), ZoomIt Panel,
+     Elastic Zoom, custom hotkey, Win7 Standard User, Vista, XP support.
+
+  #  Free for home and commercial use. GPL. Written with AutoHotkey.
+
+     [ Original Features ]
        
-  #  Binding keyboard controls commonly used in presentations to mouse 
-     buttons and 'AeroZoom panel' buttons.
+  #  Bind keyboard controls commonly used in presentations to mouse 
+     buttons and 'AeroZoom Panel' buttons.
   
-  #  Zooming in/out or reset any time without using a keyboard; handle 
-     more operations with one hand.
-  
-  #  AeroZoom panel is made of large buttons designed to quickly toggle 
+  #  AeroZoom Panel is made of large buttons designed to quickly toggle 
      sub-magnifier settings or to add more functionality. Upon calling
      by mouse buttons, it pops up where the cursor is, without the need
      to locate the Magnifier window minimized in taskbar.
         
-     [ New Features ]
+     [ About AeroSnip ]
+
+  #  AeroSnip gives a Mac/Linux screen-capturing experience on Windows:
+
+     - AeroSnip Slider on AeroZoom Panel quickly switches between free-
+       form, rectangular, window and full-screen snips.
+
+     - Each snipping mode (free, rectangular, window, full screen) has
+       their own hotkeys ¡V Win+Alt+F, Win+Alt+R, Win+Alt+W, Win+Alt+S.
+
+     - After capturing, open the image with an external editor such as
+       Paint, other than Snipping Tool's own editor.
+
+     - Automatically save captures on disk anywhere we want (desktop by
+       default) as well as clipboard. (Thanks to NirCmd)
+
+     - Simplified procedure of starting a new snip ¡V just use the hotkey
+       or Snip button anytime a new snip is wanted, no more locating an
+       existing Snipping Tool window from taskbar to click ¡¥New¡¦.
+
+     - Press and hold Middle button for half a second to start a snip
+       of the type currently selected on the AeroSnip Slider. (Button,
+       delay and the action can be customized ¡V see 'Custom Hotkeys'.)
+
+     - Same enhancements to the [Alt] Print Screen button
+
+  #  Whereas AeroZoom enhances Windows Magnifier, AeroSnip enhances
+     Snipping Tool. They were separate tools before but now combined
+     as one software, hence AeroZoom 3 = AeroZoom 2.0 + AeroSnip 1.0
   
-  #  Mac OS X zoom -- Achieved with modifier key support: Ctrl, Alt, 
-     Win, Shift. Added more mouse button support: Middle, Back, Forward
-     and Left, Right. (Lefthanders don't need to run a separate program
-     anymore.)
+     [ v3 Features ]
+
+  #  ZoomIt Panel makes Sysinternals ZoomIt more powerful, easier to Use
+
+     - Wheel-zoom support (Yes, wheel-zoom can be achieved partially
+       under XP and Vista now thanks to ZoomIt supporting those systems)
+
+     - Friendly user interface (ZoomIt Panel) to access functions that
+       normally required keyboard shortcuts
+
+     - Expose useful hidden functions and use them fast, such as slider
+       to change pen color, buttons to use white board and black board.
+
+     - Customizable mouse hotkeys for the main and hidden functions to
+       achieve presentation without a keyboard (See 'Custom Hotkeys')
+
+     - Show a complete list of ZoomIt keyboard shortcuts by clicking
+       ¡¥Help¡¦ on ZoomIt Panel.
+
+     - Elastic Zoom, live or still. (See next)
+
+  #  Elastic Zoom  ¡V  hold to zoom in, release to zoom out. Fast!
+
+     - Elastic Zoom allows us to zoom in at something and immediately
+       zoom out just by holding and releasing the same button,
+       simplifying the zoom procedure to one press of hotkey!
+
+     - To zoom in ¡¥elastically¡¦, just hold Ctrl then hit CapsLock once
+       for live zoom, or hold Shift then hit CapsLock once for still
+       zoom (the latter requires Sysinternals ZoomIt). And when done,
+       just release the Ctrl/Shift buttons to zoom out.
+
+  #  Custom Hotkeys  ¡V  30+ mouse-utilizing hotkeys and functions
+
+     - Functions: All AZ tools, speak, google, eject, turn off LCD...
+
+     - Location: Tool > Preferences > Custom Hotkeys
+
+  #  Support for Windows 7 (including Limited accounts), Vista & XP
+
+  #  Configuration import and export (auto-backup on exit)
+
+  #  Access Windows and misc tools from AeroZoom Panel
+
+  #  Workaround for Windows Media Center (See [Compatibility] below).
+
+     [ v2 Features ]
   
-  #  'Single-finger zoom' -- No need to use 2 buttons to zoom anymore. 
-     Simply zoom by holding and pressing the middle button. 
+  #  Keyboard and mouse Buttons as modifiers, just as Mac/Linux
+
+     - Ctrl, Alt, Win, Shift, Middle, Back, Forward (and Left, Right)
+
+     - Lefthanders don't need to run a separate program anymore.
   
-  #  Powerpointing while zooming live -- Thanks to AeroZoom Pad (aka 
-     Misclick-preventing pad) that prevents sending clicks to apps
-     behind.
+  #  Middle button modifier achieves one-button zoom
+
+     - Press and hold the Middle button down while scrolling the same
+       button to zoom.
   
-  #  Sliders -- Slide it to zoom in/out or adjust how deep each scroll 
-     zooms (Or, watch it indicate changes as hotkeys are being used to
-     zoom.)
+  #  Misclick-Preventing Pad avoids sending clicks to apps behind.
+
+     - Powerpointing while live-zooming with AeroZoom is now possible.
   
-  #  Hold Middle mouse button as trigger -- Do more with a mouse, and
-     dynamically switching operations between zoomed/unzoomed states.
+  #  Zoom Speed Slider adjusts how far to zoom at each scroll
+
+  #  Magnification Slider zooms in or out by dragging ¡V new way to zoom
+
+  #  Preview Full Screen jumps anywhere without zooming out by:
+
+  #  Holding middle mouse button as an action trigger 
+
+     -  While zoomed in, activates a full screen preview
   
-     -  While zoomed, quickly preview the whole screen and move to 
-        other areas without zooming out.
+     -  While unzoomed, starts a new snip
+    
+  #  Tool menu contains many useful accessories, e.g.
   
-     -  Capture regions of screen for annotation with Snipping Tool --
-        By holding Middle button and drag. (Like Compiz's Winkey+drag.)
+     -  Run on Startup: Run AeroZoom without screen-dimming UAC prompt
+    
+     -  Always-on-Top: Applies to AZ Panel and tools run there
   
-     -  Optional Sysinternals ZoomIt enhancements -- Access non-live 
-        zoom (aka still zoom), draw, break timer, black/white board,
-        all without a keyboard.
+     -  Advanced Options: Customizations for tweakers
   
-     [ More Features ]
+  #  Access settings of Magnifier/Snipping Tool/ZoomIt all from AeroZoom
   
-  #  New Tool menu containing lots of useful accessories, such as:
+  #  Lots of keyboard and mouse shortcuts (See [Quick Instructions] below)
+     
+     -  For example, a hotkey to invert screen color like Mac/Linux.
   
-     -  Windows Tools: Access common tools right from the menu.
+  #  Portable and installable. (See [Special Installation] below.)
   
-     -  Run on Startup: e.g. Have the screen color inverted at startup
-  
-     -  Click-n-Go: In old versions, when a panel button is pressed, 
-        AeroZoom Panel hides itself at once for efficiency, but now
-        this feature is optional to help beginners.
-  
-     -  Always-on-Top: Make panel and tools run from it on the front.
-  
-     -  Advanced Options: Lots of customizations for tweakers, e.g.
-        define a custom text editor, delay the triggers.
-  
-  #  All Windows Magnifier settings can now be accessed in the panel.
-  
-  #  Specially optimize mouse with a Back/Forward button to do more.
-     (See '? > Quick Instructions > Extras')
-  
-  #  Supports more keyboard shortcuts (See [Quick Instructions] below)
-  
-  #  Many subtle improvements, e.g. redesigned algorithm to enhance
-     precision and performance. Magnifier runs in the background at
-     once after AeroZoom is started. Settings from last time are also
-     applied automatically.
-  
-  #  Portable and now installable. (See [Special Installation] below.)
-  
-  #  Native 64-bit support.
-  
-  #  As always, free and open source. Written with AutoHotkey.
+  #  Native 64-bit and unicode support.
   
      [ Quick Start ]
-   
-  #  Basically, just run AeroZoom.exe. Try zooming with [Left]+[Wheel-
-     up/down] mouse buttons, preview full screen by holding [Middle],
-     reset zoom with [Left]+[Middle]. (The latter are added functions
-     which the original Magnifier does not offer.) Then, when more
-     functions are needed, call the AeroZoom panel with [Left]+[Right]
-     buttons.
+
+  #  To get started, hold [Left] mouse button and wheel up to zoom.
+     While zoomed, press and hold the middle button to preview full
+     screen. Press [Left] and [Middle] to reset zoom. Press [Left] +
+     [Right] to show/hide AeroZoom Panel.
   
      [ Quick Instructions ]
   
@@ -104,148 +159,152 @@
      and keys.
   
       - Keyboard Shortcuts -
-  
+
+     Elastic zoom         => [Ctrl] + [Caps Lock]
+     Elastic zoom (Still) => [Shift] + [Caps Lock]
+
      Full Screen          => [Ctrl] + [Alt] + [F]
      Lens                 => [Ctrl] + [Alt] + [L]
      Docked               => [Ctrl] + [Alt] + [D]
      Preview full screen  => [Ctrl] + [Alt] + [Space]
-  
-     Zoom level           => [Win] + [Alt] + [F1 to F6]
+
+     Zoom speed           => [Win] + [Alt] + [F1 to F6]
      Invert color         => [Win] + [Alt] + [I]
      Follow mouse         => [Win] + [Alt] + [M]
      Follow key           => [Win] + [Alt] + [K]
      Follow text          => [Win] + [Alt] + [T]
   
      Reset zoom           => [Win] + [Shift] + [-]
-     Reset magnifier      => [Win] + [Alt] + [R]
+     Reset magnifier      => [Win] + [Shift] + [R]
+     Kill magnifier       => [Win] + [Shift] + [K]
      Show|hide magnifier  => [Win] + [Shift] + [`]
      Show|hide panel      => [Win] + [Shift] + [Esc]
-     New snip             => [Win] + [Alt] + [S]
-     Turn off|on hotkeys  => [Win] + [Alt] + [O]
+
+     AeroSnip (Free-form) => [Win] + [Alt] + [F]
+     AeroSnip (Rect)      => [Win] + [Alt] + [R]
+     AeroSnip (Window)    => [Win] + [Alt] + [W]
+     AeroSnip (Screen)    => [Win] + [Alt] + [S]
+
+     Hotkey-mouse on|off  => [Win] + [Alt] + [H]
+     Hotkey-all on|off    => [Win] + [Alt] + [Shift] + [H]
   
       - Modifier (User-defined Mouse Button/Key) -
   
-     Zoom in              => hold [Modifier] + [Wheel-up]
-     Zoom out             => hold [Modifier] + [Wheel-down]
+     Zoom in              => [Modifier] + [Wheel-up]
+     Zoom out             => [Modifier] + [Wheel-down]
      Reset zoom           => [Modifier] + [Middle]
      Show|hide panel      => [Left] + [Right]
-     Preview full screen  => hold [Middle]  *when zoomed
-     New snip             => hold [Middle]  **when zoomed out
-     Still zoom on|off    => hold [Middle]  **requires ZoomIt
-   
+     Preview full screen  => hold [Middle]  ¡V  when zoomed
+     New snip|custom      => hold [Middle]  ¡V  when zoomed out
      
      Note:    In Middle button mode, hold [Middle] + [Right] to reset
-              zoom, [Middle] + [Left] to snip/still-zoom/preview.
+              zoom, [Middle] + [Left] to snip/preview full screen.
   
-              In Back/Forward mode, more hotkeys are supported for use
-              use of unused buttons, see 'Quick Instructions > Extras'
+              This list of hotkeys are for Windows 7 admin accounts.
+              In other cases, go to '? > Quick Instructions' for the
+              correct list. Hotkeys will be fewer on older systems.
        
      [ Special Installation ] 
   
   #  AeroZoom by default installs into Local App Data, To install to
      All Users or perform unattended installation, see Setup.exe /?
+
+     Unless installing to Program Files, the installation is per-user 
+     and does not require admin rights.
   
      [ Usage and Tips ]
   
-  #  There's a lot I want to tell you, so I did a Startup Tips feature
-     in AeroZoom 2.0. Also, see this page for a walkthrough and video:
+  #  Be sure to read the tips and tricks from the Startup Tips feature.
+     Also, see this page for a walkthrough and video:
   
      wandersick.blogspot.com/p/aerozoom-for-windows-7-magnifier.html
   
      [ System Requirements ]
+
+  #  AeroZoom 3 does not need administrator rights to run anymore.
+     (But the experience is better if available.)
   
-    1. Windows 7 Home Basic/Home Premium/Professional/Ultimate/Enterp.
+  1. Runs best on Windows 7 Home Premium/Professional/Ultimate/Ent.
+     Also supports Vista and XP. (some functions will be limited.)
        
-    2. Aero (theme) is required. Windows 7 Starter does not support 
-       Aero at all, so it cannot use Lens and Full Screen views.
-  
-    3. AeroZoom needs administrator rights to run. If non-admin, it
-       elevates itself. (Note: However, the Installation is per-user 
-       and does not require admin rights). 'Run on Startup' and some
-       parts don't fully support standard user accounts (even after
-       elevation).
-  
-    4. For Sysinternals ZoomIt enhancements, please download zoomit
-       .exe and put it into 'AeroZoom\Data' folder.
-  
+  2. Aero (theme) is a must. Windows 7 Starter/Home Basic cannot
+     enable Aero at all, so Lens and Full Screen zoom cannot be used.
+     In such cases, we can check 'Tool > Wheel-Zoom by ZoomIt' so
+     that AeroZoom adds Wheel-Zoom support to Sysinternals ZoomIt.
+
+     [ Compatibility ]
+
+  1. Windows Media Center users may face an issue where the cursor
+     is missing in full screen. It is a Windows bug between WMC and
+     Magnifier. You may work around it by clicking the Kill button 
+     on panel or use this hotkey to kill magnifier: Win+Shift+K, or
+     re-define the middle button action. To do that, go to 'Tool >
+     Preferences > Custom Hotkeys > Holding Middle' and set its
+     action to 'Kill'.
+
+  2. WizMouse is incompatible with AeroZoom. If you use AeroZoom
+     with WizMouse, go to WizMouse's Settings and check 'Left click
+     tray icon to enable/disable', so that left-clicking WizMouse's
+     tray icon easily disables WizMouse and enables AeroZoom, or
+     vice versa.
+
+  3. Multi-monitor configurations should work okay with AeroZoom.
+     In rare cases where AeroZoom Panel does not show up near the
+     cursor, adjust offset of panel manually in 'Tool > Preferences
+     > Advanced Options'.
+
      [ Limitations ]
   
-    #  If you've encountered any bugs or any of the following and 
-       think it is a bug. Please leave a message via the link above
-       to let Wandersick know.
+  #  If you've encountered any bugs or any of the following and 
+     think it is a bug. Please email Wandersick@gmail.com
   
-    1. Sometimes, the 1st click (holding [Middle] button) for still 
-       zoom (of Sysinternals ZoomIt) has no effect. The 2nd time does.
+  1. Misclick-Preventing Pad may be inaccurate for some types of
+     window. You may fine-tune the offset in 'Tool > Preferences
+     > Advanced Options'.
   
-    2. In middle button modifier, scrolling too 'awkwardly' may cause 
-       duplication ('ghost frames') of misclick-preventing pad.
+  2. Zooming may be jerky when both misclick-preventing pad and 
+     'Follow keyboard' are on. (Use 'Follow text' as a workaround.)
   
-    3. Zoom Pad may be inaccurate for some types of window. You may 
-       try fine-tuning offset settings in 'Tool > Advanced Options'.
+  3. Turning ZoomIt on and off (via 'Tool > Enable ZoomIt') too
+     often may leave lots of phantom tray icons.
   
-    4. Zooming may be jerky when both misclick-preventing pad and 
-       'follow keyboard' are on. ('Follow text' is OK though.)
+  4. The Magnification slider gets jerky or does not work in rare
+     situations. A workaround to restore it to normal is to use
+     keyboard shortcut (Win+[+]) to zoom in once.
+    
+  5. 'Run on Startup' fails to automatically run magnifier at
+     startup if there are UAC prompts caused by other programs
+     during boot.
+
+  6. During use of AeroZoom, Magnifier cannot be run separately.
+     This is normal as AeroZoom hides Magnifier to improve UX. To
+     show it anytime, just click [Mag] from AeroZoom Panel (eq to
+     Win+Shift+`). If always showing is preferred, go to 'Tool >
+     Preferences > Advanced Options', change 'Magnifier' to 'Show'
   
-    5. Turning ZoomIt on and off frequenly may leave lots of phantom
-       tray icons.
-  
-    6. In unknown situations, the pad suddenly turns untransparent.
-  
-    7. The Magnification slider gets jerky or does not work. Try to
-       avoid using keyboard hotkeys and see if it improves.
-  
-    8. Tip for ZoomIt's Zoom/Draw/Timer. While a ZoomIt window is 
-       activated, do NOT press [Alt + F4] to leave; otherwise ZoomIt
-       .exe might hang without ending the process, leaving a phantom
-       ZoomIt.exe that causes problems. Instead, press [Esc] or right
-       click or press [Timer] on the panel to leave.
-  
-    9. 'Run on Startup' fails to automatically run magnifier at
-       startup if there are UAC prompts caused by other programs
-       during boot.
-  
-   10. After using AeroZoom, Magnifier cannot be launched separately.
-       Solution: At 'Tool > Advanced Options', change 'Magnifier' to
-       Min/Show.
-  
-   11. Pressing buttons on the AeroZoom panel has no effect at times?
-       You may have to set 'Button delay' in 'Tool > Advanced Options'
-       to a higher value for your system. (Some tweaking is required.)
-  
-     [ Releases ]
+  7. Pressing buttons on the AeroZoom Panel has no effect at times?
+     You may have to set 'Operation delay' in 'Tool > Preferences
+     > Advanced Options' to a higher value for your system.
+
+     [ Fixed Bugs ]
        
-      v1.0    Private release
-      v1.5    Added [Calc], [Draw] and [Type] buttons
-      v1.6    First public release.
-              Added [Off] button to temporarily disable mouse hotkeys.
-      v1.7    Fixed a nasty bug that seriously affect usability and
-              beauty when run with UAC on. Sorry for any inconvenience.
-              Significantly improved performance during operations.
-              Fixed keyboard alt texts of help menu and [hide] button.
-      v1.9    Private release
-      v2.0    Big release with a complete redesign. See top of this doc.
-              Some fixed bugs are listed here:
-              - After pressing [Kill] or externally closing Magnifier,
-                [Invert Color] needed to be pressed 2 times.
-              - Ease Of Access Center pop-ups on first zoom.
-              - Titles matching don't work in non-English systems
-              - Changes aren't reflected on AeroZoom at once after 
-                changing settings in Windows Magnifier.
-              - Tray icon doesn't bring up AeroZoom Panel.
-      v2.0a   ZoomIt Enhancements Setup and subtle improvements
-              Fixed bug of original keyboard zoom hotkeys
-  
+  #  Snipping with middle button no longer creates a mark
+
+  #  Negative offset values can be set in Advanced Option
+
+  #  'Run on Startup' (schtasks) bug in zh-CN systems
+
      [ Credits / Attributions ]
   
-  #  Icon by Oliver Scholtz - www.iconfinder.com/browse/iconset/humano2
+  #  Icon by Oliver Scholtz - http://schollidesign.deviantart.com
   
   #  Many thanks to everyone who gave me suggestions that made what
      AeroZoom is today.
   
      [ Suggestions ]
   
-  #  Do you have one? Please drop me a line at wandersick@gmail.com, or:
+  #  Do you have one? Please drop me a line at wandersick@gmail.com
        
 
-  (c) 2010-11 Wandersick | http://wandersick.blogspot.com
+  (c) 2009-11 Wandersick | http://wandersick.blogspot.com
 

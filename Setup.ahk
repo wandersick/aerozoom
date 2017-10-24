@@ -1,13 +1,16 @@
 ; AeroZoom by WanderSick | http://wandersick.blogspot.com
+;
 ; This is the Setup. See main script for more.
 ;
+; ------------------------------------------
+; Some unorganized notes for internal use:
+;
 ; ** Compile this with AutoHotKey Basic (as it does not need to query WMI anymore)
-; ** RunAsHighest for ONLY this script. (All other scripts with as RunAsAdmin)
-; So that this setup.exe uses the current user's profile to install (in case of AsHighest/AsInvoker, not the elevated user's (in case of AsAdmin)
-; Running AeroZoom requires admin rights however (due to some Process functions). So the elevated user might share settings
+; ** RunAsHighest for ONLY this script and AeroZoom ahk. (All mod scripts w/o manifest)
+; So this setup.exe uses the current user's profile to install (in case of AsHighest/AsInvoker, not the elevated user's (in case of AsAdmin)
+; Running AeroZoom with admin rights is better under win7 (due to OS limitations). So the elevated user might share settings
 ; with the standard user as both would share the same registry user hive that way. (This problem assumes running from a standard user account,
-; for administrators accounts with/without UAC on, no problem.)
-; In future, I hope to find a way to not need admin rights or use ini instead of registry to store settings to avoid the last issue.
+; for admin accounts with/without UAC on, no problem.)
 ;
 ; For unattended install, set unattendAZ=1, see below or setup.exe /?
 ; (Also, a MSI may be available on the web site above)
@@ -58,6 +61,8 @@
 	
 	; When creating an single-file installer, remove the missing component check below
 
+verAZ = 3.0
+	
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
 ; Missing component check
@@ -124,13 +129,13 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 	{
 		If setupAllUsers
 		{
-			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_ProgramsCommon%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
-			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_DesktopCommon%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
+			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_ProgramsCommon%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
+			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_DesktopCommon%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
 		}
 		Else
 		{
-			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_Programs%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
-			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_Desktop%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
+			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_Programs%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
+			FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_Desktop%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
 		}
 	}
 	; if a shortcut is in startup, re-create it to ensure its not linked to the portable version's path
@@ -141,7 +146,7 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 		FileSetAttrib, -R, %A_Startup%\*AeroZoom*.*
 		FileDelete, %A_Startup%\*AeroZoom*.*
 		;IfExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
-		;	FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_Startup%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
+		;	FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_Startup%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
 	}
 	if A_IsAdmin
 	{
@@ -150,7 +155,7 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 			FileSetAttrib, -R, %A_StartupCommon%\*AeroZoom*.*
 			FileDelete, %A_StartupCommon%\*AeroZoom*.*
 			;IfExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
-			;	FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_StartupCommon%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation tool,,
+			;	FileCreateShortcut, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe, %A_StartupCommon%\AeroZoom.lnk, %targetDir%\WanderSick\AeroZoom\,, AeroZoom`, the smooth wheel-zoom`, keyboard-free presentation and snipping tool,,
 		}
 	}
 	if A_IsAdmin
