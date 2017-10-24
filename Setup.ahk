@@ -1,9 +1,9 @@
-; (c) Copyright 2009-2012 AeroZoom by Ning Ng (Wandersick) | http://wandersick.blogspot.com
+; (c) Copyright 2009-2012 AeroZoom by a wandersick | http://wandersick.blogspot.com
 ;
 ; This is the Setup. See main script for more.
 ;
 
-verAZ = 3.1
+verAZ = 3.2a
 	
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
@@ -134,7 +134,7 @@ IfNotExist, %targetDir%\WanderSick\AeroZoom\AeroZoom.exe
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, UninstallString, %targetDir%\WanderSick\AeroZoom\setup.exe /unattendAZ=2
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, InstallLocation, %targetDir%\WanderSick\AeroZoom
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, DisplayVersion, %verAZ%
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, Publisher, WanderSick
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, Publisher, a wandersick
 	; Calc folder size
 	; SetBatchLines, -1  ; Make the operation run at maximum speed.
 	EstimatedSize = 0

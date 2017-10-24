@@ -3,6 +3,7 @@
 ; This is the redirector. See main script for more.
 
 #SingleInstance force
+#NoTrayIcon
 
 ; The following is only set in this script but not the scripts inside \Data in order to fix the Working Directory for them.
 ; Setup.ahk is not set too because the msi installer is one-file and would not see \Data
@@ -21,7 +22,7 @@ if not WizMouseChk {
 	Process, Exist, WizMouse.exe
 	if errorlevel
 	{
-		Msgbox, 262160, Notice (This message will be shown once only), WizMouse is found running on this system.`n`nWizMouse is only semi-compatible with AutoHotkey--the language AeroZoom is based on.`n`nFrom a WizMouse doc: "Some users reported that rehooking may cause issues with AutoHotkey so now it can be disabled. Note that AutoHotkey (Add: AeroZoom) must be started AFTER WizMouse for them to work together correctly."`n`nTip: Clicking on any of the Ctrl/Shift/Alt/Left/Right/Middle/F/B radio buttons on the AeroZoom Panel restarts AeroZoom.`n`nIf the above doesn't help and you must use AeroZoom with WizMouse, the only way is go to WizMouse's Settings and check 'Left click tray icon to enable/disable', so that left-clicking WizMouse's tray icon quickly disables WizMouse and enables AeroZoom, or vice versa.
+		Msgbox, 262160, Notice (This message will be shown once only), WizMouse is found running on this system.`n`nWizMouse is only semi-compatible with AutoHotkey--the language AeroZoom is based on.`n`nFrom the WizMouse doc: "Some users reported that rehooking may cause issues with AutoHotkey so now it can be disabled. Note that AutoHotkey (Add: AeroZoom) must be started AFTER WizMouse for them to work together correctly."`n`nTo work around it, please use one of the following tip.`n`nTip 1: Clicking on any Ctrl/Shift/Alt/Left/Right/Middle/F/B button on the AeroZoom Panel restarts (brings back) AeroZoom.`n`nTip 2: (Since v3.2) Clicking the tray icon 3 times does it too.`n`nTip 3: Go to WizMouse's Settings and check 'Left click tray icon to enable/disable', so that left-clicking WizMouse's tray icon quickly disables WizMouse and enables AeroZoom, or vice versa.
 	}
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WizMouseChk, 1
 	WizMouseChk=1
