@@ -1,10 +1,10 @@
-; (c) Copyright 2009-2012 AeroZoom by Ning Ng (Wandersick) | http://wandersick.blogspot.com
+; (c) Copyright 2009-2012 AeroZoom by a wandersick | http://wandersick.blogspot.com
 
-; Sorry for the messy commenting in advance. As my purpose is to contribute as much as possible,
+; Sorry for the messy commenting in advance. As the purpose is to contribute as much as possible,
 ; the source is released (GPL v2). Hope it helps.
 
-; If you have any questions, corrections or suggestions, you may also send them to wandersick@gmail.com or my blog.
-; I speak English and Chinese(Cantonese). For those who understand: Zhong Wen is okay!
+; If you have any questions, corrections or suggestions, you may send them to wandersick@gmail.com or wandersick's blog.
+; wandersick speaks English and Chinese(Cantonese). For those who understand: Zhong Wen(Jung Man) is okay!
 
 #Persistent
 #SingleInstance force
@@ -13,7 +13,7 @@ SetBatchLines -1 ; run at fastest speed before init
 IfEqual, unattendAZ, 1
 	goto Install
 
-verAZ = 3.1
+verAZ = 3.2a
 paused = 
 
 ; Working directory check
@@ -29,8 +29,9 @@ if errorlevel ; if the key is never created, i.e. first-run
 	EnableAutoBackup=1 ; on by default
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EnableAutoBackup, 1
 }
-If not A_IsAdmin ; requires regedit.exe which requires admin rights.
-	EnableAutoBackup=0
+; Does not require admin right anymore
+; If not A_IsAdmin ; requires regedit.exe which requires admin rights. (reg add is OK but it is visible and annoying if set to Auto)
+;	EnableAutoBackup=0
 	
 RegRead,Welcome,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,Welcome
 if Welcome ; if AZ version 2.0 or above is found, that means AeroZoom settings are found
@@ -38,22 +39,12 @@ if Welcome ; if AZ version 2.0 or above is found, that means AeroZoom settings a
 	RegRead,ProgramVer,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,ProgramVer
 	if (ProgramVer<>verAZ)
 	{
-		If A_IsAdmin
+		Msgbox, 262212, Found AeroZoom settings, Settings from a different version of AeroZoom has been found in the system registry. Would you like to use it or start over?`n`nIf you choose 'No', AeroZoom will back up the current settings before clearing them.`n`nTip: If problems arise after keeping old settings, a reset can be performed in 'Tool > Preferences > Advanced Options'.
+		IfMsgbox, No
 		{
-			Msgbox, 262212, Found AeroZoom settings, Settings from a different version of AeroZoom has been found in the system registry. Would you like to use it or start over?`n`nIf you choose 'No', AeroZoom will back up the current settings before clearing them.`n`nTip: If problems arise after keeping old settings, a reset can be performed in 'Tool > Preferences > Advanced Options'.
-			IfMsgbox, No
-			{
-				RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom
-				GoSub, AutoConfigBackup
-				reload
-			}
-		} else { ; without admin rights, backup is unsupported
-			Msgbox, 262212, Found AeroZoom settings, Settings from a different version of AeroZoom has been found in the system registry. Would you like to use it or start over?`n`nTip: If problems arise after keeping old settings, a reset can be performed in 'Tool > Preferences > Advanced Options'.
-			IfMsgbox, No
-			{
-				RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom
-				reload
-			}
+			RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom
+			GoSub, AutoConfigBackup
+			reload
 		}
 	}
 }
@@ -113,14 +104,14 @@ if (OSver>=6.1) { ; win 7 start/home basic doesnt support aero and snipping tool
 		RegRead,EditionMsg,HKCU,Software\WanderSick\AeroZoom,EditionMsg
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,You are using Windows 7 Starter which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only the Print Screen button is enhanced to save captures automatically to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures Automatically' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			Msgbox,262208,This message will be shown once only,You are using Windows 7 Starter which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only the Print Screen button is enhanced to Save Captures to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures' and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EditionMsg, 1
 		}
 	} else if (EditionID="HomeBasic") {
 		RegRead,EditionMsg2,HKCU,Software\WanderSick\AeroZoom,EditionMsg2
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,You are using Windows 7 Home Basic which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it if a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to save captures automatically to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures Automatically' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			Msgbox,262208,This message will be shown once only,You are using Windows 7 Home Basic which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it if a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to Save Captures to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures' and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EditionMsg2, 1
 		}
 	}
@@ -152,7 +143,7 @@ if (OSver=6.0) { ; vista msg
 		RegRead,VistaMsg,HKCU,Software\WanderSick\AeroZoom,VistaMsg
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Starter which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically Save Captures Automatically, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Starter which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically Save Captures, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, VistaMsg, 1
 		}
 	} else if (EditionID="HomeBasic") {
@@ -160,14 +151,14 @@ if (OSver=6.0) { ; vista msg
 		RegRead,VistaMsg2,HKCU,Software\WanderSick\AeroZoom,VistaMsg2
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Home Basic which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically Save Captures Automatically, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Home Basic which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically Save Captures, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, VistaMsg2, 1
 		}
 	} else {
 		RegRead,VistaMsg3,HKCU,Software\WanderSick\AeroZoom,VistaMsg3
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista which does not support full-screen zoom.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nOn the other hand, AeroSnip enhances Snipping Tool and the Print Screen button to automatically Save Captures Automatically, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures Automatically' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista which does not support full-screen zoom.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nOn the other hand, AeroSnip enhances Snipping Tool and the Print Screen button to automatically Save Captures, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures' and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, VistaMsg3, 1
 		}
 	}
@@ -181,7 +172,7 @@ if (OSver<6.0) { ; xp msg
 	RegRead,XPmsg,HKCU,Software\WanderSick\AeroZoom,XPmsg
 	if errorlevel
 	{
-		Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above, but you are an earlier OS that does not support full-screen zoom. As a workaround, AeroZoom adds wheel-zoom capability to the zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. (Note: Zoom is only still on this OS, as live zooming requires Vista or later.)`n`nAlso, AeroSnip requires Windows Vista Home Premium or later, so only the Print Screen button is enhanced to save captures automatically to disk, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+		Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above, but you are an earlier OS that does not support full-screen zoom. As a workaround, AeroZoom adds wheel-zoom capability to the zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. (Note: Zoom is only still on this OS, as live zooming requires Vista or later.)`n`nAlso, AeroSnip requires Windows Vista Home Premium or later, so only the Print Screen button is enhanced to Save Captures to disk, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, XPmsg, 1
 	}
 }
@@ -204,13 +195,24 @@ IfExist, %windir%\system32\SnippingTool.exe
 menu, tray, NoStandard
 ; When the user double-clicks the tray icon, its default menu item is launched (show panel). 
 menu, tray, add, &Show Panel`t[Win+Shift+ESC], showPanel
+If not menuInit
+	menu, tray, add ; separator
 menu, tray, Default, &Show Panel`t[Win+Shift+ESC]
-menu, tray, add, &Pause All Hotkeys, SuspendScript
-menu, tray, add, Pause &Mouse Hotkeys`t[Win+Alt+H], PauseScript
+menu, tray, add, &Pause All Hotkeys`t[Click tray icon], SuspendScript
+menu, tray, add, Pause &Mouse Hotkeys`t[Win+Alt+H], PauseScriptViaTrayPauseMouseOnly
+If not menuInit
+	menu, tray, add ; separator
 menu, tray, add, &Quick Instructions`t[Win+Alt+Q], Instruction
+If not menuInit
+	menu, tray, add ; separator
+Menu, tray, Add, AeroZoom &Web, VisitWeb
 menu, tray, add, &About, HelpAbout
+If not menuInit
+	menu, tray, add ; separator
 menu, tray, add, &Exit, ExitAZ
 Menu, Tray, Icon, %A_WorkingDir%\Data\AeroZoom.ico, ,1
+Menu, Tray, Tip, AeroZoom %verAZ% with AeroSnip`n`n1. Click to disable/enable hotkeys`n2. Double-click for AeroZoom Panel
+
 
 ; disable Magnifier warning in XP
 if (OSver<6) { 
@@ -349,6 +351,26 @@ if errorlevel
 {
 	padStayTime=150
 }
+
+
+; for Customize MButton
+RegRead,CustomMiddlePath,HKCU,Software\WanderSick\AeroZoom,CustomMiddlePath
+if errorlevel 
+{
+	CustomMiddlePath=Run a command, program or web
+}
+RegRead,MiddleButtonAction,HKCU,Software\WanderSick\AeroZoom,MiddleButtonAction
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	MiddleButtonAction=1 ; snip by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MiddleButtonAction, 1
+}
+
+; --
+; Custom Hotkey (Part 1) Start
+; --
+
+; This part also exists in the external Custom Hotkey exe's
 
 ; for Customize Left/Right Buttons
 RegRead,CustomLeftMiddlePath,HKCU,Software\WanderSick\AeroZoom,CustomLeftMiddlePath
@@ -668,19 +690,9 @@ if errorlevel ; if the key is never created, i.e. first-run
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, WinWdownAction, 39
 }
 
-
-; for Customize MButton
-RegRead,CustomMiddlePath,HKCU,Software\WanderSick\AeroZoom,CustomMiddlePath
-if errorlevel 
-{
-	CustomMiddlePath=Run a command, program or web
-}
-RegRead,MiddleButtonAction,HKCU,Software\WanderSick\AeroZoom,MiddleButtonAction
-if errorlevel ; if the key is never created, i.e. first-run
-{
-	MiddleButtonAction=1 ; snip by default
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MiddleButtonAction, 1
-}
+; --
+; Custom Hotkey (Part 1) End
+; --
 
 ; Dynamic switching (simply choose None: Dynamic. No need for this)
 RegRead,DisableZoomItMiddle,HKCU,Software\WanderSick\AeroZoom,DisableZoomItMiddle
@@ -700,11 +712,14 @@ if errorlevel ; if the key is never created, i.e. first-run
 	holdMiddle=1 ; hold middle button to snip/still zoom by default
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, holdMiddle, 1
 }
+RegRead,CtrlAltShiftWin,HKCU,Software\WanderSick\AeroZoom,CtrlAltShiftWin
+RegRead,ForwardBack,HKCU,Software\WanderSick\AeroZoom,ForwardBack
+RegRead,LeftRight,HKCU,Software\WanderSick\AeroZoom,LeftRight
 
 ; RegRead,magnifierSetting,HKCU,Software\Microsoft\ScreenMagnifier,Invert
 ; If last set, reflect color inversion immediately
 
-; Whether to use -1- Zoom Increment slider -2- or Magnification slider -3- or Snipping slider -4- or older OS slider
+; Whether to use -1- Zoom Rate slider -2- or Magnify Slider -3- or Snipping slider -4- or older OS slider
 RegRead,SwitchSlider,HKCU,Software\WanderSick\AeroZoom,SwitchSlider
 if errorlevel
 {
@@ -1018,7 +1033,7 @@ if not errorlevel
 if not Welcome
 {
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Welcome, 1 ; do not set welcome=1 as the 'zoomit EULA message' check for first-run with this var not defined
-	Msgbox, 262148, AeroZoom %verAZ% - Welcome to AeroZoom!, New in v3 release:`n`n1) - AeroSnip - streamlined operation for Print Screen and Snipping Tool, hotkeys, save-to-disk and custom editor.`n`n2) - Elastic Zoom - automatically zoom in and out by holding and releasing [Ctrl/Shift]+[Caps Lock].`n`n3) - ZoomIt Panel - improves mouse operation of Sysinternals ZoomIt by adding an easy-to-use interface, elastic zoom, wheel-zoom and more.`n`nAlso, custom hotkeys (define 30+ hotkeys with 30+ functions) and partial support for Windows 7 standard user accounts with UAC, Vista and XP.`n`nFor more features and to learn about them, visit 'AeroZoom on the Web' via '?' menu.`n`nWould you like help on getting started?
+	Msgbox, 262148, AeroZoom %verAZ% - Welcome!, New in v3 release:`n`n1) - AeroSnip - enhanced operations for Snipping Tool and Print Screen, better hotkeys, save-to-disk and custom editor.`n`n2) - Elastic Zoom - automatically zoom in and out by holding and releasing [Ctrl]+[Caps Lock].`n`n3) - ZoomIt Panel - improves mouse operation of Sysinternals ZoomIt by adding an easy-to-use interface, elastic zoom, wheel-zoom and more.`n`nAlso added support for Windows 7 standard user without UAC (or partially with UAC, Vista and XP).`n`nTo learn about more features, visit 'AeroZoom Web' via '?' menu.`n`nWould you like tips to get started?
 	IfMsgBox, No
 	{
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, TipDisabled, 1 ; disabled bit is used so when enabled will continue where users left off
@@ -1191,7 +1206,7 @@ return
 goto, WorkaroundFullScrLiveZoom
 return
 
-; Update panel's magnification slider while using keyboard to zoom
+; Update panel's magnify Slider while using keyboard to zoom
 
 ; ~#+:: <<-- since there is no way to specify this in AHK
 ~#NumpadAdd::
@@ -1274,7 +1289,7 @@ if (OSver=6) { ; use zoomit live zoom for vista
 }
 return
 
-; Enhance print screen when NirCmd (Save Captures Automatically) is on
+; Enhance print screen when NirCmd (Save Captures) is on
 ~PrintScreen::
 If (!PrintScreenEnhanceCheckbox)
 	return
@@ -1682,203 +1697,207 @@ MagExists=
 Gosub, MagWinRestore
 return
 
-~MButton & LButton:: ; in MButton ahk, this is changed to ~MButton & LButton::
+~MButton & ~LButton::
 if not paused {
+	Process, Exist, ZoomIt.exe
+	If (errorlevel AND !DisableZoomItMiddle)
 	{
-		Process, Exist, ZoomIt.exe
-		If (errorlevel AND !DisableZoomItMiddle)
+		RegRead,MButtonMsg,HKCU,Software\WanderSick\AeroZoom,MButtonMsg
+		if errorlevel
 		{
-			RegRead,MButtonMsg,HKCU,Software\WanderSick\AeroZoom,MButtonMsg
-			if errorlevel
+			Msgbox,262208,This message will be shown once only,You've just triggered the Middle button for the first time!`n`nHolding Middle button for a specified time ('0.7s' by default) launches a specified task ('New snip' by default). And if the screen is magnified, the same button will trigger a Full Screen Preview instead (for Windows 7 only).`n`nTo customize the action, go to 'Tool > Preferences > Custom Hotkeys > Middle'.`n`nTo enable/disable this function quickly in order to avoid mis-triggering, go to 'Tool > Custom Hotkeys > Holding Middle'.
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MButtonMsg, 1
+		}
+		RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
+		If not disablePreviewFullScreen {
+			if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
+				goto, ViewPreview
+		}
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		;process, close, zoompad.exe ; although this shouldn't be required here
+		process, close, osd.exe ; prevent osd from showing in 'picture'
+		WinHide, AeroZoom Panel
+		sendinput ^1
+		WinWait, ahk_class ZoomitClass,,5
+		WinWaitClose, ahk_class ZoomitClass
+		WinShow, AeroZoom Panel
+	} else {
+		RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
+		If not disablePreviewFullScreen {
+			if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
+				goto, ViewPreview
+		}
+		if (MiddleButtonAction=1) {
+			Gosub, SnippingTool
+		} else if (MiddleButtonAction=2) {
+			GoSub, KillMagnifierHK
+		} else if (MiddleButtonAction=3) {
+			Gosub, ColorHK
+		} else if (MiddleButtonAction=4) {
+			Gosub, MouseHK
+		} else if (MiddleButtonAction=5) {
+			Gosub, KeyboardHK
+		} else if (MiddleButtonAction=6) {
+			Gosub, TextHK
+		} else if (MiddleButtonAction=7) {
+			Process, Exist, zoomit.exe
+			If not errorlevel
 			{
-				Msgbox,262208,This message will be shown once only,You've just triggered the Middle button for the first time!`n`nHolding Middle button for a specified time ('0.7s' by default) launches a specified task ('New snip' by default). And if the screen is magnified, the same button will trigger a Full Screen Preview instead (for Windows 7 only).`n`nTo customize the action, go to 'Tool > Preferences > Custom Hotkeys > Middle'.`n`nTo enable/disable this function quickly in order to avoid mis-triggering, go to 'Tool > Hold Middle Button to Trigger'.
-				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MButtonMsg, 1
+				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+				return
 			}
-			RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
-			If not disablePreviewFullScreen {
-				if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
-					goto, ViewPreview
-			}
+			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+				goto, zoomit
 			if not zoomItGuidance
 				Gosub, ZoomItGuidance
-			;process, close, zoompad.exe ; although this shouldn't be required here
-			process, close, osd.exe ; prevent osd from showing in 'picture'
-			WinHide, AeroZoom Panel
-			sendinput ^1
-			WinWait, ahk_class ZoomitClass,,5
-			WinWaitClose, ahk_class ZoomitClass
-			WinShow, AeroZoom Panel
+			goto, ViewType
+		} else if (MiddleButtonAction=8) {
+			Process, Exist, zoomit.exe
+			If not errorlevel
+			{
+				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+				return
+			}
+			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+				goto, zoomit
+			if not zoomItGuidance
+				Gosub, ZoomItGuidance
+			goto, ViewLiveZoom
+		} else if (MiddleButtonAction=9) {
+			Process, Exist, zoomit.exe
+			If not errorlevel
+			{
+				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+				return
+			}
+			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+				goto, zoomit
+			if not zoomItGuidance
+				Gosub, ZoomItGuidance
+			goto, ViewStillZoom
+		} else if (MiddleButtonAction=10) {
+			Process, Exist, zoomit.exe
+			If not errorlevel
+			{
+				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+				return
+			}
+			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+				goto, zoomit
+			if not zoomItGuidance
+				Gosub, ZoomItGuidance
+			goto, ViewDraw
+		} else if (MiddleButtonAction=11) {
+			Process, Exist, zoomit.exe
+			If not errorlevel
+			{
+				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+				return
+			}
+			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+				goto, zoomit
+			if not zoomItGuidance
+				Gosub, ZoomItGuidance
+			goto, ViewBreakTimer
+		} else if (MiddleButtonAction=12) {
+			Process, Exist, zoomit.exe
+			If not errorlevel
+			{
+				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+				return
+			}
+			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+				goto, zoomit
+			if not zoomItGuidance
+				Gosub, ZoomItGuidance
+			goto, ViewBlackBoard
+		} else if (MiddleButtonAction=13) {
+			Process, Exist, zoomit.exe
+			If not errorlevel
+			{
+				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+				return
+			}
+			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+				goto, zoomit
+			if not zoomItGuidance
+				Gosub, ZoomItGuidance
+			goto, ViewWhiteBoard
+		} else if (MiddleButtonAction=14) {
+			goto, notepad
+		} else if (MiddleButtonAction=15) {
+			goto, wordpad
+		} else if (MiddleButtonAction=16) {
+			goto, mscalc
+		} else if (MiddleButtonAction=17) {
+			gosub, mspaint
+		} else if (MiddleButtonAction=18) {
+			goto, Google
+		} else if (MiddleButtonAction=19) {
+			goto, GoogleHighlight
+		} else if (MiddleButtonAction=20) {
+			goto, GoogleClipboard
+		} else if (MiddleButtonAction=21) {
+			goto, SpeakIt
+		} else if (MiddleButtonAction=22) {
+			goto, SpeakHighlight
+		} else if (MiddleButtonAction=23) {
+			goto, SpeakClipboard
+		} else if (MiddleButtonAction=24) {
+			goto, MonitorOff
+		} else if (MiddleButtonAction=25) {
+			goto, OpenTray
+		} else if (MiddleButtonAction=26) {
+			goto, AlwaysOnTop
+		} else if (MiddleButtonAction=27) {
+			goto, WebTimer
+		} else if (MiddleButtonAction=28) {
+			goto, TimerTab
+		} else if (MiddleButtonAction=29) {
+			goto, ZoomFaster
+		} else if (MiddleButtonAction=30) {
+			goto, ZoomSlower
+		} else if (MiddleButtonAction=31) {
+			hotkeyMod=MButton
+			goto, ElasticZoom
+		} else if (MiddleButtonAction=32) {				
+			hotkeyMod=MButton
+			goto, ElasticStillZoom
+		} else if (MiddleButtonAction=33) {				
+			goto, SnipFree
+		} else if (MiddleButtonAction=34) {				
+			goto, SnipRect
+		} else if (MiddleButtonAction=35) {				
+			goto, SnipWin
+		} else if (MiddleButtonAction=36) {				
+			goto, SnipScreen
+		} else if (MiddleButtonAction=37) {				
+			Gosub, ShowMagnifierHK ; show hide magnifier
+		} else if (MiddleButtonAction=38) {				
+			goto, showHidePanel
+		} else if (MiddleButtonAction=39) {				
+			goto, resetZoom
+		} else if (MiddleButtonAction=40) {				
+			goto, Default
+		} else if (MiddleButtonAction=41) {
+			Run, %CustomMiddlePath% ; all of these SHOULD NOT BE double-quoted in order to allow users to run commands such as: cmd /k dir (if quotes, it would be "cmd /k /dir" which is wrong.
 		} else {
-			RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
-			If not disablePreviewFullScreen {
-				if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
-					goto, ViewPreview
-			}
-			if (MiddleButtonAction=1) {
-				Gosub, SnippingTool
-			} else if (MiddleButtonAction=2) {
-				GoSub, KillMagnifierHK
-			} else if (MiddleButtonAction=3) {
-				Gosub, ColorHK
-			} else if (MiddleButtonAction=4) {
-				Gosub, MouseHK
-			} else if (MiddleButtonAction=5) {
-				Gosub, KeyboardHK
-			} else if (MiddleButtonAction=6) {
-				Gosub, TextHK
-			} else if (MiddleButtonAction=7) {
-				Process, Exist, zoomit.exe
-				If not errorlevel
-				{
-					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-					return
-				}
-				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-					goto, zoomit
-				if not zoomItGuidance
-					Gosub, ZoomItGuidance
-				goto, ViewType
-			} else if (MiddleButtonAction=8) {
-				Process, Exist, zoomit.exe
-				If not errorlevel
-				{
-					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-					return
-				}
-				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-					goto, zoomit
-				if not zoomItGuidance
-					Gosub, ZoomItGuidance
-				goto, ViewLiveZoom
-			} else if (MiddleButtonAction=9) {
-				Process, Exist, zoomit.exe
-				If not errorlevel
-				{
-					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-					return
-				}
-				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-					goto, zoomit
-				if not zoomItGuidance
-					Gosub, ZoomItGuidance
-				goto, ViewStillZoom
-			} else if (MiddleButtonAction=10) {
-				Process, Exist, zoomit.exe
-				If not errorlevel
-				{
-					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-					return
-				}
-				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-					goto, zoomit
-				if not zoomItGuidance
-					Gosub, ZoomItGuidance
-				goto, ViewDraw
-			} else if (MiddleButtonAction=11) {
-				Process, Exist, zoomit.exe
-				If not errorlevel
-				{
-					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-					return
-				}
-				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-					goto, zoomit
-				if not zoomItGuidance
-					Gosub, ZoomItGuidance
-				goto, ViewBreakTimer
-			} else if (MiddleButtonAction=12) {
-				Process, Exist, zoomit.exe
-				If not errorlevel
-				{
-					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-					return
-				}
-				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-					goto, zoomit
-				if not zoomItGuidance
-					Gosub, ZoomItGuidance
-				goto, ViewBlackBoard
-			} else if (MiddleButtonAction=13) {
-				Process, Exist, zoomit.exe
-				If not errorlevel
-				{
-					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-					return
-				}
-				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-					goto, zoomit
-				if not zoomItGuidance
-					Gosub, ZoomItGuidance
-				goto, ViewWhiteBoard
-			} else if (MiddleButtonAction=14) {
-				goto, notepad
-			} else if (MiddleButtonAction=15) {
-				goto, wordpad
-			} else if (MiddleButtonAction=16) {
-				goto, mscalc
-			} else if (MiddleButtonAction=17) {
-				gosub, mspaint
-			} else if (MiddleButtonAction=18) {
-				goto, Google
-			} else if (MiddleButtonAction=19) {
-				goto, GoogleHighlight
-			} else if (MiddleButtonAction=20) {
-				goto, GoogleClipboard
-			} else if (MiddleButtonAction=21) {
-				goto, SpeakIt
-			} else if (MiddleButtonAction=22) {
-				goto, SpeakHighlight
-			} else if (MiddleButtonAction=23) {
-				goto, SpeakClipboard
-			} else if (MiddleButtonAction=24) {
-				goto, MonitorOff
-			} else if (MiddleButtonAction=25) {
-				goto, OpenTray
-			} else if (MiddleButtonAction=26) {
-				goto, AlwaysOnTop
-			} else if (MiddleButtonAction=27) {
-				goto, WebTimer
-			} else if (MiddleButtonAction=28) {
-				goto, TimerTab
-			} else if (MiddleButtonAction=29) {
-				goto, ZoomFaster
-			} else if (MiddleButtonAction=30) {
-				goto, ZoomSlower
-			} else if (MiddleButtonAction=31) {
-				hotkeyMod=MButton
-				goto, ElasticZoom
-			} else if (MiddleButtonAction=32) {				
-				hotkeyMod=MButton
-				goto, ElasticStillZoom
-			} else if (MiddleButtonAction=33) {				
-				goto, SnipFree
-			} else if (MiddleButtonAction=34) {				
-				goto, SnipRect
-			} else if (MiddleButtonAction=35) {				
-				goto, SnipWin
-			} else if (MiddleButtonAction=36) {				
-				goto, SnipScreen
-			} else if (MiddleButtonAction=37) {				
-				Gosub, ShowMagnifierHK ; show hide magnifier
-			} else if (MiddleButtonAction=38) {				
-				goto, showHidePanel
-			} else if (MiddleButtonAction=39) {				
-				goto, resetZoom
-			} else if (MiddleButtonAction=40) {				
-				goto, Default
-			} else if (MiddleButtonAction=41) {
-				Run, %CustomMiddlePath% ; all of these SHOULD NOT BE double-quoted in order to allow users to run commands such as: cmd /k dir (if quotes, it would be "cmd /k /dir" which is wrong.
-			} else {
-				return ; this is unneeded
-			}
+			return ; this is unneeded
 		}
 	}
 }
 return
 
+; --
+; Custom Hotkey (Part 2) Start
+; --
+
 ;; -------- X1 and X2 START
 
-~XButton2 & LButton::
+~XButton2 & ~LButton::
+if not ForwardBack
+	return
 if (BackLeftAction=37) { ; 37 = None for X1/X2
 	return
 }
@@ -2042,7 +2061,9 @@ if not paused {
 return
 
 
-~XButton2 & RButton::
+~XButton2 & ~RButton::
+if not ForwardBack
+	return
 if (BackRightAction=37) { ; 37 = None for X1/X2
 	return
 }
@@ -2204,7 +2225,9 @@ if (BackRightAction=1) {
 }
 return
 
-~XButton1 & LButton::
+~XButton1 & ~LButton::
+if not ForwardBack
+	return
 if (ForwardLeftAction=37) { ; 37 = None for X1/X2
 	return
 }
@@ -2366,7 +2389,7 @@ if not paused {
 }
 return
 
-;;~XButton1 & MButton:: ; this resets the zoom increment only
+;;~XButton1 & ~MButton:: ; this resets the zoom increment only
 ;if paused
 ;	return
 ;
@@ -2420,7 +2443,9 @@ return
 ;}
 ;return
 
-~XButton1 & RButton:: ; show magnifier
+~XButton1 & ~RButton:: ; show magnifier
+if not ForwardBack
+	return
 if (ForwardRightAction=37) { ; 37 = None for X1/X2
 	return
 }
@@ -2582,7 +2607,9 @@ if (ForwardRightAction=1) {
 }
 return
 
-~XButton2 & Wheelup::
+~XButton2 & ~Wheelup::
+if not ForwardBack
+	return
 if (BackWupAction=37) { ; 37 = None for X1/X2
 	return
 }
@@ -2745,7 +2772,9 @@ if (BackWupAction=1) {
 return
 
 
-~XButton2 & Wheeldown::
+~XButton2 & ~Wheeldown::
+if not ForwardBack
+	return
 if (BackWdownAction=37) { ; 37 = None for X1/X2
 	return
 }
@@ -2907,7 +2936,9 @@ if (BackWdownAction=1) {
 }
 return
 
-~XButton1 & Wheelup::
+~XButton1 & ~Wheelup::
+if not ForwardBack
+	return
 if (ForwardWupAction=37) { ; 37 = None for X1/X2
 	return
 }
@@ -3069,7 +3100,9 @@ if (ForwardWupAction=1) {
 }
 return
 
-~XButton1 & Wheeldown::
+~XButton1 & ~Wheeldown::
+if not ForwardBack
+	return
 if (ForwardWdownAction=37) { ; 37 = None for X1/X2
 	return
 }
@@ -3233,54 +3266,11 @@ return
 
 ;; -------- X1 and X2 END
 
-; Show/hide magnifier by Win + Ctrl + ESC
-#+`::
-goto, ShowMagnifierHK
-
-; Show/hide panel by Win + Shift + ESC
-#+ESC::
-IfWinExist, AeroZoom Panel
-{
-	Gui, Destroy
-	Menu, Tray, Uncheck, &Show Panel`t[Win+Shift+ESC]
-	return
-}
-;Gui, Destroy
-goto, lastPos
-
-; Show/hide panel by tray (center it)
-showPanel:
-centerPanel = 1
-IfWinExist, AeroZoom Panel
-{
-	Gui, Destroy
-	Menu, Tray, Uncheck, &Show Panel`t[Win+Shift+ESC]
-	return
-}
-;Gui, Destroy
-goto, lastPos
-
-; Normal way to launch AeroZoom panel (Right-handed)
-; ~LButton & RButton::
-; goto, showHidePanel
-
-; Normal way to launch AeroZoom panel (Left-handed)
-; ~RButton & LButton::
-; goto, showHidePanel
-
-showHidePanel:
-IfWinExist, AeroZoom Panel
-{
-	Gui, Destroy
-	Menu, Tray, Uncheck, &Show Panel`t[Win+Shift+ESC]
-	return
-}
-goto, lastPos
-return
-
 ;; Customize Key START
 
 ~^LButton::
+if not CtrlAltShiftWin
+	return
 if (CtrlLeftAction=41) { ; 41 = None
 	return
 }
@@ -3452,6 +3442,8 @@ if not paused {
 return
 
 ~^RButton::
+if not CtrlAltShiftWin
+	return
 if (CtrlRightAction=41) { ; 41 = None
 	return
 }
@@ -3623,6 +3615,8 @@ if not paused {
 return
 
 ~!LButton::
+if not CtrlAltShiftWin
+	return
 if (AltLeftAction=41) { ; 41 = None
 	return
 }
@@ -3794,6 +3788,8 @@ if not paused {
 return
 
 ~!RButton::
+if not CtrlAltShiftWin
+	return
 if (AltRightAction=41) { ; 41 = None
 	return
 }
@@ -3965,6 +3961,8 @@ if not paused {
 return
 
 ~+LButton::
+if not CtrlAltShiftWin
+	return
 if (ShiftLeftAction=41) { ; 41 = None
 	return
 }
@@ -4136,6 +4134,8 @@ if not paused {
 return
 
 ~+RButton::
+if not CtrlAltShiftWin
+	return
 if (ShiftRightAction=41) { ; 41 = None
 	return
 }
@@ -4307,6 +4307,8 @@ if not paused {
 return
 
 ~#LButton::
+if not CtrlAltShiftWin
+	return
 if (WinLeftAction=41) { ; 41 = None
 	return
 }
@@ -4478,6 +4480,8 @@ if not paused {
 return
 
 ~#RButton::
+if not CtrlAltShiftWin
+	return
 if (WinRightAction=41) { ; 41 = None
 	return
 }
@@ -4653,6 +4657,8 @@ return
 ;; Customize Key WHEEL START
 
 ~^WheelUp::
+if not CtrlAltShiftWin
+	return
 if (CtrlWupAction=39) { ; 39 = None for Key Wheel
 	return
 }
@@ -4813,6 +4819,8 @@ return
 
 
 ~^WheelDown::
+if not CtrlAltShiftWin
+	return
 if (CtrlWdownAction=39) { ; 39 = None for Key Wheel
 	return
 }
@@ -4972,6 +4980,8 @@ if not paused {
 return
 
 ~!WheelUp::
+if not CtrlAltShiftWin
+	return
 if (AltWupAction=39) { ; 39 = None for Key Wheel
 	return
 }
@@ -5132,6 +5142,8 @@ return
 
 
 ~!WheelDown::
+if not CtrlAltShiftWin
+	return
 if (AltWdownAction=39) { ; 39 = None for Key Wheel
 	return
 }
@@ -5292,6 +5304,8 @@ return
 
 
 ~+WheelUp::
+if not CtrlAltShiftWin
+	return
 if (ShiftWupAction=39) { ; 39 = None for Key Wheel
 	return
 }
@@ -5452,6 +5466,8 @@ return
 
 
 ~+WheelDown::
+if not CtrlAltShiftWin
+	return
 if (ShiftWdownAction=39) { ; 39 = None for Key Wheel
 	return
 }
@@ -5612,6 +5628,8 @@ return
 
 
 ~#WheelUp::
+if not CtrlAltShiftWin
+	return
 if (WinWupAction=39) { ; 39 = None for Key Wheel
 	return
 }
@@ -5772,6 +5790,8 @@ return
 
 
 ~#WheelDown::
+if not CtrlAltShiftWin
+	return
 if (WinWdownAction=39) { ; 39 = None for Key Wheel
 	return
 }
@@ -5932,9 +5952,11 @@ return
 
 ;; Customize Key WHEEL END
 
-;; Customize Left/Right - Start
+; Customize Left/Right - Start
 
-~LButton & MButton::
+~LButton & ~MButton::
+if not LeftRight
+	return
 if (LeftMiddleAction=41) { ; 41 = None
 	return
 }
@@ -6105,7 +6127,13 @@ if not paused {
 }
 return
 
+; Note the below is "~LButton & RButton::" instead of "~LButton & ~RButton::" (with the later ~) although the latter permits other apps to access the hotkey, it would not disable the right click menu which makes AeroZoom panel annoying to use.
+
 ~LButton & RButton::
+if not LeftRight {
+	goto, showHidePanel
+	return
+}
 if (LeftRightAction=41) { ; 41 = None
 	return
 }
@@ -6277,6 +6305,10 @@ if not paused {
 return
 
 ~RButton & LButton::
+if not LeftRight {
+	goto, showHidePanel
+	return
+}
 if (RightLeftAction=41) { ; 41 = None
 	return
 }
@@ -6447,7 +6479,9 @@ if not paused {
 }
 return
 
-~RButton & MButton::
+~RButton & ~MButton::
+if not LeftRight
+	return
 if (RightMiddleAction=41) { ; 41 = None
 	return
 }
@@ -6620,10 +6654,12 @@ return
 
 ;; Customize Left/Right - END
 
-;; Customize Left/Right Wheelup/down - START
+; Customize Left/Right Wheelup/down - START
 
 
-~LButton & Wheelup::
+~LButton & ~Wheelup::
+if not LeftRight
+	return
 if (LeftWupAction=37) { ; 37 = None
 	return
 }
@@ -6786,7 +6822,9 @@ if (LeftWupAction=1) {
 return
 
 
-~LButton & Wheeldown::
+~LButton & ~Wheeldown::
+if not LeftRight
+	return
 if (LeftWdownAction=37) { ; 37 = None
 	return
 }
@@ -6948,7 +6986,10 @@ if (LeftWdownAction=1) {
 }
 return
 
-~RButton & Wheelup::
+
+~RButton & ~Wheelup::
+if not LeftRight
+	return
 if (RightWupAction=37) { ; 37 = None
 	return
 }
@@ -7110,7 +7151,9 @@ if (RightWupAction=1) {
 }
 return
 
-~RButton & Wheeldown::
+~RButton & ~Wheeldown::
+if not LeftRight
+	return
 if (RightWdownAction=37) { ; 37 = None
 	return
 }
@@ -7274,6 +7317,56 @@ return
 
 ;; Customize Left/Right Wheelup/down - END
 
+; --
+; Custom Hotkey (Part 2) End
+; --
+
+; Show/hide magnifier by Win + Ctrl + ESC
+#+`::
+goto, ShowMagnifierHK
+
+; Show/hide panel by Win + Shift + ESC
+#+ESC::
+IfWinExist, AeroZoom Panel
+{
+	Gui, Destroy
+	Menu, Tray, Uncheck, &Show Panel`t[Win+Shift+ESC]
+	return
+}
+;Gui, Destroy
+goto, lastPos
+
+; Show/hide panel by tray (center it)
+showPanel:
+centerPanel = 1
+IfWinExist, AeroZoom Panel
+{
+	Gui, Destroy
+	Menu, Tray, Uncheck, &Show Panel`t[Win+Shift+ESC]
+	return
+}
+;Gui, Destroy
+goto, lastPos
+
+; Normal way to launch AeroZoom panel (Right-handed)
+; ~LButton & RButton::
+; goto, showHidePanel
+
+; Normal way to launch AeroZoom panel (Left-handed)
+; ~RButton & LButton::
+; goto, showHidePanel
+
+showHidePanel:
+IfWinExist, AeroZoom Panel
+{
+	Gui, Destroy
+	Menu, Tray, Uncheck, &Show Panel`t[Win+Shift+ESC]
+	return
+}
+goto, lastPos
+return
+
+
 lastPos:
 
 Gui, Destroy ; ensure running Gui is impossible (otherwise strange errors)
@@ -7403,25 +7496,37 @@ if not zoomitPanel
 	GuiControl, Hide, ZoomItColor
 }
 
-ZoomInc_TT := "Zoom speed: 25 / 50 / 100 / 150 / 200 / 400"
+ZoomInc_TT := "Zoom rate: 25 / 50 / 100 / 150 / 200 / 400"
 Magnification_TT := "Magnification: Slide to zoom in/out"
 SnipSlider_TT := "Save screen shots to Desktop: (1) Enable / (2) Disable"
 SnipMode_TT := "Snip Mode: (1) Free-form / (2) Rectangular / (3) Window / (4) Screen" ; also shared by AeroSnip Options
 ZoomItColor_TT := "Pen color: (1) Red / (2) Green / (3) Blue / (4) Yellow / (5) Pink / (6) Orange"
 
 Gui, Add, Text, x0 y0 h452 w16 gUiMove vTxt1, 
-Txt1_TT := "Click to drag"
+if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA))
+	Txt1_TT = Click to drag`nRight-click for Classic/Modern switch
+Else
+	Txt1_TT = Click to drag
 Gui, Add, Text, x125 y0 h452 w16 gUiMove vTxt2, 
-Txt2_TT := "Click to drag"
+if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA))
+	Txt2_TT = Click to drag`nRight-click for Classic/Modern switch
+Else
+	Txt2_TT = Click to drag
 ; Gui, Add, Text, x0 y417 h22 w16 gUiMove vTxt3, 
-; Txt3_TT := "Click to drag"
+; Txt3_TT := "Click to drag`nRight-click for Classic/Modern switch"
 if SwitchMiniMode
 {
 	Gui, Add, Text, x0 y313 h11 w140 gUiMove vTxt4, 
-	Txt4_TT := "Click to drag"
+	if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA))
+	Txt4_TT = Click to drag`nRight-click for Classic/Modern switch
+Else
+	Txt4_TT = Click to drag
 } else {
 	Gui, Add, Text, x0 y397 h5 w140 gUiMove vTxt4, 
-	Txt4_TT := "Click to drag"
+	if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA))
+	Txt4_TT = Click to drag`nRight-click for Classic/Modern switch
+Else
+	Txt4_TT = Click to drag
 }
 Gui, Font, s8, Arial
 if not (!A_IsAdmin AND EnableLUA AND OSver>6 AND !zoomitPanel) {
@@ -7564,33 +7669,36 @@ Gui, Font, s8, Arial
 if paused {
 	Gui, Font, s8 Bold, Arial
 }
+if (paused=1) {
+	pausedText = &ms
+} else if (paused=2) {
+	pausedText = &all
+} else {
+	pausedText = &off
+}
 
 if (!A_IsAdmin AND EnableLUA AND OSver>6.0 AND !zoomitPanel) OR (OSver<6.1 AND !zoomitPanel) {
-	Gui, Add, Button, x15 y118 w33 h22 gPauseScript vPauseScript, &off
+	Gui, Add, Button, x15 y118 w33 h22 gPauseScriptViaButton vPauseScript, %pausedText%
 	Gui, Font, s8 Norm, Arial
 	if zoomitPanel {
 		Gui, Font, s8 Bold, Arial
 	}
-	Gui, Add, Button, x50 y118 w40 h22 gZoomItPanel vZoomItButton, &zoom
+	Gui, Add, Button, x50 y118 w40 h22 gZoomItPanelViaButton vZoomItButton, &zoom
 	Gui, Font, s8 Norm, Arial
 	Gui, Add, Button, x92 y118 w33 h22 gBye vBye, &quit
 } else {
-	Gui, Add, Button, x15 y291 w33 h22 gPauseScript vPauseScript, &off
+	Gui, Add, Button, x15 y291 w33 h22 gPauseScriptViaButton vPauseScript, %pausedText%
 	Gui, Font, s8 Norm, Arial
 	if zoomitPanel {
 		Gui, Font, s8 Bold, Arial
 	}
-	Gui, Add, Button, x50 y291 w40 h22 gZoomItPanel vZoomItButton, &zoom
+	Gui, Add, Button, x50 y291 w40 h22 gZoomItPanelViaButton vZoomItButton, &zoom
 	Gui, Font, s8 Norm, Arial
 	Gui, Add, Button, x92 y291 w33 h22 gBye vBye, &quit
 }
-PauseScript_TT := "Turn on/off mouse hotkeys (except for calling this panel) [Win+Alt+H]"
+PauseScript_TT := "Turn off mouse/all hotkeys"
 ;Hide_TT := "Hide/show this panel [Win+Shift+Esc]"
-if zoomitPanel {
-	ZoomItButton_TT := "Switch to ZoomIt Panel"
-} else {
-	ZoomItButton_TT := "Switch to Windows Magnifier Panel"
-}
+ZoomItButton_TT := "ZoomIt/Windows Magnifier Panel Switch"
 Bye_TT := "Quit AeroZoom [Q]"
 
 ; Adds Texts
@@ -7607,26 +7715,38 @@ if (!A_IsAdmin AND EnableLUA AND OSver>6.0 AND !zoomitPanel) OR (OSver<6.1 AND !
 	}
 }
 
-Txt_TT := "Click to drag"
+if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA))
+	Txt_TT = Click to drag`nRight-click for Classic/Modern switch
+Else
+	Txt_TT = Click to drag
 Gui, Font, norm
 
 ; Adds Menus
 Menu, AboutMenu, Add, Disable Startup &Tips, startupTips
 Menu, AboutMenu, Add, Disable First-Use &Guide, firstUseGuide
+If not menuInit
+	menu, AboutMenu, Add ; separator
 Menu, AboutMenu, Add, &Quick Instructions, Instruction
+If not menuInit
+	menu, AboutMenu, Add ; separator
 Menu, AboutMenu, Add, &About, HelpAbout
+Menu, AboutMenu, Add, &Update, CheckUpdate
+If not menuInit
+	menu, AboutMenu, Add ; separator
 if registered
 	Menu, AboutMenu, Add, &Registration, Donate
 ; Menu, AboutMenu, Add, &Email a Bug, EmailBugs ; Cancelled due to not universally supported
-Menu, AboutMenu, Add, &Check for Update, CheckUpdate
+
 if not registered
-	Menu, AboutMenu, Add, &Make a Donation, Donate
-Menu, AboutMenu, Add, AeroZoom on the &Web, VisitWeb
+	Menu, AboutMenu, Add, Donate $1, Donate
+Menu, AboutMenu, Add, AeroZoom &Web, VisitWeb
 
 Menu, SnipMenu, Add, Free-form`tWin+Alt+F, SnipFree
 Menu, SnipMenu, Add, Rectangular`tWin+Alt+R, SnipRect
 Menu, SnipMenu, Add, Window`tWin+Alt+W, SnipWin
 Menu, SnipMenu, Add, Screen`tWin+Alt+S, SnipScreen
+If not menuInit
+	menu, SnipMenu, Add ; separator
 Menu, SnipMenu, Add, AeroSnip Options, CaptureOptions
 ; Menu, SnipMenu, Add, Snipping Tool Options, SnippingToolOptions
 
@@ -7636,9 +7756,15 @@ If (OSver>=6)
 Menu, ZoomitMenu, Add, Draw`tCtrl+2, ViewDraw
 Menu, ZoomitMenu, Add, Type`tCtrl+2`, T, ViewType
 Menu, ZoomitMenu, Add, Break Timer`tCtrl+3, ViewBreakTimer
+If not menuInit
+	menu, ZoomitMenu, Add ; separator
 Menu, ZoomitMenu, Add, Black Board`tCtrl+2`, K, ViewBlackBoard
 Menu, ZoomitMenu, Add, White Board`tCtrl+2`, W, ViewWhiteBoard
+If not menuInit
+	menu, ZoomitMenu, Add ; separator
 Menu, ZoomitMenu, Add, View Hotkeys`tWin+Alt+Q`, Z, ZoomItInstButton
+If not menuInit
+	menu, ZoomitMenu, Add ; separator
 Menu, ZoomitMenu, Add, ZoomIt Options, ZoomItOptions
 
 If (OSver>=6) {
@@ -7646,10 +7772,16 @@ If (OSver>=6) {
 }
 Menu, ViewsMenu, Add, Sysinternals &ZoomIt, :ZoomitMenu
 If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
+	If not menuInit
+	menu, ViewsMenu, Add ; separator
 	Menu, ViewsMenu, Add, &Full Screen`tCtrl+Alt+F, ViewFullScreen
 	Menu, ViewsMenu, Add, &Lens`tCtrl+Alt+L, ViewLens
 	Menu, ViewsMenu, Add, &Docked`tCtrl+Alt+D, ViewDocked
+	If not menuInit
+	menu, ViewsMenu, Add ; separator
 	Menu, ViewsMenu, Add, &Preview Full Screen`tCtrl+Alt+Space, ViewPreview
+	If not menuInit
+	menu, ViewsMenu, Add ; separator
 }
 Menu, ViewsMenu, Add, &Windows Magnifier`tWin+Shift+``, ShowMagnifierHK
 ; Menu, ViewsMenu, Add  ; empty horizontal line (messes up)
@@ -7657,18 +7789,21 @@ Menu, ViewsMenu, Add, &Windows Magnifier`tWin+Shift+``, ShowMagnifierHK
 
 Menu, Configuration, Add, &Import Settings, ImportConfig
 Menu, Configuration, Add, &Export Settings, ExportConfig
+If not menuInit
+	menu, Configuration, Add ; separator
 Menu, Configuration, Add, &Save Config on Exit, ConfigBackup
-
-Menu, FileMenu, Add, &Configuration File, :Configuration
+Menu, FileMenu, Add, &Config File, :Configuration
+If not menuInit
+	menu, FileMenu, Add ; separator
 if (OSver>=6.1) {
 		If not (!A_IsAdmin AND EnableLUA)
-			Menu, FileMenu, Add, Switch to &Zoom Speed Slider, SwitchSlider
-		Menu, FileMenu, Add, Switch to &Magnification Slider, SwitchSlider
+			Menu, FileMenu, Add, Switch to &Zoom Rate Slider, SwitchSlider
+		Menu, FileMenu, Add, Switch to &Magnify Slider, SwitchSlider
 	if not zoomitPanel {
 		if (SwitchSlider=1) {
-			Menu, FileMenu, Check, Switch to &Zoom Speed Slider
+			Menu, FileMenu, Check, Switch to &Zoom Rate Slider
 		} else if (SwitchSlider=2) {
-			Menu, FileMenu, Check, Switch to &Magnification Slider
+			Menu, FileMenu, Check, Switch to &Magnify Slider
 		}
 	}
 }
@@ -7700,6 +7835,8 @@ if (!A_IsAdmin AND EnableLUA AND OSver>6.0)
 	Menu, FileMenu, Add, Switch off &User Account Control, RunUACoff
 }
 
+If not menuInit
+	menu, FileMenu, Add ; separator
 if not zoomitPanel {
 	Menu, FileMenu, Add, Go to ZoomIt &Panel, ZoomItPanel
 } else {
@@ -7709,21 +7846,25 @@ if not zoomitPanel {
 if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA)) {
 	if SwitchMiniMode
 	{
-		Menu, FileMenu, Add, &Go to Modern Mode, SwitchMiniMode
+		Menu, FileMenu, Add, &Go to Modern Mode`tRight-click, SwitchMiniMode
 	} else {
-		Menu, FileMenu, Add, &Go to Classic Mode, SwitchMiniMode
+		Menu, FileMenu, Add, &Go to Classic Mode`tRight-click, SwitchMiniMode
 	}
 }
 
 ; Menu, FileMenu, Add, &Hide/Show Magnifier`tM, ShowMagnifier
 ; Menu, FileMenu, Add, &Hide/Show Magnifier`tWin+Shift+``, ShowMagnifier
 
+If not menuInit
+	menu, FileMenu, Add ; separator
 If (OSver>=6.0) {
 	Menu, FileMenu, Add, &Run on Startup, RunOnStartup
 }
 Menu, FileMenu, Add, &Install as Current User, Install
-Menu, FileMenu, Add, &Hide This Panel`tESC, HideAZ
-Menu, FileMenu, Add, &Quit AeroZoom`tQ, ExitAZ
+If not menuInit
+	menu, FileMenu, Add ; separator
+Menu, FileMenu, Add, &Hide Panel`tESC, HideAZ
+Menu, FileMenu, Add, &Quit`tQ, ExitAZ
 
 
 ; MySubmenus
@@ -7739,7 +7880,11 @@ IfExist, %windir%\System32\cmd.exe
 If not A_IsAdmin {
 	if (OSver>5.9) {
 		IfExist, %windir%\System32\cmd.exe
+			If not menuInit
+	menu, MySubmenu, Add ; separator
 			Menu, MySubmenu, Add, Command Prompt (Admin), WinCmdAdmin
+			If not menuInit
+	menu, MySubmenu, Add ; separator
 	}
 }
 
@@ -7807,19 +7952,15 @@ IfNotExist, %ProgramFiles%\Windows NT\Accessories\wordpad.exe ; for vista's file
 IfExist, %windir%\Speech\Common\sapisvr.exe
 	Menu, MySubmenu, Add, Windows Speech Recognition, WinSpeech
 
-Menu, CustomizeMenu, Add, &Middle, CustomizeMiddle
-Menu, CustomizeMenu, Add, &Ctrl/Alt/Shift/Win (Beta), CustomizeKeys
-Menu, CustomizeMenu, Add, &Forward/Back (Beta), CustomizeForwardBack
-Menu, CustomizeMenu, Add, &Left/Right (Beta), CustomizeLeftRight
-
-Menu, OptionsMenu, Add, Custom Hotkeys, :CustomizeMenu
 Menu, OptionsMenu, Add, AeroSnip Options, CaptureOptions
 ;Menu, OptionsMenu, Add, Snipping Tool, SnippingToolOptions
 ;Menu, OptionsMenu, Add, ZoomIt Options, zoomitOptions
 Menu, OptionsMenu, Add, Advanced Options, AdvancedOptions
 
-Menu, MiscToolsMenu, Add, Aero Timer Web, WebTimer
-Menu, MiscToolsMenu, Add, Timer Tab, TimerTab
+Menu, MiscToolsMenu, Add, Aero Timer (Web), WebTimer
+Menu, MiscToolsMenu, Add, Timer Tab (Web), TimerTab
+If not menuInit
+	menu, MiscToolsMenu, Add ; separator
 IfExist, %systemdrive%\ChMac\ChMac.bat
 	Menu, MiscToolsMenu, Add, ChMac, ChMac
 IfExist, %systemdrive%\Cmd Dict\Cmd Dict.bat
@@ -7838,6 +7979,8 @@ IfExist, %systemdrive%\Total Malware Scanner\Total Malware Scanner.bat
 	Menu, MiscToolsMenu, Add, Total Malware Scanner, TMS1
 IfExist, %systemdrive%\Total Malware Scanner\Total Malware Scanner.exe
 	Menu, MiscToolsMenu, Add, Total Malware Scanner, TMS2
+If not menuInit
+	menu, MiscToolsMenu, Add ; separator
 Menu, MiscToolsMenu, Add, Legacy: Click-n-Go Buttons, ClicknGo
 If !(OSver<6) AND !(EditionID="HomeBasic" OR EditionID="Starter") AND !(!A_IsAdmin AND EnableLUA AND OSver>6.0) { ; if not xp (Snip Button becomes Paint) AND not vista/win7 home basic/start (Snip button becomes Paint) AND not win7 limited user with UAC on (Kill button is already Paint) ** beware the last case does not contain Kill button while the prev 2 contain
 	Menu, MiscToolsMenu, Add, Legacy: Change Kill to Paint, TogglePaintKill
@@ -7847,20 +7990,44 @@ If !(OSver<6) AND !(EditionID="HomeBasic" OR EditionID="Starter") AND !(!A_IsAdm
 		Menu, MiscToolsMenu, Uncheck, Legacy: Change Kill to Paint
 }
 
+Menu, CustomizeMenu, Add, &Holding Middle, CustomizeMiddle
+Menu, CustomizeMenu, Add, &Ctrl/Alt/Shift/Win, CustomizeKeys
+Menu, CustomizeMenu, Add, &Forward/Back, CustomizeForwardBack
+Menu, CustomizeMenu, Add, &Left/Right, CustomizeLeftRight
+
+Menu, CustomHkMenu, Add, &Settings, :CustomizeMenu
+If not menuInit
+	menu, CustomHkMenu, Add ; separator
+
+Menu, CustomHkMenu, Add, &Enable Holding Middle, HoldMiddle
+Menu, CustomHkMenu, Add, &Enable Ctrl/Alt/Shift/Win, CtrlAltShiftWin
+Menu, CustomHkMenu, Add, &Enable Forward/Back, ForwardBack
+Menu, CustomHkMenu, Add, &Enable Left/Right, LeftRight
+
 Menu, ToolboxMenu, Add, &Windows Tools, :MySubmenu
-Menu, ToolboxMenu, Add, Misc &Tools, :MiscToolsMenu
+Menu, ToolboxMenu, Add, &Misc Tools, :MiscToolsMenu
+If not menuInit
+	menu, ToolboxMenu, Add ; separator
+Menu, ToolboxMenu, Add, &Custom Hotkeys, :CustomHkMenu
+If not menuInit
+	menu, ToolboxMenu, Add ; separator
 Menu, ToolboxMenu, Add, &Preferences, :OptionsMenu
-Menu, ToolboxMenu, Add, &Hold Middle Button to Trigger, HoldMiddle
-Menu, ToolboxMenu, Add, Save &Captures Automatically, NirCmd
+If not menuInit
+	menu, ToolboxMenu, Add ; separator
+; Menu, ToolboxMenu, Add, &Hold Middle Button to Trigger, HoldMiddle
+Menu, ToolboxMenu, Add, &Save Captures, NirCmd
 Menu, ToolboxMenu, Add, &Misclick-Preventing Pad, UseZoomPad
-Menu, ToolboxMenu, Add, Type with &Notepad, UseNotepad
-Menu, ToolboxMenu, Add, Elastic &Zoom, ToggleElasticZoom
+Menu, ToolboxMenu, Add, &Type with Notepad, UseNotepad
+Menu, ToolboxMenu, Add, &Elastic Zoom, ToggleElasticZoom
 Menu, ToolboxMenu, Add, &Always on Top, OnTop
+If not menuInit
+	menu, ToolboxMenu, Add ; separator
 Menu, ToolboxMenu, Add, &Use ZoomIt as Magnifier, ZoomIt
 If (OSver>=6.0) {
-	Menu, ToolboxMenu, Add, Wheel with ZoomIt (&Live), ZoomItLive
-	Menu, ToolboxMenu, Add, Wheel with ZoomIt (&Still), ZoomitStill
+	Menu, ToolboxMenu, Add, &Wheel with ZoomIt (Live), ZoomItLive
+	Menu, ToolboxMenu, Add, &Wheel with ZoomIt (Still), ZoomitStill
 }
+
 Process, Exist, zoomit.exe
 If (errorlevel=0) {
 	Menu, ViewsMenu, Disable, Sysinternals &ZoomIt
@@ -7907,17 +8074,20 @@ Menu, MyBar, Add, &Go, :ViewsMenu
 Menu, MyBar, Add, &Tool, :ToolboxMenu
 Menu, MyBar, Add, &?, :AboutMenu
 	
+; for separator not to run twice, thrice... (otherwise it appears twice, thrice... in the menu)
+menuInit = 1
+
 ; update view menu
 StartupMagMode=1
 Gosub, ReadValueUpdateMenu
 
 ; Check if notepad is preferred
 if (notepad=1) {
-	Menu, ToolboxMenu, Check, Type with &Notepad
+	Menu, ToolboxMenu, Check, &Type with Notepad
 }
 
 if (NirCmd=1) {
-	Menu, ToolboxMenu, Check, Save &Captures Automatically
+	Menu, ToolboxMenu, Check, &Save Captures
 }
 
 if (EnableAutoBackup=1) {
@@ -7953,10 +8123,32 @@ if (GuideDisabled=1) {
 
 RegRead,holdMiddle,HKCU,Software\WanderSick\AeroZoom,holdMiddle
 If (holdMiddle=1) {
-	Menu, ToolboxMenu, Check, &Hold Middle Button to Trigger
+	Menu, CustomHkMenu, Check, &Enable Holding Middle
 } Else {
-	Menu, ToolboxMenu, Uncheck, &Hold Middle Button to Trigger
+	Menu, CustomHkMenu, Uncheck, &Enable Holding Middle
 }
+
+RegRead,CtrlAltShiftWin,HKCU,Software\WanderSick\AeroZoom,CtrlAltShiftWin
+If (CtrlAltShiftWin=1) {
+	Menu, CustomHkMenu, Check, &Enable Ctrl/Alt/Shift/Win
+} Else {
+	Menu, CustomHkMenu, Uncheck, &Enable Ctrl/Alt/Shift/Win
+}
+
+RegRead,ForwardBack,HKCU,Software\WanderSick\AeroZoom,ForwardBack
+If (ForwardBack=1) {
+	Menu, CustomHkMenu, Check, &Enable Forward/Back
+} Else {
+	Menu, CustomHkMenu, Uncheck, &Enable Forward/Back
+}
+
+RegRead,LeftRight,HKCU,Software\WanderSick\AeroZoom,LeftRight
+If (LeftRight=1) {
+	Menu, CustomHkMenu, Check, &Enable Left/Right
+} Else {
+	Menu, CustomHkMenu, Uncheck, &Enable Left/Right
+}
+
 
 ; Check if zoompad is preferred
 if (zoomPad=1) {
@@ -7964,7 +8156,7 @@ if (zoomPad=1) {
 }
 
 if (elasticZoom=1) {
-	Menu, ToolboxMenu, Check, Elastic &Zoom
+	Menu, ToolboxMenu, Check, &Elastic Zoom
 }
 
 ; Check if AeroZoom is set to run in Startup in the current user startup folder
@@ -8022,16 +8214,16 @@ if zoomitPanel {
 }
 
 if (zoomitLive) AND (OSver>=6.0) {
-	Menu, ToolboxMenu, Check, Wheel with ZoomIt (&Live)
+	Menu, ToolboxMenu, Check, &Wheel with ZoomIt (Live)
 }
 
 if (zoomitStill) AND (OSver>=6.0) {
-	Menu, ToolboxMenu, Check, Wheel with ZoomIt (&Still)
+	Menu, ToolboxMenu, Check, &Wheel with ZoomIt (Still)
 }
 
 ; if (OSver<6.1) OR !(EditionID="HomeBasic" OR EditionID="Starter")
 if (OSver=6) {
-	Menu, ToolboxMenu, Disable, Wheel with ZoomIt (&Live)
+	Menu, ToolboxMenu, Disable, &Wheel with ZoomIt (Live)
 }
 
 if (OSver<6) OR (OSver=6 AND !SnippingToolExists)
@@ -8048,14 +8240,19 @@ if (OSver=6 AND SnippingToolExists)
 
 if not A_IsAdmin
 {
-	Menu, Configuration, Disable, &Save Config on Exit
+	; Menu, Configuration, Disable, &Save Config on Exit
 	If (OSver>=6) {
 		Menu, FileMenu, Disable, &Run on Startup
 	}
 }
 
+if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
+	Menu, FileMenu, Disable, &Run on Startup
+}
+
 ; Attach the menu bar to the window:
 Gui, Menu, MyBar
+
 
 
 hIcon32 := DllCall("LoadImage", uint, 0
@@ -8065,6 +8262,7 @@ hIcon32 := DllCall("LoadImage", uint, 0
     , uint, 0x10)  ; Flags: LR_LOADFROMFILE
 Gui +LastFound
 SendMessage, 0x80, 1, hIcon32  ; 0x80 is WM_SETICON; and 1 means ICON_BIG (vs. 0 for ICON_SMALL).
+
 
 ; IMPORTANT: Set Title, Window Size and Position
 ; Gui, Show, h452 w140 x%xPos2% y%yPos2%, `r
@@ -8133,11 +8331,42 @@ if (OSver>6) {
 	SetTimer, updateMouseTextKB, 500 ; monitor registry for value changes
 }
 
-if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
-	Menu, FileMenu, Disable, &Run on Startup
+
+; check single-click on tray icon - START
+; http://www.autohotkey.com/community/viewtopic.php?t=36960 ; thanks to Serenity
+
+OnMessage(0x404, "AHK_NOTIFYICON") ; WM_USER + 4
+Return
+
+AHK_NOTIFYICON(wParam, lParam)
+{
+   Global clickType
+
+   If lParam = 0x201 ; WM_LBUTTONUP
+   {
+      clickType = 1
+      SetTimer, clickChk, -250
+      Return 0 
+   }
+   Else If lParam = 0x203 ; WM_LBUTTONDBLCLK   
+   {
+      clickType = 2
+      Return 0
+   }
 }
 
-return
+clickChk:
+If clickType = 1
+{
+   gosub, PauseScriptViaTray
+}
+Else If clickType = 2
+{
+   gosub, showPanel
+}
+Return
+
+; check single-click on tray icon - END
 
 ShowMagnifier:
 if zoomitPanel {
@@ -8865,7 +9094,7 @@ if not zoomitPanel ; to prevent panel button being updated externally by hotkeys
 	GuiControl,,Text,Te&xt %TextCurrent% > %TextNext%
 Return
 
-PauseScript:
+PauseScriptOld:
 if not paused {
 	paused = 1
 	Gui, Font, s8 Bold, Arial
@@ -8883,12 +9112,90 @@ Gui, Font, s10 Norm, Tahoma
 Gui, %guiDestroy%
 return
 
+; prevent toggling to "Pause All Hotkeys", while selecting "Pause Mouse Hotkeys" from tray.
+PauseScriptViaTrayPauseMouseOnly:
+PauseScriptViaTrayPauseMouseOnly = 1
+goto, PauseScriptViaTray
+
+PauseScriptViaButton:
+RegRead,PauseScriptViaButtonInfo,HKCU,Software\WanderSick\AeroZoom,PauseScriptViaButtonInfo
+if errorlevel
+	Msgbox, 262192, This message will be shown once only, Same as left-clicking the tray icon, this button disables AeroZoom hotkeys (for temporarily switching to apps incompatible with AeroZoom -- hope you don't ever need this.)`n`nIt toggles 3 modes.`n`n1) - OFF - all hotkeys are enabled (default)`n`n2) - MS - only mouse hotkeys are disabled (except Left+Right for bringing back AeroZoom Panel)`n`n3) - ALL - all hotkeys are disabled (WARNING -- the only way to bring back AeroZoom is thru the tray icon)
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, PauseScriptViaButtonInfo, 1
+
+PauseScriptViaTray:
+If (OSD=1) {
+	If not PauseScriptViaTrayPauseMouseOnly {
+		if not paused {
+			Run, "%A_WorkingDir%\Data\OSD.exe" Off1
+		} else if (paused=1) {
+			Run, "%A_WorkingDir%\Data\OSD.exe" Off2
+		} else if (paused=2) {
+			Run, "%A_WorkingDir%\Data\OSD.exe" Off
+		}
+	}
+}
+
+PauseScript:
+if not paused {
+	paused = 1
+	Gui, Font, s8 Bold, Arial
+	GuiControl,,PauseScript,&ms
+	GuiControl, Font, PauseScript
+	Menu, Tray, Check, Pause &Mouse Hotkeys`t[Win+Alt+H]
+	Menu, Tray, Uncheck, &Pause All Hotkeys`t[Click tray icon]
+	Menu, Tray, Icon, %A_WorkingDir%\Data\AeroZoom_Pause.ico, ,1
+	Suspend, off
+} else if (paused=1) AND (!PauseScriptViaTrayPauseMouseOnly) {
+	paused = 2
+	Gui, Font, s8 Bold, Arial
+	GuiControl,,PauseScript,&all
+	GuiControl, Font, PauseScript
+	Menu, Tray, Uncheck, Pause &Mouse Hotkeys`t[Win+Alt+H]
+	Menu, Tray, Check, &Pause All Hotkeys`t[Click tray icon]
+	Menu, Tray, Icon, %A_WorkingDir%\Data\AeroZoom_Suspend.ico, ,1
+	Suspend, on
+} else {
+	paused =
+	Gui, Font, s8 Norm, Arial
+	GuiControl,,PauseScript,&off
+	GuiControl, Font, PauseScript
+	Menu, Tray, Uncheck, Pause &Mouse Hotkeys`t[Win+Alt+H]
+	Menu, Tray, Uncheck, &Pause All Hotkeys`t[Click tray icon]
+	Menu, Tray, Icon, %A_WorkingDir%\Data\AeroZoom.ico, ,1
+	Suspend, off
+}
+Gui, Font, s10 Norm, Tahoma
+Gui, %guiDestroy%
+PauseScriptViaTrayPauseMouseOnly = 
+return
+
 SuspendScript:
 suspend
 If A_IsSuspended
-	Menu, Tray, Check, &Pause All Hotkeys
+{
+	Menu, Tray, Check, &Pause All Hotkeys`t[Click tray icon]
+	Menu, Tray, Uncheck, Pause &Mouse Hotkeys`t[Win+Alt+H]
+	paused = 2
+	IfWinExist, AeroZoom Panel
+	{
+		Gui, Font, s8 Bold, Arial
+		GuiControl,,PauseScript,&all
+		GuiControl, Font, PauseScript
+	}
+}
 Else
-	Menu, Tray, Uncheck, &Pause All Hotkeys
+{
+	Menu, Tray, Uncheck, &Pause All Hotkeys`t[Click tray icon]
+	Menu, Tray, Uncheck, Pause &Mouse Hotkeys`t[Win+Alt+H]
+	paused = 
+	IfWinExist, AeroZoom Panel
+	{
+		Gui, Font, s8 Norm, Arial
+		GuiControl,,PauseScript,&off
+		GuiControl, Font, PauseScript
+	}
+}
 return
 
 ;Hide:
@@ -8938,7 +9245,7 @@ Gui, 2:+ToolWindow
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Global Keyboard Shortcuts (Windows 7)
 Gui, 2:Font, s9, Arial, 
-Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom speed`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   (See tray menu)`nQuick help`t`t   [Win] + [Alt] + [Q]
+Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom rate`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   (Click tray icon)`nQuick help`t`t   [Win] + [Alt] + [Q]
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Modifier (User-defined Mouse Button)
 Gui, 2:Font, s9, Arial, 
@@ -8970,7 +9277,7 @@ Gui, 2:+ToolWindow
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Global Keyboard Shortcuts (Limited)
 Gui, 2:Font, s9, Arial, 
-Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom speed`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset magnifier`t   [Win] + [Shift] + [R]  *close mag first`nRun magnifier`t`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   (See tray menu)`nQuick help`t`t   [Win] + [Alt] + [Q]
+Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom rate`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset magnifier`t   [Win] + [Shift] + [R]  *close mag first`nRun magnifier`t`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   (Click tray icon)`nQuick help`t`t   [Win] + [Alt] + [Q]
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Modifier (User-defined Mouse Button)
 Gui, 2:Font, s9, Arial, 
@@ -9002,7 +9309,7 @@ Gui, 2:+ToolWindow
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Global Keyboard Shortcuts (Vista and XP)
 Gui, 2:Font, s9, Arial, 
-Gui, 2:Add, Text, , Elastic zoom`t`t   [Ctrl] + [Caps Lock]  *Vista + Aero`nElastic zoom (still)`t   [Shift] + [Caps Lock]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]  *Vista`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   (See tray menu)`nQuick help`t`t   [Win] + [Alt] + [Q]
+Gui, 2:Add, Text, , Elastic zoom`t`t   [Ctrl] + [Caps Lock]  *Vista + Aero`nElastic zoom (still)`t   [Shift] + [Caps Lock]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]  *Vista`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   (Click tray icon)`nQuick help`t`t   [Win] + [Alt] + [Q]
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Modifier (User-defined Mouse Button)
 Gui, 2:Font, s9, Arial, 
@@ -9050,7 +9357,7 @@ else
 return
 
 VisitWeb:
-Run, www.wandersick.blogspot.com/p/aerozoom-for-windows-7-magnifier.html
+Run, http://wandersick.blogspot.com/p/aerozoom-for-windows-7-magnifier.html
 return
 
 Gmail:
@@ -9077,7 +9384,7 @@ Gui, 2:Add, Text, , AeroZoom %verAZ% with AeroSnip
 Gui, 2:Font, s10, Tahoma, 
 Gui, 2:Add, Text, ,The wheel zoom and presentation kit?`nBetter Magnifier, Snipping Tool and ZoomIt?`nJust thought the idea's neat, so I created It.`n`nAn AutoHotkey-ware by a Chinese.`nThe source is open so completely free.`n`nJust love life if you like this,`nor donate to me or any cause you please.
 Gui, 2:Font, s10, Tahoma,
-Gui, 2:Add, Text, ,If you have words for me, bitter or sweet,`nsend to 'wandersick' via Gmail or a tweet.
+Gui, 2:Add, Text, ,If you have words for me, bitter or sweet,`nsend wandersick via Gmail or a tweet.
 Gui, 2:Font, s10, Tahoma, 
 Gui, 2:Font, norm,
 ; Gui, 2:Add, Button, x34 y254 h30 w60 vDonatetemp2, &Donate
@@ -9123,7 +9430,7 @@ Msgbox, 262144, Default Hotkeys of Sysinternals ZoomIt, Operation Modes`n - Stil
 return
 
 ExtraInstButton:
-Msgbox, 262144, Custom Hotkeys (Experimental), Before we begin, do you know what a modifier is?`n`nA modifier is a button like Ctrl, Alt, Shift, Win, that we hold before pressing another button to access another feature. Before AeroZoom 2.0, the modifiers supported were only Left and Right mouse buttons. Now, besides using the new modifiers (Ctrl, Alt, Win, Shift, Back, Forward, Middle) for zoom, AeroZoom also makes more customizable hotkeys out of them. Let's take a look!`n`n1. 'Holding middle button' as a hotkey to automatically switch between 'New snip'/'Preview full screen' (for Windows 7).`n`n2. Sixteen hotkeys made using modifier keys [Ctrl/Alt/Win/Shift] and [Left/Right/Wheel-up/Wheel-down mouse button].`n`n3. Eight hotkeys out of Back and Forward buttons (if your mouse has one).`n`n4. Eight hotkeys out of Left and Right mouse buttons.`n`nBy default, all hotkeys except 'Hold Middle Button to Trigger' are disabled. To customize them, go to 'Tool > Preferences > Custom Hotkeys', where built-in functions such as these less-known ones: Speak, Google, Eject CD, Timer, Monitor Off, Always On Top or any command or program can be specified.`n`nNote 1: If you are currently using the modifier for zoom, the relevant hotkeys won't be available for editing (greyed out).`n`nNote 2: If AeroZoom is working in Limited mode (go to '? > About' to see), some internal functions may not work.
+Msgbox, 262144, Custom Hotkeys (Experimental), Before we begin, do you know what a modifier is?`n`nA modifier is a button like Ctrl, Alt, Shift, Win, that we hold before pressing another button to access another feature. Before AeroZoom 2.0, the modifiers supported were only Left and Right mouse buttons. Now, besides using the new modifiers (Ctrl, Alt, Win, Shift, Back, Forward, Middle) for zoom, AeroZoom also makes more customizable hotkeys out of them. Let's take a look!`n`n1. 'Holding middle button' as a hotkey to automatically switch between 'New snip'/'Preview full screen' (for Windows 7).`n`n2. Sixteen hotkeys made using modifier keys [Ctrl/Alt/Win/Shift] and [Left/Right/Wheel-up/Wheel-down mouse button].`n`n3. Eight hotkeys out of Back and Forward buttons (if your mouse has one).`n`n4. Eight hotkeys out of Left and Right mouse buttons.`n`nBy default, all hotkeys except 'Holding Middle' are disabled. To customize them, go to 'Tool > Preferences > Custom Hotkeys', where built-in functions such as these less-known ones: Speak, Google, Eject CD, Timer, Monitor Off, Always On Top or any command or program can be specified.`n`nNote 1: If you are currently using the modifier for zoom, the relevant hotkeys won't be available for editing (greyed out).`n`nNote 2: If AeroZoom is working in Limited mode (go to '? > About' to see), some internal functions may not work.
 return
 
 2ButtonDonate:
@@ -9137,7 +9444,7 @@ Gui, 5:+owner2  ; Make the main window (Gui #1) the owner of the "about box" (Gu
 Gui 2:+Disabled  ; Disable parent window.
 Gui, 5:+ToolWindow
 Gui, 5:Font, s12, Arial bold, 
-Gui, 5:Add, Text, , Contact Wandersick (Ning Ng)
+Gui, 5:Add, Text, , Contact Wandersick
 Gui, 5:Font, norm,
 Gui, 5:Font, s10, Tahoma
 Gui, 5:Add, Text, ,(1) Blog  (2) Email 
@@ -9263,11 +9570,20 @@ Gui, 1:+Disabled
 ;Gui, 3:-MinimizeBox -MaximizeBox 
 Gui, 3:+ToolWindow
 Gui, 3:Add, Text, x0 y0 h617 w11 gUiMove vDrag1, 
-Drag1_TT := "Click to drag"
+if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA))
+	Drag1_TT = Click to drag`nRight-click for Classic/Modern switch
+Else
+	Drag1_TT = Click to drag
 Gui, 3:Add, Text, x193 y0 h617 w16 gUiMove vDrag2, 
-Drag2_TT := "Click to drag"
+if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA))
+	Drag2_TT = Click to drag`nRight-click for Classic/Modern switch
+Else
+	Drag2_TT = Click to drag
 Gui, 3:Add, Text, x0 y0 h12 w210 gUiMove vDrag3, 
-Drag3_TT := "Click to drag"
+if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA))
+	Drag3_TT = Click to drag`nRight-click for Classic/Modern switch
+Else
+	Drag3_TT = Click to drag
 
 Gui, 3:Font, s8, Tahoma
 Gui, 3:Add, Edit, x132 y320 w50 h20 +Center +Limit3 -Multi +Number -WantTab -WantReturn vPadTransTemp,
@@ -9580,7 +9896,7 @@ if customEdCheckbox
 {
 	; If custom editor is selected, deselect UseNotepad
 	RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Notepad
-	Menu, ToolboxMenu, Uncheck, Type with &Notepad
+	Menu, ToolboxMenu, Uncheck, &Type with Notepad
 	notepad=0
 }
 
@@ -10279,14 +10595,14 @@ IfNotExist, %A_WorkingDir%\Data\NirCmd.exe
 if (NirCmd=1) {
 	NirCmd=0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, NirCmd, 0
-	Menu, ToolboxMenu, Uncheck, Save &Captures Automatically
+	Menu, ToolboxMenu, Uncheck, &Save Captures
 	If (OSver<6.1) {
 		GuiControl,1:, SnipSlider, 1
 	}
 } else {
 	NirCmd=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, NirCmd, 1
-	Menu, ToolboxMenu, Check, Save &Captures Automatically
+	Menu, ToolboxMenu, Check, &Save Captures
 	If (OSver<6.1) {
 		GuiControl,1:, SnipSlider, 2
 	}
@@ -10388,11 +10704,11 @@ ToggleElasticZoom:
 if (ElasticZoom=1) {
 	ElasticZoom=0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ElasticZoom, 0
-	Menu, ToolboxMenu, Uncheck, Elastic &Zoom
+	Menu, ToolboxMenu, Uncheck, &Elastic Zoom
 } else {
 	ElasticZoom=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ElasticZoom, 1
-	Menu, ToolboxMenu, Check, Elastic &Zoom
+	Menu, ToolboxMenu, Check, &Elastic Zoom
 }
 return
 
@@ -10400,11 +10716,47 @@ HoldMiddle:
 if (holdMiddle=1) {
 	holdMiddle=0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, holdMiddle, 0
-	Menu, ToolboxMenu, Uncheck, &Hold Middle Button to Trigger
+	Menu, CustomHkMenu, Uncheck, &Enable Holding Middle
 } else {
 	holdMiddle=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, holdMiddle, 1
-	Menu, ToolboxMenu, Check, &Hold Middle Button to Trigger
+	Menu, CustomHkMenu, Check, &Enable Holding Middle
+}
+return
+
+CtrlAltShiftWin:
+if (CtrlAltShiftWin=1) {
+	CtrlAltShiftWin=0
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CtrlAltShiftWin, 0
+	Menu, CustomHkMenu, Uncheck, &Enable Ctrl/Alt/Shift/Win
+} else {
+	CtrlAltShiftWin=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CtrlAltShiftWin, 1
+	Menu, CustomHkMenu, Check, &Enable Ctrl/Alt/Shift/Win
+}
+return
+
+ForwardBack:
+if (ForwardBack=1) {
+	ForwardBack=0
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ForwardBack, 0
+	Menu, CustomHkMenu, Uncheck, &Enable Forward/Back
+} else {
+	ForwardBack=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ForwardBack, 1
+	Menu, CustomHkMenu, Check, &Enable Forward/Back
+}
+return
+
+LeftRight:
+if (LeftRight=1) {
+	LeftRight=0
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, LeftRight, 0
+	Menu, CustomHkMenu, Uncheck, &Enable Left/Right
+} else {
+	LeftRight=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, LeftRight, 1
+	Menu, CustomHkMenu, Check, &Enable Left/Right
 }
 return
 
@@ -10412,12 +10764,12 @@ UseNotepad:
 if (notepad=1) {
 	notepad=0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Notepad, 0
-	Menu, ToolboxMenu, Uncheck, Type with &Notepad
+	Menu, ToolboxMenu, Uncheck, &Type with Notepad
 	;GuiControl,, &Note, Word
 } else {
 	notepad=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Notepad, 1
-	Menu, ToolboxMenu, Check, Type with &Notepad
+	Menu, ToolboxMenu, Check, &Type with Notepad
 	; When useNotepad is selected, customEd is deselected
 	RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, customEdCheckbox
 	customEdCheckbox=
@@ -11441,9 +11793,9 @@ If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic") {
 return
 
 SwitchSlider:
-IfInString, A_ThisMenuItem, Zoom Speed
+IfInString, A_ThisMenuItem, Zoom Rate
 	SwitchSlider=1
-IfInString, A_ThisMenuItem, Magnification
+IfInString, A_ThisMenuItem, Magnify
 	SwitchSlider=2
 IfInString, A_ThisMenuItem, AeroSnip
 	SwitchSlider=3
@@ -11461,9 +11813,9 @@ GuiControl, Hide, SnipMode
 GuiControl, Disable, SnipSlider
 GuiControl, Hide, SnipSlider
 If (OSver>=6.1) {
-	Menu, FileMenu, Uncheck, Switch to &Magnification Slider
-    If !(!A_IsAdmin AND EnableLUA) { ; if Win 7 + Limited Account + UAC, Kill is impossible, so zoom speed slider is unavailable.
-		Menu, FileMenu, Uncheck, Switch to &Zoom Speed Slider
+	Menu, FileMenu, Uncheck, Switch to &Magnify Slider
+    If !(!A_IsAdmin AND EnableLUA) { ; if Win 7 + Limited Account + UAC, Kill is impossible, so zoom rate slider is unavailable.
+		Menu, FileMenu, Uncheck, Switch to &Zoom Rate Slider
 	}
 }
 If SnippingToolExists
@@ -11471,11 +11823,11 @@ If SnippingToolExists
 If (OSver<6.1)
 	Menu, FileMenu, Uncheck, Switch to Capture-to-&Disk Slider
 if (SwitchSlider=1) {
-	Menu, FileMenu, Check, Switch to &Zoom Speed Slider
+	Menu, FileMenu, Check, Switch to &Zoom Rate Slider
 	GuiControl, Enable, ZoomInc
 	GuiControl, Show, ZoomInc
 } else if (SwitchSlider=2) {
-	Menu, FileMenu, Check, Switch to &Magnification Slider
+	Menu, FileMenu, Check, Switch to &Magnify Slider
 	GuiControl, Enable, Magnification
 	GuiControl, Show, Magnification
 } else if (SwitchSlider=3) {
@@ -12084,7 +12436,7 @@ RegRead,MiddleTriggerMsg,HKCU,Software\WanderSick\AeroZoom,MiddleTriggerMsg
 }
 if not HoldMiddle
 {
-	Msgbox, 262180, Umm, 'Hold Middle Button to Trigger' is currently disabled. Enable it?
+	Msgbox, 262180, Umm, 'Holding Middle (Custom Hotkeys)' is currently disabled. Enable it?
 	IfMsgbox Yes
 		gosub, HoldMiddle
 }
@@ -12135,7 +12487,7 @@ else
 }
 Gui, 7:Add, CheckBox, %Checked% -Wrap x17 y84 w290 h30 vDisablePreviewFullScreen, &Disable Full Screen Preview auto switching
 disablePreviewFullScreen_TT := "When zoomed in, holding middle does the action specified here instead of 'full screen preview' (for 'Full Screen' view of Windows 7 Magnifier.)"
-Gui, 7:Add, GroupBox, x7 y10 w310 h160 , Hold Middle Button to Trigger
+Gui, 7:Add, GroupBox, x7 y10 w310 h160 , Hold Middle Button as a Trigger
 if disableZoomResetHotkey ; if checkbox was checked
 {
 	Checked=Checked1
@@ -12188,6 +12540,13 @@ RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, DisableZoomRe
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, stillZoomDelay, %stillZoomDelay%
 
 return
+
+
+; --
+; Custom Hotkey (Part 3) Start
+; --
+
+; Part 3 does not exist in the external Custom Hotkey exe's
 
 CustomizeForwardBack:
 Gui, 8:+owner1
@@ -12839,6 +13198,7 @@ if CustomForwardWdownPath
 }
 return
 
+
 CustomizeLeftRight:
 Gui, 11:+owner1
 ;Gui, +Disabled
@@ -13073,28 +13433,43 @@ if CustomRightWdownPath
 }
 return
 
+11ButtonCancel:
+11GuiClose:
+11GuiEscape:
+
+9ButtonCancel:
+9GuiClose:
+9GuiEscape:
+
+8ButtonCancel:
+8GuiClose:
+8GuiEscape:
+
+Gui, 1:-Disabled  ; Re-enable the main window (must be done prior to the next step).
+Gui, Destroy
+return
+
+; --
+; Custom Hotkey (Part 3) End
+; --
+
 6ButtonCancel:
 6GuiClose:
 6GuiEscape:
+
 If (OSver<6.1) { ; vista or xp uses the snipslider
 	GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
 }
 onlyDownloadNirCmd = ; Button 6 requires this to skip displaying unrelated message
-11ButtonCancel:
-11GuiClose:
-11GuiEscape:
+
 10ButtonCancel:
 10GuiClose:
 10GuiEscape:
-9ButtonCancel:
-9GuiClose:
-9GuiEscape:
-8ButtonCancel:
-8GuiClose:
-8GuiEscape:
+
 7ButtonCancel:
 7GuiClose:
 7GuiEscape:
+
 Gui, 1:-Disabled  ; Re-enable the main window (must be done prior to the next step).
 Gui, Destroy
 return
@@ -13137,7 +13512,7 @@ Gui, 1:-Disabled  ; Re-enable the main window
 Gui, Submit ; required to update the user-submitted variable
 Gui, Destroy
 IfWinExist, AeroZoom Panel
-	Menu, ToolboxMenu, Disable, Save &Captures Automatically
+	Menu, ToolboxMenu, Disable, &Save Captures
 Gui, 1:Font, CRed,
 GuiControl,1:Font,Txt, ; to apply the color change 
 GuiControl,1:,Txt,- Please Wait -
@@ -13153,7 +13528,7 @@ IfNotInString, Haystack, %Needle%
 		GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 		;Gui,-Disabled
 		IfWinExist, AeroZoom Panel
-			Menu, ToolboxMenu, Enable, Save &Captures Automatically
+			Menu, ToolboxMenu, Enable, &Save Captures
 		If (OSver<6.1) { ; vista or xp uses the snipslider
 			GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
 		}
@@ -13168,7 +13543,7 @@ IfNotInString, Haystack, %Needle%
 		GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 		;Gui,-Disabled
 		IfWinExist, AeroZoom Panel
-			Menu, ToolboxMenu, Enable, Save &Captures Automatically
+			Menu, ToolboxMenu, Enable, &Save Captures
 		If (OSver<6.1) { ; vista or xp uses the snipslider
 			GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
 		}
@@ -13193,7 +13568,7 @@ if (errorlevel<>0) {
 	;Gui,-Disabled
 	GuiControl,1:Enable,Bye
 	IfWinExist, AeroZoom Panel
-		Menu, ToolboxMenu, Enable, Save &Captures Automatically
+		Menu, ToolboxMenu, Enable, &Save Captures
 	If (OSver<6.1) { ; vista or xp uses the snipslider
 		GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
 	}
@@ -13210,7 +13585,7 @@ GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 GuiControl,1:Enable,Bye
 ;Gui,-Disabled
 IfWinExist, AeroZoom Panel
-	Menu, ToolboxMenu, Enable, Save &Captures Automatically
+	Menu, ToolboxMenu, Enable, &Save Captures
 if not onlyDownloadNirCmd
 {
 	Msgbox, 262144, AeroZoom, Success.
@@ -13318,8 +13693,16 @@ Gui, 1:-AlwaysOnTop
 FileSelectFile, ExportPath, S16, Data\ConfigBackup\ManualBackup.reg, Export config file to, Registry (*.reg)
 If onTopBit
 	Gui, 1:+AlwaysOnTop
-if ExportPath
-	Run, "%windir%\regedit.exe" /E "%ExportPath%" "HKEY_CURRENT_USER\Software\WanderSick\AeroZoom", ,min
+if ExportPath {
+	if A_IsAdmin ; invisible to user but requires admin right
+	{
+		Run, "%windir%\regedit.exe" /E "%ExportPath%" "HKEY_CURRENT_USER\Software\WanderSick\AeroZoom", ,min
+	}
+	Else ; below would show a minimized cmd window for a second
+	{
+		Run, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\WanderSick\AeroZoom" "%ExportPath%" /f,,min
+	}
+}
 return
 
 ImportConfig:
@@ -13356,8 +13739,16 @@ return
 
 AutoConfigBackup:
 ; auto config backup
-If EnableAutoBackup
-	Run, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\ConfigBackup\Day%A_DD%_%A_OSVersion%_%A_ComputerName%_%A_UserName%.reg" "HKEY_CURRENT_USER\Software\WanderSick\AeroZoom", ,min
+If EnableAutoBackup {
+	if A_IsAdmin ; invisible to user but requires admin right
+	{
+		Run, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\ConfigBackup\Day%A_DD%_%A_OSVersion%_%A_ComputerName%_%A_UserName%.reg" "HKEY_CURRENT_USER\Software\WanderSick\AeroZoom", ,min
+	}
+	Else ; below would show a minimized cmd window for a second
+	{
+		Run, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\WanderSick\AeroZoom" "%A_WorkingDir%\Data\ConfigBackup\Day%A_DD%_%A_OSVersion%_%A_ComputerName%_%A_UserName%.reg" /f,,min
+	}
+}
 return
 
 MSPaint:
@@ -13425,7 +13816,7 @@ If not configGuidance
 {
 	if not GuideDisabled
 	{
-		Msgbox, 262144, This message will only be shown once, While the program files of AeroZoom is portable, settings are specific to each PC in order to prevent incompatibility between different Windows versions.`n`nIn case you want to load previous settings, AeroZoom automatically backs up its settings up to last 30 days on exit (for admin users only) in the following folder:`n`n%A_WorkingDir%\Data\ConfigBackup\`n`nThey can be loaded at 'Az > Configuration File > Import Settings'.`nOr manually exported anytime at 'Configuration File > Export Settings'.`n`nAdvice: If possible, do not import settings from a different Windows version. In any case, AeroZoom tries it best to avoid misbehavior. If misbehavior is observed, please reset AeroZoom to factory settings at 'Tool > Preferences > Advanced Options > Reset'.
+		Msgbox, 262144, This message will be shown once only, Although AeroZoom is portable, its settings are not loaded automatically after switching to another PC in order to prevent incompatibility issues between different Windows versions.`n`nIn case previous settings are preferred, AeroZoom automatically backs up settings up to last 30 days on exit in the following folder:`n`n%A_WorkingDir%\Data\ConfigBackup\`n`nThey can be manually imported at 'Az > Config File'.`n`nAdvice: If possible, do not import settings from a different Windows version. In any case, AeroZoom tries it best to avoid misbehavior. If misbehavior is observed, just reset AeroZoom to factory settings at 'Tool > Preferences > Advanced Options'.
 		configGuidance = 1
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, configGuidance, 1
 	}
@@ -13775,7 +14166,7 @@ if zoomitLive
 {
 	zoomitLive=
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLive, 0
-	Menu, ToolboxMenu, Uncheck, Wheel with ZoomIt (&Live)
+	Menu, ToolboxMenu, Uncheck, &Wheel with ZoomIt (Live)
 	IfWinExist, ahk_class MagnifierClass ; restore zoom level (if zoomed in)
 	{
 		sendinput ^4 ; Side-note: WinActivate unzooms too!
@@ -13785,10 +14176,10 @@ if zoomitLive
 	Process, Close, magnify.exe ; cursor would be gone if magnifier is running (bug). and who needs 2 magnifiers at the same time?
 	zoomitLive=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLive, 1
-	Menu, ToolboxMenu, Check, Wheel with ZoomIt (&Live)
+	Menu, ToolboxMenu, Check, &Wheel with ZoomIt (Live)
 	zoomitStill=
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitStill, 0
-	Menu, ToolboxMenu, Uncheck, Wheel with ZoomIt (&Still)
+	Menu, ToolboxMenu, Uncheck, &Wheel with ZoomIt (Still)
 	gosub, resetZoom ; restore zoom level (if zoomed in)
 	Process, Exist, ZoomIt.exe
 	if not errorlevel
@@ -13801,7 +14192,7 @@ if zoomitStill
 {
 	zoomitStill=
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitStill, 0
-	Menu, ToolboxMenu, Uncheck, Wheel with ZoomIt (&Still)
+	Menu, ToolboxMenu, Uncheck, &Wheel with ZoomIt (Still)
 	IfWinExist, ahk_class ZoomitClass ; restore zoom level (if zoomed in)
 	{
 		sendinput {esc}
@@ -13809,11 +14200,11 @@ if zoomitStill
 } else {
 	zoomitStill=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitStill, 1
-	Menu, ToolboxMenu, Check, Wheel with ZoomIt (&Still)
+	Menu, ToolboxMenu, Check, &Wheel with ZoomIt (Still)
 	If (OSver>6) {
 		zoomitLive=
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLive, 0
-		Menu, ToolboxMenu, Uncheck, Wheel with ZoomIt (&Live)
+		Menu, ToolboxMenu, Uncheck, &Wheel with ZoomIt (Live)
 	}
 	gosub, resetZoom ; restore zoom level (if zoomed in)
 	Process, Exist, ZoomIt.exe
@@ -14250,6 +14641,14 @@ If (ZoomitColor=1) {
 }
 return
 
+ZoomItPanelViaButton:
+If (OSD=1) {
+	if zoomitPanel
+		Run, "%A_WorkingDir%\Data\OSD.exe" WinMagPanel
+	Else
+		Run, "%A_WorkingDir%\Data\OSD.exe" ZoomItPanel
+}
+
 ZoomitPanel:
 if zoomitPanel
 {
@@ -14274,10 +14673,10 @@ if zoomitPanel
 	GuiControl, Disable, ZoomItColor
 	GuiControl, Hide, ZoomItColor
 	If (OSver>=6.1) {
-		If !(!A_IsAdmin AND EnableLUA) { ; if Win 7 + Limited Account + UAC, Kill is impossible, so zoom speed slider is unavailable.
-			Menu, FileMenu, Uncheck, Switch to &Zoom Speed Slider
+		If !(!A_IsAdmin AND EnableLUA) { ; if Win 7 + Limited Account + UAC, Kill is impossible, so zoom rate slider is unavailable.
+			Menu, FileMenu, Uncheck, Switch to &Zoom Rate Slider
 		}
-		Menu, FileMenu, Uncheck, Switch to &Magnification Slider
+		Menu, FileMenu, Uncheck, Switch to &Magnify Slider
 	}
 	If SnippingToolExists
 	{
@@ -14290,11 +14689,11 @@ if zoomitPanel
 	if (SwitchSlider=1) {
 		GuiControl, Enable, ZoomInc
 		GuiControl, Show, ZoomInc
-		Menu, FileMenu, Check, Switch to &Zoom Speed Slider
+		Menu, FileMenu, Check, Switch to &Zoom Rate Slider
 	} else if (SwitchSlider=2) {
 		GuiControl, Enable, Magnification
 		GuiControl, Show, Magnification
-		Menu, FileMenu, Check, Switch to &Magnification Slider
+		Menu, FileMenu, Check, Switch to &Magnify Slider
 	} else if (SwitchSlider=3) {
 		GuiControl, Enable, SnipMode
 		GuiControl, Show, SnipMode
@@ -14384,10 +14783,10 @@ if zoomitPanel
 	}
 	zoomitPanel=1
 	If (OSver>=6.1) {
-		If !(!A_IsAdmin AND EnableLUA) { ; if Win 7 + Limited Account + UAC, Kill is impossible, so zoom speed slider is unavailable.
-			Menu, FileMenu, Uncheck, Switch to &Zoom Speed Slider
+		If !(!A_IsAdmin AND EnableLUA) { ; if Win 7 + Limited Account + UAC, Kill is impossible, so zoom rate slider is unavailable.
+			Menu, FileMenu, Uncheck, Switch to &Zoom Rate Slider
 		}
-		Menu, FileMenu, Uncheck, Switch to &Magnification Slider
+		Menu, FileMenu, Uncheck, Switch to &Magnify Slider
 		GuiControl, Disable, ZoomInc
 		GuiControl, Hide, ZoomInc
 		GuiControl, Disable, Magnification
@@ -14541,6 +14940,10 @@ uiMove:
 PostMessage, 0xA1, 2,,, A 
 Return
 
+; detect right click on gui
+GuiContextMenu:
+gosub, SwitchMiniMode
+return
 
 ; ------------------------------------------
 ; Some random unorganized notes for internal use:
@@ -14550,8 +14953,8 @@ Return
 ; * For each modifier.ahk, search for '~LButton & ' and replace it with '~RButton &' '~MButton &' '~XButton1 &' '~XButton2 &'  '!' '^' '+' '#'
 ; * For middle.ahk, uncomment mbutton & rbutton (and del ~LButton & MButton)
 ;   replace mbutton:: with ~MButton & LButton:: and delete some lines there
-; * Search ;; for X1 and X2, but theres no need to do anything on them now. they are the same as others
-; * For each modifier except MButton, because the zoom has taken mod+wup/wdown and mod+mbutton, the hotkey customization bit is not usable. remove the duplicated modifier.
+; * (cancelled line) Search ;; for X1 and X2, but theres no need to do anything on them now. they are the same as others
+; * For each modifier except MButton, because the zoom has taken mod+wup/wdown, the hotkey customization bit is not usable. remove the duplicated modifier.
 ;   e.g. in Ctrl ahk, comment/del ~^Wheelup and ~^Wheeldown due to hotkey customization (~^LButton and ~^RButton can be kept though)
 ; * in RButton ahk (already done for LButton), remove as well the custom hotkey mod+mbutton (since Custom Hotkey for Left/Right includes the Mbutton)
 ;   e.g. In RButton ahk, comment/del custom hotkey's "~RButton & MButton::" (the 2nd one, not the 1st one), ensure uncomment "~LButton & MButton::", (vice versa in LButton ahk but should be done if used as base)
@@ -14568,20 +14971,41 @@ Return
 ; - Delete ZoomIt.exe, NirCmd.exe
 
 ; Remember to create separate x64 executables (note: .ahk and _x64.ahk are exactly the same scripts. just compile them with different compilers)
-; .ahk.ini aren't used for e.g. AeroZoom_Mouse*.ahk scripts because Compile AHK II doesnt seem to support 64bit AutoHotkey_L Unicode (or 32bit AutoHotkey_L Unicode)
-; Compile x64 main files with AutoHotkey_L 64bit unicode (during ahk installation choose Unicode 64bit)
-; Compile x86 main files with AutoHotkey_L 32bit unicode in order to google in Chinese, Japanese, etc. (during ahk installation choose Unicode 32bit)
-; Compile only ZoomPad, OpenTray, DisableUAC, OSD, Setup, AeroZoom.exe with original 32bit AutoHotkey to keep size small...(not AutoHotkey_L's ANSI mode) (with Compile AHK II for setting metadata)
-; * note: compiling across x64 and x86 requires 2 systems. (or 2 VMs)
+; .ahk.ini aren't used for e.g. AeroZoom_Mouse*.ahk scripts because Compile AHK II doesnt seem to support 64bit AutoHotkey_L Unicode (or 32bit AutoHotkey_L Unicode). Custom icons is not required except for AeroZoom.exe and Setup.exe anyway.
+; (OUTDATED, use batch file to compile now. See 8/1/2012 notes below) Compile x64 main files with AutoHotkey_L 64bit unicode (during ahk installation choose Unicode 64bit)
+; (OUTDATED) Compile x86 main files with AutoHotkey_L 32bit unicode in order to google in Chinese, Japanese, etc. (during ahk installation choose Unicode 32bit)
+; Compile only ZoomPad, OpenTray, DisableUAC, OSD, Setup, AeroZoom.exe with original 32bit AutoHotkey to keep size small...(not AutoHotkey_L's ANSI mode) (It seems Compile AHK II only supports it for setting metadata)
+; (OUTDATED) * note: compiling across x64 and x86 requires 2 systems. (or 2 VMs) -- no longer the case with new AutoHotkey_L which comes with a new compiler with such capability
 ; Test all functions and modifier executables under x86 and x64 systems. Compiling all ahk at once causes problems at times.
 
 ; When a new version of AeroZoom is installed, any found old copy is upgraded. This is usually fine except new default settings won't apply as old settings are respected. So it's recommended to do a reset in 'Tool > Preferences > Advanced Options > Reset' anyway.
 ; Programmer's note: don't change some important key functions (e.g. default no and order of Custom Hotkey items). Upgrading will still cause problems. Create a new variable in that case.
 ; ------------------------------------------
 
+; NEW METHOD 8/1/2012 (or compileAll.bat)
+
+;cd /d C:\Program Files\AutoHotkey\Compiler
+;Ahk2Exe.exe /in AeroZoom_MouseL_x64.ahk /bin "Unicode 64-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_MouseR_x64.ahk /bin "Unicode 64-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_MouseM_x64.ahk /bin "Unicode 64-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_MouseX1_x64.ahk /bin "Unicode 64-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_MouseX2_x64.ahk /bin "Unicode 64-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_Alt_x64.ahk /bin "Unicode 64-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_Ctrl_x64.ahk /bin "Unicode 64-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_Win_x64.ahk /bin "Unicode 64-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_Shift_x64.ahk /bin "Unicode 64-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_MouseL.ahk /bin "Unicode 32-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_MouseR.ahk /bin "Unicode 32-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_MouseM.ahk /bin "Unicode 32-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_MouseX1.ahk /bin "Unicode 32-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_MouseX2.ahk /bin "Unicode 32-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_Alt.ahk /bin "Unicode 32-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_Ctrl.ahk /bin "Unicode 32-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_Win.ahk /bin "Unicode 32-bit.bin"
+;Ahk2Exe.exe /in AeroZoom_Shift.ahk /bin "Unicode 32-bit.bin"
 
 ; EmailBugs:
 ; Run, mailto:wandersick+aerozoom@gmail.com?subject=AeroZoom %verAZ% Bug Report&body=Please describe your problem.
 ; return
 
-; (c) Copyright 2009-2011 AeroZoom by Ning Ng (Wandersick) | http://wandersick.blogspot.com
+; (c) Copyright 2009-2012 AeroZoom by a wandersick | http://wandersick.blogspot.com

@@ -4,8 +4,8 @@
 :: Version: 0.7
 :: Creation Date: 4/9/2009
 :: Last Modified: 24/11/2009
-:: Author: wanderSick@C7PE
-:: Email: wander.sic.k@gmail.com
+:: Author: wandersick
+:: Email: wandersick@gmail.com
 :: Web: wandersick.blogspot.com
 :: Supported OS: Windows 2000 or later
 :: *********************************************************
@@ -44,7 +44,7 @@ set vbsPath=%CD%
 set pathTemp=%temp%
 
 :: declarations
-set searchItems="ws.az.31a" "ws.az.32" "ws.az.35" "ws.az.40"
+set searchItems="ws.az.32b" "ws.az.33" "ws.az.35" "ws.az.40"
 
 :: set to %temp% to make it work on read-only medium
 set pathTemp=%temp%
