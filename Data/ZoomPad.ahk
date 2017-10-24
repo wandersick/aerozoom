@@ -1,8 +1,9 @@
 ; AeroZoom by wanderSick | http://wandersick.blogspot.com
 
 #SingleInstance IGNORE ; dont set to force or ghost frames
+#NoTrayIcon
 
-Menu, Tray, Icon, %A_WorkingDir%\Data\AeroZoom.ico
+;Menu, Tray, Icon, %A_WorkingDir%\Data\AeroZoom.ico
 
 ; Check custom transparency setting
 RegRead,padTrans,HKCU,Software\WanderSick\AeroZoom,padTrans

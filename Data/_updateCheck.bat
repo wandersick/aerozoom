@@ -44,7 +44,7 @@ set vbsPath=%CD%
 set pathTemp=%temp%
 
 :: declarations
-set searchItems="ws.az.32b" "ws.az.33" "ws.az.35" "ws.az.40"
+set searchItems="ws.az.33a" "ws.az.34" "ws.az.35" "ws.az.40"
 
 :: set to %temp% to make it work on read-only medium
 set pathTemp=%temp%

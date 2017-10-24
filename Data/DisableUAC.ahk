@@ -1,5 +1,7 @@
 ; Run this as admin and compile this with RunAsAdmin
 
+#NoTrayIcon
+
 RegRead,OSver,HKLM,SOFTWARE\Microsoft\Windows NT\CurrentVersion,CurrentVersion
 if (OSver<6.0) {
 	Msgbox,262208,AeroZoom UAC Tool,You are using an earlier OS. You don't need this.

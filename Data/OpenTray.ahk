@@ -1,4 +1,5 @@
 #SingleInstance force
+#NoTrayIcon
 
 Drive, Eject
 Sleep, 6000

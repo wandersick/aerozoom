@@ -1,4 +1,23 @@
 #SingleInstance Force
+#NoTrayIcon
+
+; special part for zoom and off button
+specialParam = %1%
+If (specialParam="WinMagPanel")
+	goto, WinMagPanel
+If (specialParam="ZoomItPanel")
+	goto, ZoomItPanel
+If (specialParam="Off")
+	goto, off
+If (specialParam="Off1")
+	goto, off1
+If (specialParam="Off2")
+	goto, off2
+If (specialParam="Sw1")
+	goto, sw1
+If (specialParam="Sw2")
+	goto, sw2
+; end of special part
 
 RegRead,ZoomIncText,HKCU,Software\WanderSick\AeroZoom,ZoomIncTextOSD
 RegRead,ZoomitColor,HKCU,Software\WanderSick\AeroZoom,ZoomitColorOSD
@@ -76,15 +95,85 @@ Exitapp
 
 CaptureDisk:
 If (CaptureDisk=1) {
-	CaptureDiskText=Cap2Disk On
+	CaptureDiskText=Save Caps On
 } else if (CaptureDisk=2) {
-	CaptureDiskText=Cap2Disk Off
+	CaptureDiskText=Save Caps Off
 }
 Gui, +LastFound -Caption +ToolWindow +AlwaysOnTop
 Gui, Color, EEAA99 ; any color
 WinSet, TransColor, EEAA99 165
 Gui, Font, s45, Verdana
 Gui, Add, Text, cLime, %CaptureDiskText%
+Gui, Show, w430 h150 x15 y60 AutoSize NoActivate, AeroZoom OSD
+Sleep, 700
+Exitapp
+
+WinMagPanel:
+Gui, +LastFound -Caption +ToolWindow +AlwaysOnTop
+Gui, Color, EEAA99 ; any color
+WinSet, TransColor, EEAA99 165
+Gui, Font, s45, Verdana
+Gui, Add, Text, cLime, Magnifier Panel
+Gui, Show, w430 h150 x15 y60 AutoSize NoActivate, AeroZoom OSD
+Sleep, 700
+Exitapp
+
+ZoomItPanel:
+Gui, +LastFound -Caption +ToolWindow +AlwaysOnTop
+Gui, Color, EEAA99 ; any color
+WinSet, TransColor, EEAA99 165
+Gui, Font, s45, Verdana
+Gui, Add, Text, cLime, ZoomIt Panel
+Gui, Show, w430 h150 x15 y60 AutoSize NoActivate, AeroZoom OSD
+Sleep, 700
+Exitapp
+
+Off:
+Gui, +LastFound -Caption +ToolWindow +AlwaysOnTop
+Gui, Color, EEAA99 ; any color
+WinSet, TransColor, EEAA99 165
+Gui, Font, s45, Verdana
+Gui, Add, Text, cLime, Hotkeys normal
+Gui, Show, w430 h150 x15 y60 AutoSize NoActivate, AeroZoom OSD
+Sleep, 700
+Exitapp
+
+Off1:
+Gui, +LastFound -Caption +ToolWindow +AlwaysOnTop
+Gui, Color, EEAA99 ; any color
+WinSet, TransColor, EEAA99 165
+Gui, Font, s45, Verdana
+Gui, Add, Text, cLime, Hotkeys off (mouse)
+Gui, Show, w430 h150 x15 y60 AutoSize NoActivate, AeroZoom OSD
+Sleep, 700
+Exitapp
+
+Off2:
+Gui, +LastFound -Caption +ToolWindow +AlwaysOnTop
+Gui, Color, EEAA99 ; any color
+WinSet, TransColor, EEAA99 165
+Gui, Font, s45, Verdana
+Gui, Add, Text, cLime, Hotkeys off (all)
+Gui, Show, w430 h150 x15 y60 AutoSize NoActivate, AeroZoom OSD
+Sleep, 700
+Exitapp
+
+Sw1:
+Gui, +LastFound -Caption +ToolWindow +AlwaysOnTop
+Gui, Color, EEAA99 ; any color
+WinSet, TransColor, EEAA99 165
+Gui, Font, s45, Verdana
+Gui, Add, Text, cLime, Full View
+Gui, Show, w430 h150 x15 y60 AutoSize NoActivate, AeroZoom OSD
+Sleep, 700
+Exitapp
+
+Sw2:
+Gui, +LastFound -Caption +ToolWindow +AlwaysOnTop
+Gui, Color, EEAA99 ; any color
+WinSet, TransColor, EEAA99 165
+Gui, Font, s45, Verdana
+Gui, Add, Text, cLime, Mini View
 Gui, Show, w430 h150 x15 y60 AutoSize NoActivate, AeroZoom OSD
 Sleep, 700
 Exitapp
