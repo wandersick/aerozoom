@@ -1,6 +1,6 @@
 
 
-                         [ AeroZoom 4.0 beta 1 ]
+                         [ AeroZoom 4.0 beta 2 ]
   
              The smooth wheel-zooming mouse-enhancing panel
 
@@ -303,17 +303,17 @@
 
   #  [TBA] - next version
 
-      - A quick switch for temporarily disabling AeroZoom Panel mouse
-        hotkeys (zooming still works) under 'Tool > Panel Mouse Hotkey'.
-        This won't last across AeroZoom restarts. (To permanently disable
-        it, use Custom Hotkeys to change Show Panel to None for
-        Left+Right / Right+Left actions).
       - Better AeroSnip support on Windows 10, 8.1 and 8.
+	
+  #  2015/10/28 - 4.0 beta 2
+  
+      - Reverse zooming, an implementation for users accustomed to "natural
+	    scrolling" on Mac OS X
       - Quickly switch between multiple setting profiles Home, School,
         Work, On-the-Go, Presentation, Gaming.
       - Help improve AeroZoom! Let us know about your experence by
         completing our survey under "? > Survey".
-
+		
   #  2015/09/24 - 4.0 beta 1
 
      - Windows 10 Support.

@@ -6,7 +6,7 @@
 #SingleInstance Force
 #NoTrayIcon
 
-verAZ = 4.0 beta 1
+verAZ = 4.0 beta 2
 	
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 
