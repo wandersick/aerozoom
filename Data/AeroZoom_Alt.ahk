@@ -14,7 +14,7 @@ SetBatchLines -1 ; run at fastest speed before init
 IfEqual, unattendAZ, 1
 	goto Install
 
-verAZ = 4.0 beta 1
+verAZ = 4.0 beta 2
 paused = 
 
 ; Working directory check
@@ -279,17 +279,23 @@ If not menuInit
 menu, tray, add, &Quick Instructions`t[Win+Alt+Q], Instruction
 If not menuInit
 	menu, tray, add ; separator
-Menu, tray, Add, User Experience &Survey, UserExperienceSurvey
-Menu, tray, Add, AeroZoom &Web, VisitWeb
-menu, tray, add, &About, HelpAbout
-If not menuInit
-	menu, tray, add ; separator
 if profileInUse {
 	profileInUseDisplay = %profileInUse%
 } else {
 	profileInUseDisplay = None
 }
-menu, tray, add, Restore &Default Settings [Profile: %profileInUseDisplay%], RestoreDefaultSettings
+menu, tray, add, Restore &Default Settings`t[Profile: %profileInUseDisplay%], RestoreDefaultSettings
+If not menuInit
+	menu, tray, add ; separator
+if not registered
+	Menu, tray, Add, Donate via PayPal/Bitcoin, Donate
+Menu, tray, Add, User Experience &Survey, UserExperienceSurvey
+; Menu, tray, Add, AeroZoom &Web, VisitWeb
+; If not menuInit
+;	menu, tray, add ; separator
+;menu, tray, add, &Update, CheckUpdate
+menu, tray, add, &About, HelpAbout
+If not menuInit
 	menu, tray, add ; separator
 menu, tray, add, &Restart, RestartAZ
 menu, tray, add, &Exit, ExitAZ
@@ -929,6 +935,13 @@ if errorlevel ; if the key is never created, i.e. first-run
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, ElasticZoom, 1
 }
 
+RegRead,ReverseZoom,HKCU,Software\wandersick\AeroZoom,ReverseZoom
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	ReverseZoom=0 ; Reverse Zoom off by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, ReverseZoom, 0
+}
+
 RegRead,NirCmd,HKCU,Software\wandersick\AeroZoom,NirCmd
 
 
@@ -1566,142 +1579,17 @@ return
 ; ----------------------------------------------------- Left Button Assignment START
 
 !WheelUp::
-if paused
-	return
-IfWinExist, ahk_class MagnifierClass  ; if zoomit is working, enhance it instead
-{
-	sendinput ^{Up}
-	return
-}
-IfWinExist, ahk_class ZoomitClass
-{
-	sendinput {Up}
-	return
-}
-if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	; Gosub, ZoomPad ; causes huge delay in W7HB. also I found out later there is no need for Zoompad while using Live Zoom or Still Zoom of ZoomIt
-	IfWinExist, ahk_class MagnifierClass  ; ZoomIt Live Zoom for vista and win7 home basic/starter
-	{
-		sendinput ^{Up}
-	} else {
-		sendinput ^4
-		gosub, WorkaroundFullScrLiveZoom
-	}
-} else if (OSver<6 OR zoomitStill) {  ; still zoom for xp
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	IfWinExist, ahk_class ZoomitClass
-	{
-		sendinput {Up}
-	} Else {
-		if not zoomItGuidance
-			Gosub, ZoomItGuidance
-		Gosub, ZoomPad
-		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
-			padStayTimeTemp:=padStayTime*2
-			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
-		}
-		Process, Close, ZoomPad.exe ; prevent zoompad frame from appearing in zoomit
-		process, close, osd.exe ; prevent osd from showing in 'picture'
-		sendinput ^1 ; here, do not send aerozoom panel to bottom and reactivate it later like others
-	}
-} else {
-	; send {LWin down}{NumpadAdd}{LWin up}
-	; the following is used instead instead of 'send' for better performance
-	Gosub, ZoomPad
-	
-	; Mouse-Centered Zoom (center the cursor before zoom)
-	if (OSver>=6.1) {
-		;RegRead,mouseCenteredZoomBit,HKCU,Software\wandersick\AeroZoom,mouseCenteredZoomBit
-		if mouseCenteredZoomBit
-			Gosub, MouseCenteredZoom
-	}
-	
-	if numPadAddBit
-		sendinput #{NumpadAdd}
-	else
-		SendInput #{+}
-	IfWinExist, AeroZoom Panel
-	{
-		Gosub, ReadValueUpdatePanel
-	}
-}
+if ReverseZoom
+	GoSub, ZoomOut
+Else
+	GoSub, ZoomIn
 return
 
 !WheelDown::
-if paused
-	return
-IfWinExist, ahk_class MagnifierClass ; if zoomit is working, enhance it instead
-{
-	If (OSver>=6.1 AND (EditionID="Starter" OR EditionID="HomeBasic")) {
-		sendinput ^4 ; {Down} causes cursor to disappear in those OSes, so just quit. Live Zoom magnificartion level cant be tuned there anyway.
-		return
-	} else {
-		sendinput ^{Down}
-		return
-	}
-}
-IfWinExist, ahk_class ZoomitClass
-{
-	sendinput {Down}
-	return
-}
-if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
-	Gosub, ZoomPad
-	IfWinExist, ahk_class MagnifierClass ; ZoomIt Live Zoom for vista and win7 home basic/starter
-	{
-		sendinput ^{Down}
-	}
-} else if (OSver<6 OR zoomitStill) { ; still zoom for xp
-	IfWinExist, ahk_class ZoomitClass
-	{
-		sendinput {Down}
-	}
-} else {
-	; only enable zoompad when modifier is a mouse button
-	if (chkMod>4)
-	{	
-		if zoomPad ; if zoompad is NOT disabled
-		{
-			IfWinNotActive, AeroZoom Panel ;if current win is not the panel (zooming over the panel does not require zoompad)
-			{
-				RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification ; when zooming out even if already unzoomed, do not activate zoompad
-				if not (MagnificationRaw=0x64)
-				{
-					IfWinExist, AeroZoom Pad ; ZoomPad to prevent accidental clicks
-					{
-						WinActivate
-					} else {
-						Run, "%A_WorkingDir%\Data\ZoomPad.exe"
-					}
-				}
-			}
-		}
-	}
-	
-	if numPadSubBit
-		sendinput #{NumpadSub}
-	else
-		SendInput #{-}
-	IfWinExist, AeroZoom Panel
-	{
-		Gosub, ReadValueUpdatePanel
-	}
-}
+if ReverseZoom
+	GoSub, ZoomIn
+Else
+	GoSub, ZoomOut
 return
 
 ; Run,"%windir%\system32\reg.exe" add HKCU\Software\Microsoft\ScreenMagnifier /v Magnification /t REG_DWORD /d 0x64 /f,,Min
@@ -7581,11 +7469,11 @@ If not menuInit
 if registered
 	Menu, AboutMenu, Add, &Registration, Donate
 ; Menu, AboutMenu, Add, &Email a Bug, EmailBugs ; Cancelled due to not universally supported
-if not registered
-	Menu, AboutMenu, Add, Donate $1, Donate
 Menu, AboutMenu, Add, AeroZoom &Web, VisitWeb
 Menu, AboutMenu, Add, User Experience &Survey, UserExperienceSurvey
-
+if not registered
+	Menu, AboutMenu, Add, Donate via PayPal/Bitcoin, Donate
+	
 Menu, SnipMenu, Add, Free-form`tWin+Alt+F, SnipFree
 Menu, SnipMenu, Add, Rectangular`tWin+Alt+R, SnipRect
 Menu, SnipMenu, Add, Window`tWin+Alt+W, SnipWin
@@ -7946,6 +7834,7 @@ Menu, ToolboxMenu, Add, &Save Captures, NirCmd
 Menu, ToolboxMenu, Add, &Misclick-Preventing Pad, UseZoomPad
 Menu, ToolboxMenu, Add, &Type with Notepad, UseNotepad
 Menu, ToolboxMenu, Add, &Elastic Zoom, ToggleElasticZoom
+Menu, ToolboxMenu, Add, &Reverse Zoom, ReverseZoom
 Menu, ToolboxMenu, Add, &Always on Top, OnTop
 If not menuInit
 	Menu, ToolboxMenu, Add ; separator
@@ -8129,6 +8018,10 @@ if (zoomPad=1) {
 
 if (elasticZoom=1) {
 	Menu, ToolboxMenu, Check, &Elastic Zoom
+}
+
+if (ReverseZoom=1) {
+	Menu, ToolboxMenu, Check, &Reverse Zoom
 }
 
 ; Check if AeroZoom is set to run in Startup in the current user startup folder
@@ -9414,7 +9307,7 @@ Run, http://wandersick.blogspot.com/p/aerozoom-for-windows-7-magnifier.html
 return
 
 UserExperienceSurvey:
-Run, http://tinyurl.com/aerozoomsurvey
+Run, http://wandersick.blogspot.com/p/aerozoom-user-experience-survey.html
 return
 
 Gmail:
@@ -10820,6 +10713,18 @@ if (ElasticZoom=1) {
 	ElasticZoom=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, ElasticZoom, 1
 	Menu, ToolboxMenu, Check, &Elastic Zoom
+}
+return
+
+ReverseZoom:
+if (ReverseZoom=1) {
+	ReverseZoom=0
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, ReverseZoom, 0
+	Menu, ToolboxMenu, Uncheck, &Reverse Zoom
+} else {
+	ReverseZoom=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, ReverseZoom, 1
+	Menu, ToolboxMenu, Check, &Reverse Zoom
 }
 return
 
@@ -15582,6 +15487,145 @@ If profileInUse {
 		return
 	}
 	
+}
+return
+
+ZoomIn:
+if paused
+	return
+IfWinExist, ahk_class MagnifierClass  ; if zoomit is working, enhance it instead
+{
+	sendinput ^{Up}
+	return
+}
+IfWinExist, ahk_class ZoomitClass
+{
+	sendinput {Up}
+	return
+}
+if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	; Gosub, ZoomPad ; causes huge delay in W7HB. also I found out later there is no need for Zoompad while using Live Zoom or Still Zoom of ZoomIt
+	IfWinExist, ahk_class MagnifierClass  ; ZoomIt Live Zoom for vista and win7 home basic/starter
+	{
+		sendinput ^{Up}
+	} else {
+		sendinput ^4
+		gosub, WorkaroundFullScrLiveZoom
+	}
+} else if (OSver<6 OR zoomitStill) {  ; still zoom for xp
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	IfWinExist, ahk_class ZoomitClass
+	{
+		sendinput {Up}
+	} Else {
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+		Process, Close, ZoomPad.exe ; prevent zoompad frame from appearing in zoomit
+		process, close, osd.exe ; prevent osd from showing in 'picture'
+		sendinput ^1 ; here, do not send aerozoom panel to bottom and reactivate it later like others
+	}
+} else {
+	; send {LWin down}{NumpadAdd}{LWin up}
+	; the following is used instead instead of 'send' for better performance
+	Gosub, ZoomPad
+	
+	; Mouse-Centered Zoom (center the cursor before zoom)
+	if (OSver>=6.1) {
+		;RegRead,mouseCenteredZoomBit,HKCU,Software\wandersick\AeroZoom,mouseCenteredZoomBit
+		if mouseCenteredZoomBit
+			Gosub, MouseCenteredZoom
+	}
+	
+	if numPadAddBit
+		sendinput #{NumpadAdd}
+	else
+		SendInput #{+}
+	IfWinExist, AeroZoom Panel
+	{
+		Gosub, ReadValueUpdatePanel
+	}
+}
+return
+
+ZoomOut:
+if paused
+	return
+IfWinExist, ahk_class MagnifierClass ; if zoomit is working, enhance it instead
+{
+	If (OSver>=6.1 AND (EditionID="Starter" OR EditionID="HomeBasic")) {
+		sendinput ^4 ; {Down} causes cursor to disappear in those OSes, so just quit. Live Zoom magnificartion level cant be tuned there anyway.
+		return
+	} else {
+		sendinput ^{Down}
+		return
+	}
+}
+IfWinExist, ahk_class ZoomitClass
+{
+	sendinput {Down}
+	return
+}
+if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
+	Gosub, ZoomPad
+	IfWinExist, ahk_class MagnifierClass ; ZoomIt Live Zoom for vista and win7 home basic/starter
+	{
+		sendinput ^{Down}
+	}
+} else if (OSver<6 OR zoomitStill) { ; still zoom for xp
+	IfWinExist, ahk_class ZoomitClass
+	{
+		sendinput {Down}
+	}
+} else {
+	; only enable zoompad when modifier is a mouse button
+	if (chkMod>4)
+	{	
+		if zoomPad ; if zoompad is NOT disabled
+		{
+			IfWinNotActive, AeroZoom Panel ;if current win is not the panel (zooming over the panel does not require zoompad)
+			{
+				RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification ; when zooming out even if already unzoomed, do not activate zoompad
+				if not (MagnificationRaw=0x64)
+				{
+					IfWinExist, AeroZoom Pad ; ZoomPad to prevent accidental clicks
+					{
+						WinActivate
+					} else {
+						Run, "%A_WorkingDir%\Data\ZoomPad.exe"
+					}
+				}
+			}
+		}
+	}
+	
+	if numPadSubBit
+		sendinput #{NumpadSub}
+	else
+		SendInput #{-}
+	IfWinExist, AeroZoom Panel
+	{
+		Gosub, ReadValueUpdatePanel
+	}
 }
 return
 
