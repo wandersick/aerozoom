@@ -1,19 +1,20 @@
-; (c) Copyright 2009-2012 AeroZoom by a wandersick | http://wandersick.blogspot.com
+; (c) Copyright 2009-2015 AeroZoom by a wandersick | http://wandersick.blogspot.com
 
 ; Sorry for the messy commenting in advance :D ... As the purpose is to contribute as much as possible,
 ; the source is released (GPL v2). Hope it helps! :D
 
 ; If you have any questions, corrections or suggestions, you may send them to wandersick@gmail.com or wandersick's blog. :D
-; BTW, wandersick speaks English and Chinese(Cantonese). For those who understand: Zhong Wen(Jung Man) is okay! :D
+; BTW, wandersick speaks English and Cantonese/Mandarin. For those who understand: Chung Man/Zhong Wen is okay! :D
 
 #Persistent
+#MaxHotkeysPerInterval 999
 #SingleInstance force
 SetBatchLines -1 ; run at fastest speed before init
 
 IfEqual, unattendAZ, 1
 	goto Install
 
-verAZ = 3.3
+verAZ = 4.0 beta 1
 paused = 
 
 ; Working directory check
@@ -22,6 +23,30 @@ IfNotExist, %A_WorkingDir%\Data
 	Msgbox, 262192, AeroZoom, Wrong working directory. Ensure AeroZoom is not run from its sub-folder.
 	ExitApp
 }
+
+; QuickProfileSwitch
+RegRead,profileName1,HKCU,Software\wandersick\AeroZoom,profileName1
+if errorlevel
+	profileName1 = Home
+RegRead,profileName2,HKCU,Software\wandersick\AeroZoom,profileName2
+if errorlevel
+	profileName2 = Work
+RegRead,profileName3,HKCU,Software\wandersick\AeroZoom,profileName3
+if errorlevel
+	profileName3 = On-the-Go
+RegRead,profileName4,HKCU,Software\wandersick\AeroZoom,profileName4
+if errorlevel
+	profileName4 = Presentation
+RegRead,profileName5,HKCU,Software\wandersick\AeroZoom,profileName5
+if errorlevel
+	profileName5 = Gaming
+
+RegRead,profileInUse,HKCU,Software\wandersick\AeroZoom,profileInUse
+if errorlevel
+	profileInUse = 0
+
+; If profileInUse is enabled, load default registry values and import selected profile
+Gosub, LoadDefaultRegImportQuickProfile
 
 RegRead,EnableAutoBackup,HKCU,Software\wandersick\AeroZoom,EnableAutoBackup
 if errorlevel ; if the key is never created, i.e. first-run
@@ -39,28 +64,47 @@ if Welcome ; if AZ version 2.0 or above is found, that means AeroZoom settings a
 	RegRead,ProgramVer,HKEY_CURRENT_USER,Software\wandersick\AeroZoom,ProgramVer
 	if (ProgramVer<>verAZ)
 	{
-		Msgbox, 262212, Found AeroZoom settings, Settings from a different version of AeroZoom has been found in the system registry. Would you like to use it or start over?`n`nIf you choose 'No', AeroZoom will back up the current settings before clearing them.`n`nTip: If problems arise after keeping old settings, a reset can be performed in 'Tool > Preferences > Advanced Options'.
-		IfMsgbox, No
+		; prevent the same msgbox from prompting in each profile
+		If not profileInUse
 		{
-			RegDelete, HKEY_CURRENT_USER, Software\wandersick\AeroZoom
-			GoSub, AutoConfigBackup
-			reload
+			Msgbox, 262212, Found AeroZoom settings, Settings from a different version of AeroZoom has been found in the system registry. Would you like to use it (Yes)?`n`nIf you choose 'No', AeroZoom will back up the current settings before clearing them.`n`nTip: If problems arise after keeping old settings, a reset can be performed in 'Tool > Preferences > Advanced Options'.
+			IfMsgbox, No
+			{
+				RegDelete, HKEY_CURRENT_USER, Software\wandersick\AeroZoom
+				Gosub, SaveCurrentProfile
+				reload
+			}
 		}
 	}
 }
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, ProgramVer, %verAZ%
 
 RegRead,OSver,HKLM,SOFTWARE\Microsoft\Windows NT\CurrentVersion,CurrentVersion
+
+; new for Windows 10 (replaces the former if CurrentMajorVersionNumber is available)
+; in Win 10, CurrentVersion is still 6.3 (same as Win 8.1) but CurrentMajorVersionNumber is new
+if (OSver=6.3) {
+	RegRead,CurrentMajorVersionNumber,HKLM,SOFTWARE\Microsoft\Windows NT\CurrentVersion,CurrentMajorVersionNumber
+	if (CurrentMajorVersionNumber=10) {
+		OSver=10
+	}
+}
+
 if (OSver<5.1) { ; if older than xp
 	RegRead,oldOSwarning,HKCU,Software\wandersick\AeroZoom,oldOSwarning
 	if errorlevel
-		Msgbox, 262192, This message will be shown once only, You're using an OS earlier than Windows XP. Expect abnormal behaviors.
+	{
+		If not profileInUse
+			Msgbox, 262192, This message will only be shown once, You're using an OS earlier than Windows XP. Expect abnormal behaviors.
+	}
+
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, oldOSwarning, 1
-} else if (OSver>6.1) {
+} else if (OSver>10) {
 	RegRead,newOSwarning,HKCU,Software\wandersick\AeroZoom,newOSwarning
 	if errorlevel
 	{
-		Msgbox, 262144, This message will be shown once only, You're using an newer operating system AeroZoom may not totally support.`n`nPlease urge wandersick or check http://wandersick.blogspot.com for a new version.
+		If not profileInUse
+			Msgbox, 262144, This message will only be shown once, You're using an newer operating system AeroZoom may not totally support.`n`nPlease urge wandersick or check http://wandersick.blogspot.com for a new version.
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, newOSwarning, 1
 	}
 }
@@ -73,7 +117,8 @@ if (OSver>=6.1) { ; win7's mag cant be terminated by users with standard UAC on,
 			RegRead,limitedAcc,HKCU,Software\wandersick\AeroZoom,limitedAcc
 			if errorlevel
 			{
-				Msgbox, 262180, This message will be shown once only, You're using a Limited User Account with User Account Control (UAC) on under Windows 7. Some functions of AeroZoom does not work under this condition. Please disable UAC or run AeroZoom as Administrator; otherwise AeroZoom will run in a limited functionality mode.`n`nClick 'Yes to disable UAC (Requires admin rights).`nClick 'No' to continue AeroZoom in limited mode.
+				If not profileInUse
+					Msgbox, 262180, This message will only be shown once, You're using a Limited User Account with User Account Control (UAC) on Windows. Some functions of AeroZoom does not work under this condition. Please disable UAC or run AeroZoom as Administrator; otherwise AeroZoom will run in a limited functionality mode.`n`nClick 'Yes to disable UAC (Requires admin rights).`nClick 'No' to continue AeroZoom in limited mode.
 				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, limitedAcc, 1
 				IfMsgBox Yes
 				{
@@ -91,7 +136,8 @@ if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
 	RegRead,limitedAcc2,HKCU,Software\wandersick\AeroZoom,limitedAcc2
 	if errorlevel
 	{
-		Msgbox,262208,This message will be shown once only,You can return AeroZoom to full functionality mode anytime at 'Az > Switch to Full Functionality Mode' or 'Az > Switch off User Account Control'.
+		If not profileInUse
+			Msgbox,262208,This message will only be shown once,You can return AeroZoom to full functionality mode anytime at 'Az > Switch to Full Functionality Mode' or 'Az > Switch off User Account Control'.
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, limitedAcc2, 1
 	}
 }
@@ -104,17 +150,41 @@ if (OSver>=6.1) { ; win 7 start/home basic doesnt support aero and snipping tool
 		RegRead,EditionMsg,HKCU,Software\wandersick\AeroZoom,EditionMsg
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,You are using Windows 7 Starter which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only the Print Screen button is enhanced to Save Captures to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			If not profileInUse
+				Msgbox,262208,This message will only be shown once,You are using Windows 7 Starter which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only the Print Screen button is enhanced to Save Captures to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures' and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, EditionMsg, 1
 		}
 	} else if (EditionID="HomeBasic") {
 		RegRead,EditionMsg2,HKCU,Software\wandersick\AeroZoom,EditionMsg2
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,You are using Windows 7 Home Basic which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it if a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to Save Captures to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			If not profileInUse
+				Msgbox,262208,This message will only be shown once,You are using Windows 7 Home Basic which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it if a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to Save Captures to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures' and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, EditionMsg2, 1
 		}
 	}
+}
+	
+; Check Mouse-Centered Zoom bit
+if (OSver>=6.1)
+	RegRead,mouseCenteredZoomBit,HKCU,Software\wandersick\AeroZoom,mouseCenteredZoomBit
+
+; Check numPadAddBit and numPadSubBit
+; for Windows 10 (and possibly others), #{NumpadAdd} and #- seem to work better than other combinations. This avoids +/- character being generated during zoom in/out
+; Reference:
+; numPadAddBit  1 = {NumpadAdd}  0 = {+}
+; numPadSubBit  1 = {NumpadSub}  0 = {-}
+RegRead,numPadAddBit,HKCU,Software\wandersick\AeroZoom,numPadAddBit
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	numPadAddBit=1 ; {NumpadAdd} by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, numPadAddBit, 1
+}
+RegRead,numPadSubBit,HKCU,Software\wandersick\AeroZoom,numPadSubBit
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	numPadSubBit=0 ; {-} by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, numPadSubBit, 0
 }
 
 ; enable live zoom for vista or win 7 home basic and starter
@@ -143,7 +213,8 @@ if (OSver=6.0) { ; vista msg
 		RegRead,VistaMsg,HKCU,Software\wandersick\AeroZoom,VistaMsg
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Starter which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically Save Captures, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			If not profileInUse
+				Msgbox,262208,This message will only be shown once,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Starter which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically Save Captures, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, VistaMsg, 1
 		}
 	} else if (EditionID="HomeBasic") {
@@ -151,14 +222,16 @@ if (OSver=6.0) { ; vista msg
 		RegRead,VistaMsg2,HKCU,Software\wandersick\AeroZoom,VistaMsg2
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Home Basic which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically Save Captures, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			If not profileInUse
+				Msgbox,262208,This message will only be shown once,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Home Basic which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically Save Captures, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, VistaMsg2, 1
 		}
 	} else {
 		RegRead,VistaMsg3,HKCU,Software\wandersick\AeroZoom,VistaMsg3
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista which does not support full-screen zoom.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nOn the other hand, AeroSnip enhances Snipping Tool and the Print Screen button to automatically Save Captures, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			If not profileInUse
+				Msgbox,262208,This message will only be shown once,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista which does not support full-screen zoom.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nOn the other hand, AeroSnip enhances Snipping Tool and the Print Screen button to automatically Save Captures, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures' and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, VistaMsg3, 1
 		}
 	}
@@ -172,7 +245,8 @@ if (OSver<6.0) { ; xp msg
 	RegRead,XPmsg,HKCU,Software\wandersick\AeroZoom,XPmsg
 	if errorlevel
 	{
-		Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above, but you use an earlier OS that does not support full-screen zoom. As a workaround, AeroZoom adds wheel-zoom capability to the zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. (Note: Zoom is only still on this OS, as live zooming requires Vista or later.)`n`nAlso, AeroSnip requires Windows Vista Home Premium or later, so only the Print Screen button is enhanced to Save Captures to disk, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+		If not profileInUse
+			Msgbox,262208,This message will only be shown once,AeroZoom works best on Windows 7 Home Premium or above, but you use an earlier OS that does not support full-screen zoom. As a workaround, AeroZoom adds wheel-zoom capability to the zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. (Note: Zoom is only still on this OS, as live zooming requires Vista or later.)`n`nAlso, AeroSnip requires Windows Vista Home Premium or later, so only the Print Screen button is enhanced to Save Captures to disk, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, XPmsg, 1
 	}
 }
@@ -205,9 +279,17 @@ If not menuInit
 menu, tray, add, &Quick Instructions`t[Win+Alt+Q], Instruction
 If not menuInit
 	menu, tray, add ; separator
+Menu, tray, Add, User Experience &Survey, UserExperienceSurvey
 Menu, tray, Add, AeroZoom &Web, VisitWeb
 menu, tray, add, &About, HelpAbout
 If not menuInit
+	menu, tray, add ; separator
+if profileInUse {
+	profileInUseDisplay = %profileInUse%
+} else {
+	profileInUseDisplay = None
+}
+menu, tray, add, Restore &Default Settings [Profile: %profileInUseDisplay%], RestoreDefaultSettings
 	menu, tray, add ; separator
 menu, tray, add, &Restart, RestartAZ
 menu, tray, add, &Exit, ExitAZ
@@ -327,6 +409,7 @@ RegRead,zoomitPanel,HKCU,Software\wandersick\AeroZoom,ZoomitPanel
 RegRead,zoomItGuidance,HKCU,Software\wandersick\AeroZoom,ZoomItGuidance
 RegRead,killGuidance,HKCU,Software\wandersick\AeroZoom,killGuidance
 RegRead,configGuidance,HKCU,Software\wandersick\AeroZoom,configGuidance
+; RegRead,profileGuidance,HKCU,Software\wandersick\AeroZoom,profileGuidance
 
 ; for customizing google url
 RegRead,GoogleUrl,HKCU,Software\wandersick\AeroZoom,GoogleUrl
@@ -362,7 +445,8 @@ if errorlevel
 RegRead,MiddleButtonAction,HKCU,Software\wandersick\AeroZoom,MiddleButtonAction
 if errorlevel ; if the key is never created, i.e. first-run
 {
-	MiddleButtonAction=1 ; snip by default
+	; MiddleButtonAction=1 ; snip by default
+	MiddleButtonAction=42 ; No action by default (since v4.0, as it may annoy users and Snipping Tool automation does not work as well in Win 10)
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, MiddleButtonAction, 1
 }
 
@@ -724,21 +808,22 @@ RegRead,SwitchSlider,HKCU,Software\wandersick\AeroZoom,SwitchSlider
 if errorlevel
 {
 	If (OSver>=6.1) {
-		If SnippingToolExists
-		{
-			SwitchSlider=3
-		}
-		Else
-		{
+		;If SnippingToolExists
+		;{
+		;	SwitchSlider=3
+		;}
+		;Else
+		;{
 			If (!A_IsAdmin AND EnableLUA) { ; zoom inc slider involves killing mag process which is impossible under limited acc with uac
 				SwitchSlider=2
 			} else {
-				SwitchSlider=1
+				SwitchSlider=1 ; use Zoom Rate slider as default setting since v4.0 (fading out AeroSnip)
 			}
-		}
+		;}
 	} else if (OSver=6) {
-		If SnippingToolExists
-			SwitchSlider=3
+		;If SnippingToolExists
+		;	SwitchSlider=3
+		SwitchSlider=1 ; use Zoom Rate slider as default setting since v4.0 (fading out AeroSnip)
 	} else {
 		SwitchSlider=4
 	}
@@ -1041,19 +1126,25 @@ if not errorlevel
 if not Welcome
 {
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, Welcome, 1 ; do not set welcome=1 as the 'zoomit EULA message' check for first-run with this var not defined
-	Msgbox, 262148, AeroZoom %verAZ% - Welcome!, New in v3 release:`n`n1) - AeroSnip - enhanced operations for Snipping Tool and Print Screen, better hotkeys, save-to-disk and custom editor.`n`n2) - Elastic Zoom - automatically zoom in and out by holding and releasing [Ctrl]+[Caps Lock].`n`n3) - ZoomIt Panel - improves mouse operation of Sysinternals ZoomIt by adding an easy-to-use interface, elastic zoom, wheel-zoom and more.`n`nAlso added support for Windows 7 standard user without UAC (or partially with UAC, Vista and XP).`n`nTo learn about more features, visit 'AeroZoom Web' via '?' menu.`n`nWould you like tips to get started?
-	IfMsgBox, No
+	If not profileInUse
 	{
-		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, TipDisabled, 1 ; disabled bit is used so when enabled will continue where users left off
+		Msgbox, 262148, AeroZoom %verAZ% - Welcome!, Recent features:`n`n1) - Windows 10 Support - zoom operations are improved for Windows 10 and older versions. `n`n2) - AeroSnip - enhanced operations for Snipping Tool and Print Screen, more hotkeys, save-to-disk and custom editor.`n`n3) - Elastic Zoom - automatically zoom in and out by holding and releasing [Ctrl]+[Caps Lock].`n`n4) - ZoomIt Panel - improved mouse operation of Sysinternals ZoomIt with an easy-to-use interface, wheel zoom, elastic zoom and more.`n`n5) - Custom Hotkeys - hotkeys can now be customized for most AeroZoom actions.`n`nTo learn about more features, visit 'AeroZoom Web' via '?' menu.`n`nWould you like tips to get started?
+		IfMsgBox, No
+		{
+			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, TipDisabled, 1 ; disabled bit is used so when enabled will continue where users left off
+		}
+		Else
+		{
+			RegDelete, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, TipDisabled
+		}
+		;goto, skipTips
 	}
-	Else 
-	{
-		RegDelete, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, TipDisabled
-	}
-	;goto, skipTips
 }
 
 Tips:
+; Tips are not available if Quick Profiles are used
+If profileInUse
+	goto, skipTips
 RegRead,TipDisabled,HKEY_CURRENT_USER,Software\wandersick\AeroZoom,TipDisabled
 if not TipDisabled
 {
@@ -1088,6 +1179,9 @@ if not TipDisabled
 skipTips:
 
 RegRead,GuideDisabled,HKEY_CURRENT_USER,Software\wandersick\AeroZoom,GuideDisabled
+; disable guides if Quick Profiles are in use
+If profileInUse
+	GuideDisabled = 1
 
 ; --------------- Hotkey monitoring starts here
 
@@ -1162,9 +1256,15 @@ if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) { ; elastic zoo
 		WinShow, AeroZoom Panel
 	}
 } else if (OSver>6) {
-	SendInput #{NumpadAdd} ; elastic zoom with win 7 magnifier
+	if numPadAddBit
+		SendInput #{NumpadAdd} ; elastic zoom with win 7 magnifier
+	else
+		SendInput #{+}
 	KeyWait Ctrl
-	SendInput #{NumpadSub}
+	if numPadSubBit
+		SendInput #{NumpadSub}
+	else
+		SendInput #{-}
 }
 return
 
@@ -1523,7 +1623,18 @@ if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
 	; send {LWin down}{NumpadAdd}{LWin up}
 	; the following is used instead instead of 'send' for better performance
 	Gosub, ZoomPad
-	sendinput #{NumpadAdd}
+	
+	; Mouse-Centered Zoom (center the cursor before zoom)
+	if (OSver>=6.1) {
+		;RegRead,mouseCenteredZoomBit,HKCU,Software\wandersick\AeroZoom,mouseCenteredZoomBit
+		if mouseCenteredZoomBit
+			Gosub, MouseCenteredZoom
+	}
+	
+	if numPadAddBit
+		sendinput #{NumpadAdd}
+	else
+		SendInput #{+}
 	IfWinExist, AeroZoom Panel
 	{
 		Gosub, ReadValueUpdatePanel
@@ -1581,7 +1692,11 @@ if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
 			}
 		}
 	}
-	sendinput #{NumpadSub}
+	
+	if numPadSubBit
+		sendinput #{NumpadSub}
+	else
+		SendInput #{-}
 	IfWinExist, AeroZoom Panel
 	{
 		Gosub, ReadValueUpdatePanel
@@ -1636,17 +1751,17 @@ return
 goto, default
 
 ; Restart AeroZoom (this is a secret feature)
-#!+r::
-goto, RestartAZ
+; #!+r::
+; goto, RestartAZ
 
 ; Reset all settings (this is a secret feature)
-#!+^r::
-CheckboxRestoreDefault=1
-goto, 3ButtonOK
+; #!+^r::
+; CheckboxRestoreDefault=1
+; goto, 3ButtonOK
 
 ; Quit AeroZoom (this is a secret feature)
-#!+q::
-goto, ExitAZ
+; #!+q::
+; goto, ExitAZ
 
 
 ; Reset zoom
@@ -1748,7 +1863,8 @@ if not paused {
 		RegRead,MButtonMsg,HKCU,Software\wandersick\AeroZoom,MButtonMsg
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,You've just triggered the Middle button for the first time!`n`nHolding Middle button for a specified time ('0.7s' by default) launches a specified task ('New snip' by default). And if the screen is magnified, the same button will trigger a Full Screen Preview instead (for Windows 7 only).`n`nTo customize the action, go to 'Tool > Custom Hotkeys > Settings > Holding Middle'.`n`nTo enable/disable this function quickly in order to avoid mis-triggering, go to 'Tool > Custom Hotkeys > Enable Holding Middle'.
+			If not profileInUse
+				Msgbox,262208,This message will only be shown once,You've just triggered the Middle button for the first time!`n`nHolding Middle button for a specified time ('0.7s' by default) can launch a specified task. And if the screen is magnified, the same button will trigger a Full Screen Preview instead (for Windows 7 or above only).`n`nTo customize the action, go to 'Tool > Custom Hotkeys > Settings > Holding Middle'.`n`nTo enable/disable this function quickly in order to avoid mis-triggering, go to 'Tool > Custom Hotkeys > Enable Holding Middle'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, MButtonMsg, 1
 		}	
 		Process, Exist, ZoomIt.exe
@@ -7443,7 +7559,11 @@ Gui, Font, norm
 
 ; Adds Menus
 Menu, AboutMenu, Add, Disable Startup &Tips, startupTips
+If profileInUse
+	Menu, AboutMenu, Disable, Disable Startup &Tips
 Menu, AboutMenu, Add, Disable First-Use &Guide, firstUseGuide
+If profileInUse
+	Menu, AboutMenu, Disable, Disable First-Use &Guide
 If not menuInit
 	Menu, AboutMenu, Add ; separator
 Menu, AboutMenu, Add, &Quick Instructions, Instruction
@@ -7459,6 +7579,7 @@ if registered
 if not registered
 	Menu, AboutMenu, Add, Donate $1, Donate
 Menu, AboutMenu, Add, AeroZoom &Web, VisitWeb
+Menu, AboutMenu, Add, User Experience &Survey, UserExperienceSurvey
 
 Menu, SnipMenu, Add, Free-form`tWin+Alt+F, SnipFree
 Menu, SnipMenu, Add, Rectangular`tWin+Alt+R, SnipRect
@@ -7513,6 +7634,60 @@ If not menuInit
 Menu, Configuration, Add, &Save Config on Exit, ConfigBackup
 
 Menu, FileMenu, Add, &Config File, :Configuration
+
+
+Menu, QuickProfileSwitch, Add, 1. %profileName1%, QuickProfile1
+Menu, QuickProfileSwitch, Add, 2. %profileName2%, QuickProfile2
+Menu, QuickProfileSwitch, Add, 3. %profileName3%, QuickProfile3
+Menu, QuickProfileSwitch, Add, 4. %profileName4%, QuickProfile4
+Menu, QuickProfileSwitch, Add, 5. %profileName5%, QuickProfile5
+
+If not menuInit
+	Menu, QuickProfileSwitch, Add ; separator
+Menu, QuickProfileSwitch, Add, Disable Quick Profiles, QuickProfileDisable
+
+
+if (profileInUse=1) {
+	Menu, QuickProfileSwitch, Check, 1. %profileName1%
+} else if (profileInUse=2) {
+	Menu, QuickProfileSwitch, Check, 2. %profileName2%
+} else if (profileInUse=3) {
+	Menu, QuickProfileSwitch, Check, 3. %profileName3%
+} else if (profileInUse=4) {
+	Menu, QuickProfileSwitch, Check, 4. %profileName4%
+} else if (profileInUse=5) {
+	Menu, QuickProfileSwitch, Check, 5. %profileName5%
+} else {
+	Menu, QuickProfileSwitch, Check, Disable Quick Profiles
+	Menu, QuickProfileSwitch, Disable, Disable Quick Profiles
+}
+
+Menu, QuickProfileSave, Add, 1. %profileName1%, QuickProfileSave1
+Menu, QuickProfileSave, Add, 2. %profileName2%, QuickProfileSave2
+Menu, QuickProfileSave, Add, 3. %profileName3%, QuickProfileSave3
+Menu, QuickProfileSave, Add, 4. %profileName4%, QuickProfileSave4
+Menu, QuickProfileSave, Add, 5. %profileName5%, QuickProfileSave5
+
+Menu, QuickProfileSwitch, Add, Save Current Profile to..., :QuickProfileSave
+
+Menu, QuickProfileRename, Add, 1. %profileName1%, QuickProfileRename1
+Menu, QuickProfileRename, Add, 2. %profileName2%, QuickProfileRename2
+Menu, QuickProfileRename, Add, 3. %profileName3%, QuickProfileRename3
+Menu, QuickProfileRename, Add, 4. %profileName4%, QuickProfileRename4
+Menu, QuickProfileRename, Add, 5. %profileName5%, QuickProfileRename5
+
+Menu, QuickProfileSwitch, Add, Rename Profile, :QuickProfileRename
+
+If not menuInit
+	Menu, QuickProfileSwitch, Add ; separator
+if profileInUse {
+	profileInUseDisplay = %profileInUse%
+} else {
+	profileInUseDisplay = None
+}
+Menu, QuickProfileSwitch, Add, &Restore Default Settings [Profile: %profileInUseDisplay%], RestoreDefaultSettings
+
+Menu, FileMenu, Add, Quick Profile &Switch, :QuickProfileSwitch
 If not menuInit
 	Menu, FileMenu, Add ; separator
 if (OSver>=6.1) {
@@ -7593,6 +7768,8 @@ Menu, FileMenu, Add, &Quit`tQ, ExitAZ
 ; MySubmenus
 IfExist, %windir%\System32\calc.exe
 	Menu, MySubmenu, Add, Calculator, WinCalc
+IfExist, %windir%\System32\calc1.exe
+	Menu, MySubmenu, Add, Calculator (Alternative), WinCalc1
 
 IfExist, %windir%\System32\cttune.exe
 Menu, MySubmenu, Add, ClearType Text Tuner, ctTune
@@ -7675,10 +7852,38 @@ IfNotExist, %ProgramFiles%\Windows NT\Accessories\wordpad.exe ; for vista's file
 IfExist, %windir%\Speech\Common\sapisvr.exe
 	Menu, MySubmenu, Add, Windows Speech Recognition, WinSpeech
 
-Menu, OptionsMenu, Add, AeroSnip Options, CaptureOptions
+	If not menuInit
+		Menu, MySubMenu, Add ; separator
+	Menu, MySubmenu, Add, Lock, LockPC
+	Menu, MySubmenu, Add, Sleep, SleepPC
+	Menu, MySubmenu, Add, Hibernate, HibernatePC
+	Menu, MySubmenu, Add, Reboot, RebootPC
+Menu, MySubmenu, Add, Shut down, ShutDownPC
+
+
+
+Menu, OptionsMenu, Add, &AeroSnip Options, CaptureOptions
+
 ;Menu, OptionsMenu, Add, Snipping Tool, SnippingToolOptions
 ;Menu, OptionsMenu, Add, ZoomIt Options, zoomitOptions
 Menu, OptionsMenu, Add, Advanced Options, AdvancedOptions
+
+If not menuInit
+	Menu, OptionsMenu, Add ; separator
+Menu, OptionsMenu, Add, Legacy: Click-n-Go Buttons, ClicknGo
+If !(OSver<6) AND !(EditionID="HomeBasic" OR EditionID="Starter") AND !(!A_IsAdmin AND EnableLUA AND OSver>6.0) { ; if not xp (Snip Button becomes Paint) AND not vista/win7 home basic/start (Snip button becomes Paint) AND not win7 limited user with UAC on (Kill button is already Paint) ** beware the last case does not contain Kill button while the prev 2 contain
+	Menu, OptionsMenu, Add, Legacy: Change Kill to Paint, TogglePaintKill
+	If (legacyKill=2)
+		Menu, OptionsMenu, Check, Legacy: Change Kill to Paint
+	Else
+		Menu, OptionsMenu, Uncheck, Legacy: Change Kill to Paint
+}
+If not menuInit
+	Menu, OptionsMenu, Add ; separator
+Menu, OptionsMenu, Add, Workaround: Prefer NumpadAdd to +, PreferNumpadAdd
+Menu, OptionsMenu, Add, Workaround: Prefer NumpadSub to -, PreferNumpadSub
+if (OSver>=6.1)
+	Menu, OptionsMenu, Add, Experiment: Center Zoom, MouseCenteredZoomMenu
 
 Menu, MiscToolsMenu, Add, Aero Timer (Web), WebTimer
 Menu, MiscToolsMenu, Add, Timer Tab (Web), TimerTab
@@ -7702,16 +7907,6 @@ IfExist, %systemdrive%\Total Malware Scanner\Total Malware Scanner.bat
 	Menu, MiscToolsMenu, Add, Total Malware Scanner, TMS1
 IfExist, %systemdrive%\Total Malware Scanner\Total Malware Scanner.exe
 	Menu, MiscToolsMenu, Add, Total Malware Scanner, TMS2
-If not menuInit
-	Menu, MiscToolsMenu, Add ; separator
-Menu, MiscToolsMenu, Add, Legacy: Click-n-Go Buttons, ClicknGo
-If !(OSver<6) AND !(EditionID="HomeBasic" OR EditionID="Starter") AND !(!A_IsAdmin AND EnableLUA AND OSver>6.0) { ; if not xp (Snip Button becomes Paint) AND not vista/win7 home basic/start (Snip button becomes Paint) AND not win7 limited user with UAC on (Kill button is already Paint) ** beware the last case does not contain Kill button while the prev 2 contain
-	Menu, MiscToolsMenu, Add, Legacy: Change Kill to Paint, TogglePaintKill
-	If (legacyKill=2)
-		Menu, MiscToolsMenu, Check, Legacy: Change Kill to Paint
-	Else
-		Menu, MiscToolsMenu, Uncheck, Legacy: Change Kill to Paint
-}
 
 Menu, CustomizeMenu, Add, &Holding Middle, CustomizeMiddle
 Menu, CustomizeMenu, Add, &Ctrl/Alt/Shift/Win, CustomizeKeys
@@ -7731,13 +7926,17 @@ Menu, ToolboxMenu, Add, &Windows Tools, :MySubmenu
 Menu, ToolboxMenu, Add, &Misc Tools, :MiscToolsMenu
 If not menuInit
 	Menu, ToolboxMenu, Add ; separator
+
 Menu, ToolboxMenu, Add, &Custom Hotkeys, :CustomHkMenu
 If not menuInit
 	Menu, ToolboxMenu, Add ; separator
-Menu, ToolboxMenu, Add, &Preferences, :OptionsMenu
+
+Menu, ToolboxMenu, Add, &Preferences (for Experts), :OptionsMenu
 If not menuInit
 	Menu, ToolboxMenu, Add ; separator
+
 ; Menu, ToolboxMenu, Add, &Hold Middle Button to Trigger, HoldMiddle
+
 Menu, ToolboxMenu, Add, &Save Captures, NirCmd
 Menu, ToolboxMenu, Add, &Misclick-Preventing Pad, UseZoomPad
 Menu, ToolboxMenu, Add, &Type with Notepad, UseNotepad
@@ -7745,6 +7944,8 @@ Menu, ToolboxMenu, Add, &Elastic Zoom, ToggleElasticZoom
 Menu, ToolboxMenu, Add, &Always on Top, OnTop
 If not menuInit
 	Menu, ToolboxMenu, Add ; separator
+
+
 Menu, ToolboxMenu, Add, &Use ZoomIt as Magnifier, ZoomIt
 If (OSver>=6.0) {
 	Menu, ToolboxMenu, Add, &Wheel with ZoomIt (Live), ZoomItLive
@@ -7766,11 +7967,47 @@ If (EditionID="HomeBasic" OR EditionID="Starter") {
 RegRead,clickGoBit,HKCU,Software\wandersick\AeroZoom,clickGoBit
 if clickGoBit ; if  Click 'n Go bit exists and is not 0
 {
-	Menu, MiscToolsMenu, Check, Legacy: Click-n-Go Buttons
+	Menu, OptionsMenu, Check, Legacy: Click-n-Go Buttons
 	; uses Gui Hide (ie Cancel) instead of Gui Destroy since v3.2b for slightly better performance (cancelled)
 	guiDestroy=Destroy
 } else { ; else if Click 'n Go bit exists and is 0
-	Menu, MiscToolsMenu, Uncheck, Legacy: Click-n-Go Buttons
+	Menu, OptionsMenu, Uncheck, Legacy: Click-n-Go Buttons
+	guiDestroy=
+}
+
+; Check Mouse-Centered Zoom bit
+if (OSver>=6.1) {
+	RegRead,mouseCenteredZoomBit,HKCU,Software\wandersick\AeroZoom,mouseCenteredZoomBit
+	if mouseCenteredZoomBit ; if Mouse-Centered Zoom bit exists and is not 0
+	{
+		Menu, OptionsMenu, Check, Experiment: Center Zoom
+		; uses Gui Hide (ie Cancel) instead of Gui Destroy since v3.2b for slightly better performance (cancelled)
+		guiDestroy=Destroy
+	} else { ; else if Mouse-Centered Zoom bit exists and is 0
+		Menu, OptionsMenu, Uncheck, Experiment: Center Zoom
+		guiDestroy=
+	}
+}
+
+; Check numPadAddBit and numPadSubBit
+; for Windows 10, #+ and #- seem to work better than #{NumpadAdd} and #{NumpadSub}. e.g. avoid - character being generated during zoomout (also for older Windows versions)
+RegRead,numPadAddBit,HKCU,Software\wandersick\AeroZoom,numPadAddBit
+if numPadAddBit 
+{
+	Menu, OptionsMenu, Check, Workaround: Prefer NumpadAdd to +
+	guiDestroy=Destroy
+} else { 
+	Menu, OptionsMenu, Uncheck, Workaround: Prefer NumpadAdd to +
+	guiDestroy=
+}
+
+RegRead,numPadSubBit,HKCU,Software\wandersick\AeroZoom,numPadSubBit
+if numPadSubBit 
+{
+	Menu, OptionsMenu, Check, Workaround: Prefer NumpadSub to -
+	guiDestroy=Destroy
+} else { 
+	Menu, OptionsMenu, Uncheck, Workaround: Prefer NumpadSub to -
 	guiDestroy=
 }
 
@@ -7818,18 +8055,24 @@ if (EnableAutoBackup=1) {
 	Menu, Configuration, Check, &Save Config on Exit
 }
 
-RegRead,TipDisabled,HKEY_CURRENT_USER,Software\wandersick\AeroZoom,TipDisabled
-if (TipDisabled=1) {
-	Menu, AboutMenu, Check, Disable Startup &Tips
-} else {
-	Menu, AboutMenu, Uncheck, Disable Startup &Tips
+If not profileInUse
+{
+	RegRead,TipDisabled,HKEY_CURRENT_USER,Software\wandersick\AeroZoom,TipDisabled
+	if (TipDisabled=1) {
+		Menu, AboutMenu, Check, Disable Startup &Tips
+	} else {
+		Menu, AboutMenu, Uncheck, Disable Startup &Tips
+	}
 }
 
-RegRead,GuideDisabled,HKEY_CURRENT_USER,Software\wandersick\AeroZoom,GuideDisabled
-if (GuideDisabled=1) {
-	Menu, AboutMenu, Check, Disable First-Use &Guide
-} else {
-	Menu, AboutMenu, Uncheck, Disable First-Use &Guide
+if not profileInUse
+{
+	RegRead,GuideDisabled,HKEY_CURRENT_USER,Software\wandersick\AeroZoom,GuideDisabled
+	if (GuideDisabled=1) {
+		Menu, AboutMenu, Check, Disable First-Use &Guide
+	} else {
+		Menu, AboutMenu, Uncheck, Disable First-Use &Guide
+	}
 }
 
 ;if (chkMod=7) { ; if MButton ahk, disable the menu item
@@ -8380,7 +8623,7 @@ if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
 	{
 		if not GuideDisabled
 		{
-			msgbox,262208,This message will be shown once only,Before doing a reset under limited mode with UAC in Windows 7, locate Magnifier first and close it manually before clicking the Reset button. Magnifier will then run automatically.`n`nThe reset hotkey [Win]+[Shift]+[R] works the same way. (Manually close Magnifier first.)
+			msgbox,262208,This message will only be shown once,Before doing a reset under limited mode with UAC in Windows, locate Magnifier first and close it manually before clicking the Reset button. Magnifier will then run automatically.`n`nThe reset hotkey [Win]+[Shift]+[R] works the same way. (Manually close Magnifier first.)
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, limitedacc4, 1
 		}
 	}
@@ -8728,7 +8971,7 @@ if (magnifierSetting<>0x1 AND zoompad) {
 	{
 		if not GuideDisabled
 		{
-			Msgbox, 262208, This message will be shown once only, 'Keyboard (i.e. Follow the keyboard focus)' and 'Misclick-preventing Pad' may cause zoom problems if enabled together.`n`nA workaround is to use 'Text (Follow text insertion point)' instead.
+			Msgbox, 262208, This message will only be shown once, 'Keyboard (i.e. Follow the keyboard focus)' and 'Misclick-preventing Pad' may cause zoom problems if enabled together.`n`nA workaround is to use 'Text (Follow text insertion point)' instead.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, kbPadMsg, 1
 		}
 	}
@@ -8877,7 +9120,10 @@ goto, PauseScriptViaTray
 PauseScriptViaButton:
 RegRead,PauseScriptViaButtonInfo,HKCU,Software\wandersick\AeroZoom,PauseScriptViaButtonInfo
 if errorlevel
-	Msgbox, 262192, This message will be shown once only, Same as left-clicking the tray icon, this button disables AeroZoom hotkeys (for temporarily switching to apps incompatible with AeroZoom -- hope you don't ever need this.)`n`nIt toggles 3 modes.`n`n1) - OFF - all hotkeys are enabled (default)`n`n2) - MS - only mouse hotkeys are disabled (except Left+Right for bringing back AeroZoom Panel)`n`n3) - ALL - all hotkeys are disabled (WARNING -- the only way to bring back AeroZoom is thru the tray icon)
+{
+	if not GuideDisabled
+		Msgbox, 262192, This message will only be shown once, Same as left-clicking the tray icon, this button disables AeroZoom hotkeys (for temporarily switching to apps incompatible with AeroZoom -- hope you don't ever need this.)`n`nIt toggles 3 modes.`n`n1) - OFF - all hotkeys are enabled (default)`n`n2) - MS - only mouse hotkeys are disabled (except Left+Right for bringing back AeroZoom Panel)`n`n3) - ALL - all hotkeys are disabled (WARNING -- the only way to bring back AeroZoom is thru the tray icon)
+}
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, PauseScriptViaButtonInfo, 1
 
 PauseScriptViaTray:
@@ -8999,7 +9245,7 @@ return
 Bye:
 ExitAZ:
 GoSub, CloseMagnifier
-GoSub, AutoConfigBackup
+GoSub, AutoConfigBackupSaveProfile
 ExitApp
 return
 
@@ -9010,6 +9256,7 @@ RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %la
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
 GoSub, CloseMagnifier
 restartRequired=
+Gosub, SaveCurrentProfile
 reload
 return
 
@@ -9020,7 +9267,7 @@ if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
 	{
 		if not GuideDisabled
 		{
-			Msgbox, 262208, This message will be shown once only, You are using the limited functionality mode. Some unavailable hotkeys are not shown.
+			Msgbox, 262208, This message will only be shown once, You are using the limited functionality mode. Some unavailable hotkeys are not shown.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, limitedAcc3, 1
 		}
 	}
@@ -9031,7 +9278,7 @@ if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
 	{
 		if not GuideDisabled
 		{
-			Msgbox, 262208, This message will be shown once only, You are using an older version of Windows. Some unavailable hotkeys are not shown.
+			Msgbox, 262208, This message will only be shown once, You are using an older version of Windows. Some unavailable hotkeys are not shown.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, VistaMsg2, 1
 		}
 	}
@@ -9044,7 +9291,7 @@ IfWinExist, AeroZoom Panel
 }
 Gui, 2:+ToolWindow
 Gui, 2:Font, s10, Arial bold, 
-Gui, 2:Add, Text, , Global Keyboard Shortcuts (Windows 7)
+Gui, 2:Add, Text, , Global Keyboard Shortcuts (Windows)
 Gui, 2:Font, s9, Arial, 
 Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom rate`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   (Click tray icon)`nQuick help`t`t   [Win] + [Alt] + [Q]
 Gui, 2:Font, s10, Arial bold, 
@@ -9161,6 +9408,10 @@ VisitWeb:
 Run, http://wandersick.blogspot.com/p/aerozoom-for-windows-7-magnifier.html
 return
 
+UserExperienceSurvey:
+Run, http://tinyurl.com/aerozoomsurvey
+return
+
 Gmail:
 Run, mailto:wandersick+aerozoom@gmail.com
 return
@@ -9180,10 +9431,10 @@ IfWinExist, AeroZoom Panel
 }
 Gui, 2:+ToolWindow
 Gui, 2:Font, s12, Arial bold, 
-Gui, 2:Add, Text, , AeroZoom %verAZ% with AeroSnip
+Gui, 2:Add, Text, , AeroZoom %verAZ%
 ; Gui, 2:Font, norm,
 Gui, 2:Font, s10, Tahoma, 
-Gui, 2:Add, Text, ,The wheel zoom and presentation kit?`nBetter Magnifier, Snipping Tool and ZoomIt?`nJust thought the idea's neat, so I created It.`n`nAeroZoom is open-source and free.`nCrafted with AutoHotkey by a Chinese.`n`nJust love life if you enjoy this,`nor donate to me or any cause you please.
+Gui, 2:Add, Text, ,The wheel zoom and presentation kit?`nBetter Magnifier, Snipping Tool and ZoomIt?`nJust thought the idea's neat, so I created It.`n`nAeroZoom is open-source and free.`nCrafted with AutoHotkey by a HKer/Chinese.`n`nJust love life if you enjoy this,`nor donate to me or any cause you please.
 Gui, 2:Font, s10, Tahoma,
 Gui, 2:Add, Text, ,If you have words for me, bitter or sweet,`nsend wandersick via Gmail or a tweet.
 Gui, 2:Font, s10, Tahoma, 
@@ -9204,7 +9455,7 @@ Gui, 2:+owner1  ; Make the main window (Gui #1) the owner of the "about box" (Gu
 Gui +Disabled  ; Disable main window.
 Gui, 2:+ToolWindow
 Gui, 2:Font, s12, Arial bold, 
-Gui, 2:Add, Text, , AeroZoom %verAZ% with AeroSnip
+Gui, 2:Add, Text, , AeroZoom %verAZ%
 ; Gui, 2:Font, norm,
 Gui, 2:Font, s10, Tahoma, 
 Gui, 2:Add, Text, ,The wheel zoom and presentation kit?`nBetter Magnifier, Snipping Tool and ZoomIt?`nJust thought the idea's neat, so I created It.`n`nAeroZoom is open-source and free.`nCrafted with AutoHotkey by a Chinese.`n`nJust love life if you enjoy this,`nor donate to me or any cause you please.
@@ -9411,7 +9662,7 @@ PanelTrans_TT := "AeroZoom Panel: 120 min (more transparent), 255 max (less tran
 ;Gui, 3:Font, CRed, 
 ;Gui, 3:Add, CheckBox, %Checked% -Wrap x22 y540 w150 h20 vCheckboxRestoreDefault, &Restore default settings
 ;Gui, 3:Font, CDefault, 
-;CheckboxRestoreDefault_TT := "Restore AeroZoom and magnifier settings to their defaults (Require program restart)"
+;CheckboxRestoreDefault_TT := "Restore settings of AeroZoom, Windows Magnifier, ZoomIt and Snipping Tools to their defaults"
 
 if CustomEdCheckbox 
 {
@@ -9484,7 +9735,7 @@ PadH_TT := "Misclick-Preventing Pad: vertical height. Default: 475 px"
 Gui, 3:Add, Button, x12 y565 w60 h30 vOKtemp3, &OK
 OKtemp3_TT := "Save changes"
 Gui, 3:Add, Button, x132 y565 w60 h30 vResetTemp, &Reset
-ResetTemp_TT := "Restore AeroZoom and magnifier settings to their defaults (Require program restart)"
+ResetTemp_TT := "Restore settings of AeroZoom, Windows Magnifier, ZoomIt and Snipping Tools to their defaults"
 Gui, 3:Add, Button, x72 y565 w60 h30 Default vCancelTemp, &Cancel
 CancelTemp_TT := "Cancel changes"
 
@@ -9588,7 +9839,7 @@ return
 
 3ButtonOK:  ; This section is used by the "about box" above.
 if checkboxRestoreDefault {
-Msgbox, 262180, AeroZoom Restoration, AeroZoom will restore itself to default settings.`n`nEverything will be lost. Are you sure?
+Msgbox, 262180, AeroZoom Restoration, AeroZoom and Windows Magnifier settings will be restored to their defaults.`n`nEverything will be lost. Are you sure?
 	IfMsgBox Yes
 	{
 		Gui, Destroy  ; Destroy the about box.
@@ -9607,6 +9858,19 @@ Msgbox, 262180, AeroZoom Restoration, AeroZoom will restore itself to default se
 		}
 		RegWrite, REG_SZ, HKCU, Software\wandersick\AeroZoom, RunOnStartup, 0
 		RegDelete, HKEY_CURRENT_USER, Software\wandersick\AeroZoom
+		; restore all profiles to their default settings
+		Msgbox, 262180, AeroZoom Restoration, Remove other Quick Profiles besides the current one?
+		IfMsgBox Yes
+		{
+			FileCopy, %A_WorkingDir%\Data\QuickProfiles\Default\Profile1.reg, %A_WorkingDir%\Data\QuickProfiles\Profile1.reg, 1
+			FileCopy, %A_WorkingDir%\Data\QuickProfiles\Default\Profile2.reg, %A_WorkingDir%\Data\QuickProfiles\Profile2.reg, 1
+			FileCopy, %A_WorkingDir%\Data\QuickProfiles\Default\Profile3.reg, %A_WorkingDir%\Data\QuickProfiles\Profile3.reg, 1
+			FileCopy, %A_WorkingDir%\Data\QuickProfiles\Default\Profile4.reg, %A_WorkingDir%\Data\QuickProfiles\Profile4.reg, 1
+			FileCopy, %A_WorkingDir%\Data\QuickProfiles\Default\Profile5.reg, %A_WorkingDir%\Data\QuickProfiles\Profile5.reg, 1
+		} else {
+			FileCopy, %A_WorkingDir%\Data\QuickProfiles\Default\Profile%profileInUse%.reg, %A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg, 1
+			Gosub, LoadDefaultRegImportQuickProfile
+		}
 		GoSub, CloseMagnifier
 		If (OSver>6) {
 			RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, Magnification, 0x64
@@ -9658,12 +9922,14 @@ Msgbox, 262180, AeroZoom Restoration, AeroZoom will restore itself to default se
 				FileDelete, %A_WorkingDir%\Data\NirCmd.exe
 			}
 		}
+		Msgbox, 262208, Settings Restored, AeroZoom will now quit.
+		ExitApp
 		; Save last AZ window position before exit so that it shows the GUI after restart
-		WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
-		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
-		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
-		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
-		reload
+		; WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+		; RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
+		; RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
+		; RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		; reload
 		return
 	}
 	else
@@ -9773,6 +10039,7 @@ if restartRequired {
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
 	GoSub, CloseMagnifier
 	restartRequired=
+	Gosub, SaveCurrentProfile
 	reload
 	return
 }
@@ -9800,6 +10067,7 @@ if (chkMod=1) {
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		If ProgramW6432 ; check if OS is x64
 			Run,"%A_WorkingDir%\Data\AeroZoom_Ctrl_x64.exe",,
 		Else
@@ -9814,6 +10082,7 @@ if (chkMod=1) {
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		If ProgramW6432 ; check if OS is x64
 			Run,"%A_WorkingDir%\Data\AeroZoom_Alt_x64.exe",,
 		Else
@@ -9828,6 +10097,7 @@ if (chkMod=1) {
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		If ProgramW6432 ; check if OS is x64
 			Run,"%A_WorkingDir%\Data\AeroZoom_Shift_x64.exe",,
 		Else
@@ -9842,6 +10112,7 @@ if (chkMod=1) {
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		If ProgramW6432 ; check if OS is x64
 			Run,"%A_WorkingDir%\Data\AeroZoom_Win_x64.exe",,
 		Else
@@ -9856,6 +10127,7 @@ if (chkMod=1) {
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		If ProgramW6432 ; check if OS is x64
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseL_x64.exe",,
 		Else		
@@ -9879,6 +10151,7 @@ if (chkMod=1) {
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		If ProgramW6432 ; check if OS is x64
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseR_x64.exe",,
 		Else
@@ -9901,6 +10174,7 @@ if (chkMod=1) {
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		If ProgramW6432 ; check if OS is x64
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseM_x64.exe",,
 		Else
@@ -9923,6 +10197,7 @@ if (chkMod=1) {
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		If ProgramW6432 ; check if OS is x64
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseX1_x64.exe",,
 		Else
@@ -9945,6 +10220,7 @@ if (chkMod=1) {
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		If ProgramW6432 ; check if OS is x64
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseX2_x64.exe",,
 		Else
@@ -9959,6 +10235,7 @@ if (chkMod=1) {
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		If ProgramW6432 ; check if OS is x64
 			Run,"%A_WorkingDir%\Data\AeroZoom_MouseL_x64.exe",,
 		Else
@@ -10007,7 +10284,10 @@ if (Magnification<MagnificationNew) {
 		msgbox count: %MagLoopCount% new %MagnificationNew% > old %Magnification%
 	Loop, %MagLoopCount%
 	{
-		sendinput #{NumpadAdd}
+		if numPadAddBit
+			sendinput #{NumpadAdd}
+		else
+			SendInput #{+}
 		Gosub, ReadValueUpdatePanel ; update the slider
 		Sleep 150
 	}
@@ -10022,7 +10302,10 @@ if (Magnification>MagnificationNew) {
 		msgbox count: %MagLoopCount% new %MagnificationNew% < old %Magnification%
 	Loop, %MagLoopCount%
 	{
-		sendinput #{NumpadSub}
+		if numPadSubBit
+			sendinput #{NumpadSub}
+		else
+			SendInput #{-}
 		Gosub, ReadValueUpdatePanel
 		Sleep 150
 	}
@@ -10128,7 +10411,7 @@ if errorlevel
 {
 	if not GuideDisabled
 	{
-		Msgbox, 262208, This message will be shown once only, Use this especially if you have User Account Control (UAC) on for your PC.`n`n'Run on Startup' takes advantage of Task Scheduler to run AeroZoom at logon as admin without any screen-dimming prompts. It is an exclusive feature for Windows Vista and later.`n`nNote: If you have any other programs prompting for admin rights at logon, this function might not work.
+		Msgbox, 262208, This message will only be shown once, Use this especially if you have User Account Control (UAC) on for your PC.`n`n'Run on Startup' takes advantage of Task Scheduler to run AeroZoom at logon as admin without any screen-dimming prompts. It is an exclusive feature for Windows Vista and later.`n`nNote: If you have any other programs prompting for admin rights at logon, this function might not work.
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, RunOnStartupMsg, 1
 	}
 }
@@ -10606,14 +10889,80 @@ RegRead,clickGoBit,HKCU,Software\wandersick\AeroZoom,clickGoBit
 if clickGoBit
 {
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, clickGoBit, 0
-	Menu, MiscToolsMenu, Uncheck, Legacy: Click-n-Go Buttons
+	Menu, OptionsMenu, Uncheck, Legacy: Click-n-Go Buttons
 	guiDestroy=
 } else {
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, clickGoBit, 1
-	Menu, MiscToolsMenu, Check, Legacy: Click-n-Go Buttons
+	Menu, OptionsMenu, Check, Legacy: Click-n-Go Buttons
 	guiDestroy=Destroy
 }
 return
+
+MouseCenteredZoomMenu:
+; Toggle Mouse-Centered Zoom
+RegRead,mouseCenteredZoomBit,HKCU,Software\wandersick\AeroZoom,mouseCenteredZoomBit
+if (OSver>=6.1) {
+	if mouseCenteredZoomBit
+	{
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, mouseCenteredZoomBit, 0
+		Menu, OptionsMenu, Uncheck, Experiment: Center Zoom
+		mouseCenteredZoomBit=0
+		guiDestroy=
+	} else {
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, mouseCenteredZoomBit, 1
+		Menu, OptionsMenu, Check, Experiment: Center Zoom
+		mouseCenteredZoomBit=1
+		guiDestroy=Destroy
+	}
+}
+return
+
+PreferNumpadAdd:
+RegRead,NumpadAddSubMsg,HKCU,Software\wandersick\AeroZoom,NumpadAddSubMsg
+if errorlevel
+{
+	if not GuideDisabled
+		Msgbox,262208,This message will only be shown once,AeroZoom will flip this switch for you.`n`nThis workaround enables AeroZoom to use an alternative keyboard shortcut to zoom in/out with the Windows Magnifier. Trying a different combination of this setting might solve problems such as +/- characters being generated during zoom in/out.`n`nBy default NumpadAdd is enabled while NumpadSub is disabled. This combination works best normally for Ctrl modifier. You may finetune this setting if it does not work best for you.`n`nIn case you mess it up, you may need to restore AeroZoom to the default settings.
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, NumpadAddSubMsg, 1
+}
+RegRead,numPadAddBit,HKCU,Software\wandersick\AeroZoom,numPadAddBit
+if numPadAddBit
+{
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, numPadAddBit, 0
+	Menu, OptionsMenu, Uncheck, Workaround: Prefer NumpadAdd to +
+	numPadAddBit=0
+	guiDestroy=
+} else {
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, numPadAddBit, 1
+	Menu, OptionsMenu, Check, Workaround: Prefer NumpadAdd to +
+	numPadAddBit=1
+	guiDestroy=Destroy
+}
+return
+
+PreferNumpadSub:
+RegRead,NumpadAddSubMsg,HKCU,Software\wandersick\AeroZoom,NumpadAddSubMsg
+if errorlevel
+{
+	if not GuideDisabled
+		Msgbox,262208,This message will only be shown once,AeroZoom will flip this switch for you.`n`nThis workaround enables AeroZoom to use an alternative keyboard shortcut to zoom in/out with the Windows Magnifier. Trying a different combination of this setting might solve problems such as +/- characters being generated during zoom in/out.`n`nBy default NumpadAdd is enabled while NumpadSub is disabled. This combination works best normally for Ctrl modifier. You may finetune this setting if it does not work best for you.`n`nIn case you mess it up, you may need to restore AeroZoom to the default settings.
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, NumpadAddSubMsg, 1
+}
+RegRead,numPadSubBit,HKCU,Software\wandersick\AeroZoom,numPadSubBit
+if numPadSubBit
+{
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, numPadSubBit, 0
+	Menu, OptionsMenu, Uncheck, Workaround: Prefer NumpadSub to -
+	numPadSubBit=0
+	guiDestroy=
+} else {
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, numPadSubBit, 1
+	Menu, OptionsMenu, Check, Workaround: Prefer NumpadSub to -
+	numPadSubBit=1
+	guiDestroy=Destroy
+}
+return
+
 
 OnTop:
 ; Toggle Always on Top
@@ -11688,6 +12037,7 @@ If SwitchMiniMode
 	If (OSD=1) AND (A_ThisMenuItem<>"&Go to Full View") AND (A_ThisMenuItem<>"&Go to Mini View")
 		Run, "%A_WorkingDir%\Data\OSD.exe" Sw2
 }
+Gosub, SaveCurrentProfile
 reload
 return
 
@@ -11811,6 +12161,11 @@ return
 
 WinCalc:
 Run, %windir%\System32\calc.exe
+return
+
+; Supports "Old Windows 7 Calculator for Windows 10" from Winaero if calc1.exe is detected under Windows\System32.
+WinCalc1:
+Run, %windir%\System32\calc1.exe
 return
 
 WinCMD:
@@ -12256,7 +12611,7 @@ RegRead,MiddleTriggerMsg,HKCU,Software\wandersick\AeroZoom,MiddleTriggerMsg
 	{
 		if not GuideDisabled
 		{
-			Msgbox, 262208, This message will be shown once only, Since you're using the middle button for zoom already, holding it will have no effect. However, you may still access the function with another hotkey: [Middle]+[Left]
+			Msgbox, 262208, This message will only be shown once, Since you're using the middle button for zoom already, holding it will have no effect. However, you may still access the function with another hotkey: [Middle]+[Left]
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, MiddleTriggerMsg, 1
 		}
 	}
@@ -12313,7 +12668,7 @@ else
 	Checked=Checked0
 }
 Gui, 7:Add, CheckBox, %Checked% -Wrap x17 y84 w290 h30 vDisablePreviewFullScreen, &Disable Full Screen Preview auto switching
-disablePreviewFullScreen_TT := "When zoomed in, holding middle does the action specified here instead of 'full screen preview' (for 'Full Screen' view of Windows 7 Magnifier.)"
+disablePreviewFullScreen_TT := "When zoomed in, holding middle does the action specified here instead of 'full screen preview' (for 'Full Screen' view of Aero-Enabled Windows Magnifier.)"
 Gui, 7:Add, GroupBox, x7 y10 w310 h160 , Hold Middle Button as a Trigger
 if disableZoomResetHotkey ; if checkbox was checked
 {
@@ -12475,7 +12830,7 @@ CustomizeKeys:
 ;RegRead,CustomizeKeysIntro,HKCU,Software\wandersick\AeroZoom,CustomizeKeysIntro
 ;if errorlevel
 ;{
-	;Msgbox, 262180, This message will be shown once only, Hey! Since this is the first time you run this feature, would you like some command examples as a template for editing?`n`nThey should be usable right away (except the first and last ones). To try them, choose 'Custom (define)' from the drop-down menu.
+	;Msgbox, 262180, This message will only be shown once, Hey! Since this is the first time you run this feature, would you like some command examples as a template for editing?`n`nThey should be usable right away (except the first and last ones). To try them, choose 'Custom (define)' from the drop-down menu.
 	;IfMsgBox, No
 	;{
 	;	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, CustomCtrlLeftPath, 
@@ -13523,11 +13878,11 @@ If onTopBit
 if ExportPath {
 	if A_IsAdmin ; invisible to user but requires admin right
 	{
-		Run, "%windir%\regedit.exe" /E "%ExportPath%" "HKEY_CURRENT_USER\Software\wandersick\AeroZoom", ,min
+		RunWait, "%windir%\regedit.exe" /E "%ExportPath%" "HKEY_CURRENT_USER\Software\wandersick\AeroZoom", ,min
 	}
 	Else ; below would show a minimized cmd window for a second
 	{
-		Run, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\wandersick\AeroZoom" "%ExportPath%" /f,,min
+		RunWait, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\wandersick\AeroZoom" "%ExportPath%" /f,,min
 	}
 }
 return
@@ -13543,11 +13898,20 @@ if ImportPath
 {
 	IfExist, %ImportPath%
 	{
-		RunWait, "%windir%\system32\reg.exe" import "%ImportPath%" , ,min
+		; Delete existing AeroZoom settings
+		RegDelete, HKEY_CURRENT_USER, Software\wandersick\AeroZoom
+		if A_IsAdmin ; invisible to user but requires admin right
+		{
+			RunWait, "%windir%\regedit.exe" /S "%ImportPath%", ,min
+		}
+		Else ; below would show a minimized cmd window for a second
+		{
+			RunWait, "%windir%\system32\reg.exe" import "%ImportPath%" , ,min
+		}
 	}
 	Else
 	{
-		Msgbox, 262192, ERROR, File does not exist.
+		Msgbox, 262192, ERROR, File does not exist:`n`n%ImportPath%
 		return
 	}
 } else {
@@ -13561,20 +13925,385 @@ RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %la
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
 GoSub, CloseMagnifier
 restartRequired=
+Gosub, SaveCurrentProfile
 reload
 return
 
-AutoConfigBackup:
+RestoreDefaultSettings:
+; this does not remove zoomit.exe and nircmd.exe (if exist)
+; this is a lighter version in comparison to the Reset button in Advaced Options
+Gui, 1:-AlwaysOnTop
+If onTopBit
+	Gui, 1:+AlwaysOnTop
+if profileInUse {
+	profileInUseDisplay = %profileInUse%
+} else {
+	profileInUseDisplay = None
+}
+Msgbox, 262212, Restore Default Settings [Current Profile: %profileInUseDisplay%], Restore AeroZoom to default settings?`n`nNote: This restores the current selected profile of AeroZoom only. To restore all profiles, as well as settings of Windows Magnifier, Snipping Tool, ZoomIt and NirCmd, use "Tool > Preferences > Advanced Options > Reset"
+IfMsgbox, No
+	return
+; Delete existing AeroZoom settings
+RegDelete, HKEY_CURRENT_USER, Software\wandersick\AeroZoom
+; if quick profile is in use, restore the current quick profile to its default
+If profileInUse {
+	FileCopy, %A_WorkingDir%\Data\QuickProfiles\Default\Profile%profileInUse%.reg, %A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg, 1
+	Gosub, LoadDefaultRegImportQuickProfile
+}
+Msgbox, 262208, Settings Restored, AeroZoom will now quit.
+GoSub, CloseMagnifier
+ExitApp
+;restartRequired=
+;reload
+return
+
+
+MouseCenteredZoom:
+; Mouse-Centered Zoom
+CoordMode, Mouse, Screen
+MouseMove, (A_ScreenWidth // 2), (A_ScreenHeight // 2), 0
+return
+
+; Both QuickProfileSwitch and AutoConfigBackup
+AutoConfigBackupSaveProfile:
 ; auto config backup
 If EnableAutoBackup {
 	if A_IsAdmin ; invisible to user but requires admin right
 	{
-		Run, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\ConfigBackup\Day%A_DD%_%A_OSVersion%_%A_ComputerName%_%A_UserName%.reg" "HKEY_CURRENT_USER\Software\wandersick\AeroZoom", ,min
+		RunWait, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\ConfigBackup\Day%A_DD%_%A_OSVersion%_%A_ComputerName%_%A_UserName%.reg" "HKEY_CURRENT_USER\Software\wandersick\AeroZoom", ,min
 	}
 	Else ; below would show a minimized cmd window for a second
 	{
-		Run, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\wandersick\AeroZoom" "%A_WorkingDir%\Data\ConfigBackup\Day%A_DD%_%A_OSVersion%_%A_ComputerName%_%A_UserName%.reg" /f,,min
+		RunWait, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\wandersick\AeroZoom" "%A_WorkingDir%\Data\ConfigBackup\Day%A_DD%_%A_OSVersion%_%A_ComputerName%_%A_UserName%.reg" /f,,min
 	}
+}
+; QuickProfileSwitch exports config to the respective profile#.reg whether AutoConfigBackup is enabled or not.
+Gosub, SaveCurrentProfile
+return
+
+QuickProfile1:
+If Not profileInUse {
+	Msgbox, 262180, Switching from Disabled to Profile 1, By switching to a profile from a disabled state, current settings will be lost unless manually saved.`n`nClick Yes to continue, or No to cancel.
+	IfMsgBox No
+		return
+} else {
+	IfNotExist, %A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+	{
+		Msgbox, 262192, ERROR, File does not exist:`n`n%A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+		return
+	}
+	; save current setting to current profile before switching to another profile
+	Gosub, SaveCurrentProfile
+}
+profileInUse = 1
+; gosub, profileGuidance
+Gosub, LoadDefaultRegImportQuickProfile
+; in case the reg files have wrong values of profileInUse and profileNames, the below ensures it will work correctly
+; RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileGuidance, 1
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName1, %profileName1%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName2, %profileName2%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName3, %profileName3%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName4, %profileName4%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName5, %profileName5%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileInUse, 1
+; Msgbox, 262208, AeroZoom, AeroZoom will now restart to apply new settings.
+; Write current modifier to registry so that the checked modifier is correct on panel after restart
+; RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, Modifier, 0x%chkMod%
+; Save last AZ window position before exit so that it shows the GUI after restart
+WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+GoSub, CloseMagnifier
+restartRequired=
+; reload would not load the correct modifier exe; therefore AeroZoom.exe is rerun instead.
+Run, %A_WorkingDir%\AeroZoom.exe
+ExitApp
+return
+
+QuickProfile2:
+If Not profileInUse {
+	Msgbox, 262180, Switching from Disabled to Profile 2, By switching to a profile from a disabled state, current settings will be lost unless manually saved.`n`nClick Yes to continue, or No to cancel.
+	IfMsgBox No
+		return
+} else {
+	IfNotExist, %A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+	{
+		Msgbox, 262192, ERROR, File does not exist:`n`n%A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+		return
+	}
+	; save current setting to current profile before switching to another profile
+	Gosub, SaveCurrentProfile
+}
+profileInUse = 2
+; gosub, profileGuidance
+Gosub, LoadDefaultRegImportQuickProfile
+; in case the reg files have wrong values of profileInUse and profileNames, the below ensures it will work correctly
+; RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileGuidance, 1
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName1, %profileName1%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName2, %profileName2%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName3, %profileName3%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName4, %profileName4%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName5, %profileName5%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileInUse, 2
+; Msgbox, 262208, AeroZoom, AeroZoom will now restart to apply new settings.
+; Write current modifier to registry so that the checked modifier is correct on panel after restart
+; RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, Modifier, 0x%chkMod%
+; Save last AZ window position before exit so that it shows the GUI after restart
+WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+GoSub, CloseMagnifier
+restartRequired=
+; reload would not load the correct modifier exe; therefore AeroZoom.exe is rerun instead.
+Run, %A_WorkingDir%\AeroZoom.exe
+ExitApp
+return
+
+QuickProfile3:
+If Not profileInUse {
+	Msgbox, 262180, Switching from Disabled to Profile 3, By switching to a profile from a disabled state, current settings will be lost unless manually saved.`n`nClick Yes to continue, or No to cancel.
+	IfMsgBox No
+		return
+} else {
+	IfNotExist, %A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+	{
+		Msgbox, 262192, ERROR, File does not exist:`n`n%A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+		return
+	}
+	; save current setting to current profile before switching to another profile
+	Gosub, SaveCurrentProfile
+}
+profileInUse = 3
+; gosub, profileGuidance
+Gosub, LoadDefaultRegImportQuickProfile
+; in case the reg files have wrong values of profileInUse and profileNames, the below ensures it will work correctly
+; RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileGuidance, 1
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName1, %profileName1%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName2, %profileName2%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName3, %profileName3%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName4, %profileName4%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName5, %profileName5%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileInUse, 3
+; Msgbox, 262208, AeroZoom, AeroZoom will now restart to apply new settings.
+; Write current modifier to registry so that the checked modifier is correct on panel after restart
+; RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, Modifier, 0x%chkMod%
+; Save last AZ window position before exit so that it shows the GUI after restart
+WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+GoSub, CloseMagnifier
+restartRequired=
+; reload would not load the correct modifier exe; therefore AeroZoom.exe is rerun instead.
+Run, %A_WorkingDir%\AeroZoom.exe
+ExitApp
+return
+
+QuickProfile4:
+If Not profileInUse {
+	Msgbox, 262180, Switching from Disabled to Profile 4, By switching to a profile from a disabled state, current settings will be lost unless manually saved.`n`nClick Yes to continue, or No to cancel.
+	IfMsgBox No
+		return
+} else {
+	IfNotExist, %A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+	{
+		Msgbox, 262192, ERROR, File does not exist:`n`n%A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+		return
+	}
+	; save current setting to current profile before switching to another profile
+	Gosub, SaveCurrentProfile
+}
+profileInUse = 4
+; gosub, profileGuidance
+Gosub, LoadDefaultRegImportQuickProfile
+; in case the reg files have wrong values of profileInUse and profileNames, the below ensures it will work correctly
+; RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileGuidance, 1
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName1, %profileName1%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName2, %profileName2%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName3, %profileName3%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName4, %profileName4%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName5, %profileName5%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileInUse, 4
+; Msgbox, 262208, AeroZoom, AeroZoom will now restart to apply new settings.
+; Write current modifier to registry so that the checked modifier is correct on panel after restart
+; RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, Modifier, 0x%chkMod%
+; Save last AZ window position before exit so that it shows the GUI after restart
+WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+GoSub, CloseMagnifier
+restartRequired=
+; reload would not load the correct modifier exe; therefore AeroZoom.exe is rerun instead.
+Run, %A_WorkingDir%\AeroZoom.exe
+ExitApp
+return
+
+QuickProfile5:
+If Not profileInUse {
+	Msgbox, 262180, Switching from Disabled to Profile 5, By switching to a profile from a disabled state, current settings will be lost unless manually saved.`n`nClick Yes to continue, or No to cancel.
+	IfMsgBox No
+		return
+} else {
+	IfNotExist, %A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+	{
+		Msgbox, 262192, ERROR, File does not exist:`n`n%A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+		return
+	}
+	; save current setting to current profile before switching to another profile
+	Gosub, SaveCurrentProfile
+}
+profileInUse = 5
+; gosub, profileGuidance
+Gosub, LoadDefaultRegImportQuickProfile
+; in case the reg files have wrong values of profileInUse and profileNames, the below ensures it will work correctly
+; RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileGuidance, 1
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName1, %profileName1%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName2, %profileName2%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName3, %profileName3%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName4, %profileName4%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName5, %profileName5%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileInUse, 5
+; Msgbox, 262208, AeroZoom, AeroZoom will now restart to apply new settings.
+; Write current modifier to registry so that the checked modifier is correct on panel after restart
+; RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, Modifier, 0x%chkMod%
+; Save last AZ window position before exit so that it shows the GUI after restart
+WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+GoSub, CloseMagnifier
+restartRequired=
+; reload would not load the correct modifier exe; therefore AeroZoom.exe is rerun instead.
+Run, %A_WorkingDir%\AeroZoom.exe
+ExitApp
+return
+
+QuickProfileDisable:
+; save current setting to current profile before disabling profile
+Gosub, SaveCurrentProfile
+
+Menu, QuickProfileSwitch, Uncheck, 1. %profileName1%
+Menu, QuickProfileSwitch, Uncheck, 2. %profileName2%
+Menu, QuickProfileSwitch, Uncheck, 3. %profileName3%
+Menu, QuickProfileSwitch, Uncheck, 4. %profileName4%
+Menu, QuickProfileSwitch, Uncheck, 5. %profileName5%
+Menu, QuickProfileSwitch, Check, Disable Quick Profiles	
+Menu, QuickProfileSwitch, Disable, Disable Quick Profiles
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileInUse, 0
+profileInUse = 0
+; Msgbox, 262208, AeroZoom, AeroZoom will now restart to apply new settings.
+; Save last AZ window position before exit so that it shows the GUI after restart
+WinGetPos, lastPosX, lastPosY, , , AeroZoom Panel,
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+GoSub, CloseMagnifier
+restartRequired=
+; reload would not load the correct modifier exe; therefore AeroZoom.exe is rerun instead.
+Run, %A_WorkingDir%\AeroZoom.exe
+ExitApp
+return
+
+QuickProfileSave1:
+if A_IsAdmin ; invisible to user but requires admin right
+{
+	RunWait, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\QuickProfiles\Profile1.reg" "HKEY_CURRENT_USER\Software\wandersick\AeroZoom", ,min
+}
+Else ; below would show a minimized cmd window for a second
+{
+	RunWait, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\wandersick\AeroZoom" "%A_WorkingDir%\Data\QuickProfiles\Profile1.reg" /f,,min
+}
+return
+
+QuickProfileSave2:
+if A_IsAdmin ; invisible to user but requires admin right
+{
+	RunWait, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\QuickProfiles\Profile2.reg" "HKEY_CURRENT_USER\Software\wandersick\AeroZoom", ,min
+}
+Else ; below would show a minimized cmd window for a second
+{
+	RunWait, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\wandersick\AeroZoom" "%A_WorkingDir%\Data\QuickProfiles\Profile2.reg" /f,,min
+}
+return
+
+QuickProfileSave3:
+if A_IsAdmin ; invisible to user but requires admin right
+{
+	RunWait, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\QuickProfiles\Profile3.reg" "HKEY_CURRENT_USER\Software\wandersick\AeroZoom", ,min
+}
+Else ; below would show a minimized cmd window for a second
+{
+	RunWait, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\wandersick\AeroZoom" "%A_WorkingDir%\Data\QuickProfiles\Profile3.reg" /f,,min
+}
+return
+
+QuickProfileSave4:
+if A_IsAdmin ; invisible to user but requires admin right
+{
+	RunWait, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\QuickProfiles\Profile4.reg" "HKEY_CURRENT_USER\Software\wandersick\AeroZoom", ,min
+}
+Else ; below would show a minimized cmd window for a second
+{
+	RunWait, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\wandersick\AeroZoom" "%A_WorkingDir%\Data\QuickProfiles\Profile4.reg" /f,,min
+}
+return
+
+QuickProfileSave5:
+if A_IsAdmin ; invisible to user but requires admin right
+{
+	RunWait, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\QuickProfiles\Profile5.reg" "HKEY_CURRENT_USER\Software\wandersick\AeroZoom", ,min
+}
+Else ; below would show a minimized cmd window for a second
+{
+	RunWait, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\wandersick\AeroZoom" "%A_WorkingDir%\Data\QuickProfiles\Profile5.reg" /f,,min
+}
+return
+
+QuickProfileRename1:
+InputBox, ProfileUserInput1, Rename Profile 1, Please enter a name for profile 1., , 240, 100
+if Not ErrorLevel {
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName1, %ProfileUserInput1%
+    Msgbox, 262144, Profile 1 Renamed, Profile 1 has been renamed to "%ProfileUserInput1%"
+	Goto, RestartAZ
+}
+return
+
+QuickProfileRename2:
+InputBox, ProfileUserInput2, Rename Profile 2, Please enter a name for profile 2., , 240, 100
+if Not ErrorLevel {
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName2, %ProfileUserInput2%
+    Msgbox, 262144, Profile 2 Renamed, Profile 2 has been renamed to "%ProfileUserInput2%"
+	Goto, RestartAZ
+}
+return
+
+QuickProfileRename3:
+InputBox, ProfileUserInput3, Rename Profile 3, Please enter a name for profile 3., , 240, 100
+if Not ErrorLevel {
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName3, %ProfileUserInput3%
+    Msgbox, 262144, Profile 3 Renamed, Profile 3 has been renamed to "%ProfileUserInput3%"
+	Goto, RestartAZ
+}
+return
+
+QuickProfileRename4:
+InputBox, ProfileUserInput4, Rename Profile 4, Please enter a name for profile 4., , 240, 100
+if Not ErrorLevel {
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName4, %ProfileUserInput4%
+    Msgbox, 262144, Profile 4 Renamed, Profile 4 has been renamed to "%ProfileUserInput4%"
+	Goto, RestartAZ
+}
+return
+
+QuickProfileRename5:
+InputBox, ProfileUserInput5, Rename Profile 5, Please enter a name for profile 5., , 240, 100
+if Not ErrorLevel {
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, profileName5, %ProfileUserInput5%
+    Msgbox, 262144, Profile 5 Renamed, Profile 5 has been renamed to "%ProfileUserInput5%"
+	Goto, RestartAZ
 }
 return
 
@@ -13627,9 +14356,16 @@ return
 
 mscalc:
 IfWinExist, ahk_class %calcClass%
+{
 	WinActivate
+}
 else
-	Run,"%windir%\system32\calc.exe",,
+{
+	IfExist, %windir%\System32\calc1.exe
+		Run,"%windir%\system32\calc1.exe",,
+	Else
+		Run,"%windir%\system32\calc.exe",,
+}
 ;Gui, %guiDestroy%
 If onTopBit
 {
@@ -13643,7 +14379,7 @@ If not configGuidance
 {
 	if not GuideDisabled
 	{
-		Msgbox, 262144, This message will be shown once only, Although AeroZoom is portable, its settings are not loaded automatically after switching to another PC in order to prevent incompatibility issues between different Windows versions.`n`nIn case previous settings are preferred, AeroZoom automatically backs up settings up to last 30 days on exit in the following folder:`n`n%A_WorkingDir%\Data\ConfigBackup\`n`nThey can be manually imported at 'Az > Config File'.`n`nAdvice: If possible, do not import settings from a different Windows version. In any case, AeroZoom tries it best to avoid misbehavior. If misbehavior is observed, just reset AeroZoom to factory settings at 'Tool > Preferences > Advanced Options'.
+		Msgbox, 262144, This message will only be shown once, Although AeroZoom is portable, its settings are not loaded automatically after switching to another PC in order to prevent incompatibility issues between different Windows versions.`n`nIn case previous settings are preferred, AeroZoom automatically backs up settings up to last 30 days on exit in the following folder:`n`n%A_WorkingDir%\Data\ConfigBackup\`n`nThey can be manually imported at 'Az > Config File'.`n`nAdvice: If possible, do not import settings from a different Windows version. In any case, AeroZoom tries it best to avoid misbehavior. If misbehavior is observed, just reset AeroZoom to factory settings at 'Tool > Preferences > Advanced Options'.
 		configGuidance = 1
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, configGuidance, 1
 	}
@@ -13717,7 +14453,7 @@ if errorlevel
 {
 	if not GuideDisabled
 	{
-		Msgbox, 262208, This message will be shown once only, Aero Timer Web is a beautiful timer web app by Chinese developer YuAo (www.imyuao.com)`n`nInternet connection is required for use.
+		Msgbox, 262208, This message will only be shown once, Aero Timer Web is a beautiful timer web app by Chinese developer YuAo (www.imyuao.com)`n`nInternet connection is required for use.
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, WebTimer1Msg, 1
 	}
 }
@@ -13730,7 +14466,7 @@ if errorlevel
 {
 	if not GuideDisabled
 	{
-		Msgbox, 262208, This message will be shown once only, Timer Tab is a multi-use web app (stopwatch + countdown timer + alarm clock) by developer Romuald Brillout (www.brillout.com)`n`nIt can be used online or offline with Google Chrome or Chrome Frame for IE.
+		Msgbox, 262208, This message will only be shown once, Timer Tab is a multi-use web app (stopwatch + countdown timer + alarm clock) by developer Romuald Brillout (www.brillout.com)`n`nIt can be used online or offline with Google Chrome or Chrome Frame for IE.
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, WebTimer2Msg, 1
 	}
 }
@@ -13779,9 +14515,15 @@ if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) { ; elastic zoo
 		WinShow, AeroZoom Panel
 	}
 } else if (OSver>6) {
-	SendInput #{NumpadAdd} ; elastic zoom with win 7 magnifier
+	if numPadAddBit
+		SendInput #{NumpadAdd} ; elastic zoom with win 7 magnifier
+	else
+		SendInput #{+}
 	KeyWait %hotkeyMod%
-	SendInput #{NumpadSub}
+	if numPadSubBit
+		SendInput #{NumpadSub}
+	else
+		SendInput #{-}
 }
 return
 
@@ -13967,12 +14709,12 @@ RegRead,legacyKill,HKCU,Software\wandersick\AeroZoom,legacyKill
 if (legacyKill=1) {
 	legacyKill=2
 	GuiControl,,KillMagnifier,&Paint
-	Menu, MiscToolsMenu, Check, Legacy: Change Kill to Paint
+	Menu, OptionsMenu, Check, Legacy: Change Kill to Paint
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, legacyKill, 2
 } else {
 	legacyKill=1
 	GuiControl,,KillMagnifier,Kil&l
-	Menu, MiscToolsMenu, Uncheck, Legacy: Change Kill to Paint
+	Menu, OptionsMenu, Uncheck, Legacy: Change Kill to Paint
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, legacyKill, 1
 }
 
@@ -14511,6 +15253,7 @@ if zoomitPanel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		reload
 		return
 	}
@@ -14623,6 +15366,7 @@ if zoomitPanel
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosX, %lastPosX%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, lastPosY, %lastPosY%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, reload, 1
+		Gosub, SaveCurrentProfile
 		reload
 		return
 	}
@@ -14704,13 +15448,13 @@ if errorlevel
 {
 	If (OSver>=6.1) AND !(!A_IsAdmin AND EnableLUA)
 	{
-		zoomitLiveTempMsg=`n`nAlso, there is a problem with the Full Screen view of Windows Magnifier and the Live Zoom mode of ZoomIt working together, where the cursor is lost after zooming out. As a workaround, AeroZoom will kill the magnifier (in affected situations only) right after 'Live Zoom' is triggered. (If you do want to use Live Zoom with AeroZoom on Windows 7, you may also go to 'Tool > Preferences > Advanced Options', uncheck 'Run Magnifier on AZ start'.)
+		zoomitLiveTempMsg=`n`nAlso, there is a problem with the Full Screen view of Windows Magnifier and the Live Zoom mode of ZoomIt working together, where the cursor is lost after zooming out. As a workaround, AeroZoom will kill the magnifier (in affected situations only) right after 'Live Zoom' is triggered. (If you do want to use Live Zoom with AeroZoom on Windows, you may also go to 'Tool > Preferences > Advanced Options', uncheck 'Run Magnifier on AZ start'.)
 	}
 	If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic")
-		zoomitLiveTempMsg2=`n`nIf you are already using Windows 7 Home Premium (or better) and have Aero, it is suggested not using this as Windows 7 Magnifier's own full-screen zoom is already great.
+		zoomitLiveTempMsg2=`n`nIf you are already using Windows 7 Home Premium or above and have Aero, it is suggested not using this as Windows Magnifier's own full-screen zoom is already great.
 	if not GuideDisabled
 	{
-		Msgbox, 262208, This message will be shown once only, This option is not recommended for Windows 7 Home Premium or above, but Home Basic and Starter of Windows 7, and Home Premium and above editions of Vista.`n`nDue to the old magnifier in Vista or the lack of Aero in elementary OS editions, full-screen zoom is unavailable. However, you can use this so that AeroZoom adds wheel-zoom capability to ZoomIt's Live Zoom function which is full-screen and is usable on those platforms (where all 'elastic zoom' modes are also handled by ZoomIt).`n`nNote: A black screen may show if Aero is unavailable. In that case, please use 'Tool > Wheel with ZoomIt (Still)' instead.%zoomitLiveTempMsg2%%zoomitLiveTempMsg%
+		Msgbox, 262208, This message will only be shown once, This option is not recommended for Windows Home editions (e.g. Windows 7 Home Premium), but Home Basic and Starter of Windows 7, and Home Premium and above editions of Vista.`n`nDue to the old magnifier in Vista or the lack of Aero in elementary OS editions, full-screen zoom is unavailable. However, you can use this so that AeroZoom adds wheel-zoom capability to ZoomIt's Live Zoom function which is full-screen and is usable on those platforms (where all 'elastic zoom' modes are also handled by ZoomIt).`n`nNote: A black screen may show if Aero is unavailable. In that case, please use 'Tool > Wheel with ZoomIt (Still)' instead.%zoomitLiveTempMsg2%%zoomitLiveTempMsg%
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, zoomitLiveMsg, 1
 	}
 }
@@ -14741,13 +15485,98 @@ If (OSver>=6.1 AND (EditionID="Starter" OR EditionID="HomeBasic")) ; if win7 hom
 		{
 			if not GuideDisabled
 			{
-				Msgbox, 262208, Information (This message will only be shown once), 'Live Zoom' of ZoomIt is currently on. Running 2 magnifiers (ZoomIt and Windows Magnifier) together under Windows 7 Home Basic/Starter will cause problems, so it is disencouraged.`n`nIf you really need to use Windows Magnifier, please disable 'Live Zoom' first at 'Tool > Wheel-Zoom by ZoomIt."
+				Msgbox, 262208, Information (This message will only be shown once), 'Live Zoom' of ZoomIt is currently on. Running 2 magnifiers (ZoomIt and Windows Magnifier) together under Basic Editions of Windows (e.g. Home Basic/Starter) will cause problems, so it is disencouraged.`n`nIf you really need to use Windows Magnifier, please disable 'Live Zoom' first at 'Tool > Wheel-Zoom by ZoomIt."
 				W7HBCantRun2MagMsg=1
 				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, W7HBCantRun2MagMsg, 1
 			}
 			; Exit
 		}
 	}
+}
+return
+
+LockPC:
+
+IfExist, %A_WorkingDir%\Data\NirCmd.exe ; NirCmd is checked but could be missing
+	Run, "%A_WorkingDir%\Data\NirCmd.exe" lockws
+Else
+	goto, NirCmdDownloadAlt
+
+return
+
+SleepPC:
+Msgbox, 262180, Sleep, Are you sure to put this PC to sleep?
+IfMsgBox Yes
+{
+	IfExist, %A_WorkingDir%\Data\NirCmd.exe ; NirCmd is checked but could be missing
+		Run, "%A_WorkingDir%\Data\NirCmd.exe" standby
+	Else
+		goto, NirCmdDownloadAlt
+}
+return
+
+HibernatePC:
+Msgbox, 262180, Hibernate, Are you sure to hibernate this PC?
+IfMsgBox Yes
+{
+	IfExist, %A_WorkingDir%\Data\NirCmd.exe ; NirCmd is checked but could be missing
+		Run, "%A_WorkingDir%\Data\NirCmd.exe" hibernate
+	Else
+		goto, NirCmdDownloadAlt
+}
+return
+
+RebootPC:
+Msgbox, 262180, Reboot, Are you sure to reboot this PC?
+IfMsgBox Yes
+	Run, %windir%\System32\shutdown.exe -r -t 0
+return
+
+ShutDownPC:
+Msgbox, 262180, Shut Down, Are you sure to shut down this PC?
+IfMsgBox Yes
+	Run, %windir%\System32\shutdown.exe -s -t 0
+return
+
+SaveCurrentProfile:
+; If QuickProfileSwitch is enabled, export config to the respective profile#.reg (eg before reload)
+If profileInUse {
+	if A_IsAdmin ; invisible to user but requires admin right
+	{
+		RunWait, "%windir%\regedit.exe" /E "%A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg" "HKEY_CURRENT_USER\Software\wandersick\AeroZoom", ,min
+	}
+	Else ; below would show a minimized cmd window for a second
+	{
+		RunWait, "%windir%\system32\reg.exe" export "HKEY_CURRENT_USER\Software\wandersick\AeroZoom" "%A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg" /f,,min
+	}
+}
+return
+
+LoadDefaultRegImportQuickProfile:
+
+; If QuickProfileSwitch is enabled, import config from the respective profile#.reg
+If profileInUse {
+
+	; Delete existing AeroZoom settings
+	RegDelete, HKEY_CURRENT_USER, Software\wandersick\AeroZoom
+
+	IfExist, %A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg
+	{
+		if A_IsAdmin ; invisible to user but requires admin right
+		{
+			RunWait, "%windir%\regedit.exe" /S "%A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg", ,min
+		}
+		Else ; below would show a minimized cmd window for a second
+		{
+			RunWait, "%windir%\system32\reg.exe" import "%A_WorkingDir%\Data\QuickProfiles\Profile%profileInUse%.reg" , ,min
+		}
+	}
+	Else
+	{
+		Msgbox, 262192, ERROR, Profile%profileInUse%.reg does not exist:`n`n%A_WorkingDir%\Data\QuickProfiles\.
+		return
+	}
+	
 }
 return
 
@@ -14824,6 +15653,7 @@ return
 ; - Update src (Readme, etc.) in ahk.7z (removed to redirect people to Github)
 ; - Empty configbackup folder
 ; - Delete ZoomIt.exe, NirCmd.exe
+; - Delete all comments before compiling
 
 ; Remember to create separate x64 executables (note: .ahk and _x64.ahk are exactly the same scripts. just compile them with different compilers)
 ; .ahk.ini aren't used for e.g. AeroZoom_Mouse*.ahk scripts because Compile AHK II doesnt seem to support 64bit AutoHotkey_L Unicode (or 32bit AutoHotkey_L Unicode). Custom icons is not required except for AeroZoom.exe and Setup.exe anyway.
@@ -14863,4 +15693,4 @@ return
 ; Run, mailto:wandersick+aerozoom@gmail.com?subject=AeroZoom %verAZ% Bug Report&body=Please describe your problem.
 ; return
 
-; (c) Copyright 2009-2012 AeroZoom by a wandersick | http://wandersick.blogspot.com
+; (c) Copyright 2009-2015 AeroZoom by a wandersick | http://wandersick.blogspot.com
