@@ -1,4 +1,4 @@
-; (c) Copyright 2009-2012 AeroZoom by a wandersick | http://wandersick.blogspot.com
+; (c) Copyright 2009-2015 AeroZoom by a wandersick | http://wandersick.blogspot.com
 ;
 ; This is the Setup. See main script for more.
 ;
@@ -6,7 +6,7 @@
 #SingleInstance Force
 #NoTrayIcon
 
-verAZ = 3.3
+verAZ = 4.0 beta 1
 	
 SetWorkingDir %A_ScriptDir%  ; Ensures a consistent starting directory.
 

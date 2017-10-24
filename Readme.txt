@@ -1,20 +1,21 @@
 
 
-                     [ AeroZoom 3.3 with AeroSnip ]
+                         [ AeroZoom 4.0 beta 1 ]
   
-        The smooth wheel-zooming and snipping mouse-enhancing panel
+             The smooth wheel-zooming mouse-enhancing panel
 
   
   #  AeroZoom enhances upon the smooth Magnifier in Windows 7 to magnify
-     as Apple Mac OS does, as well as turning any mouse into a HTPC/
+     as Apple Mac OS X does, as well as turning any mouse into a HTPC/
      presentation mouse, where wheel-zooming and positioning becomes
      a breeze without a keyboard.
 
-  #  Version 3 features AeroSnip (enhanced Snipping Tool), Elastic Zoom,
-     ZoomIt Panel, Custom Hotkeys, support for Windows 7 Standard User
-     accounts w/o UAC, or partially with UAC, Vista and XP.
+  #  Version 3 and up feature AeroSnip (enhanced Snipping Tool), Elastic
+     Zoom, ZoomIt Panel, Custom Hotkeys
 
-  #  See bottom for what's updated in latest version 3.3.
+  #  Support for Windows 10, 8.1, 8, 7; partial support for Vista and XP.
+
+  #  See bottom for what's updated in latest version.
 
 
      [ AeroZoom Panel ]
@@ -28,7 +29,7 @@
      the Magnifier window minimized in taskbar.
         
 
-     [ AeroSnip - enhances Snipping Tool on Vista/7 ]
+     [ AeroSnip - enhances Snipping Tool ]
 
   #  Whereas AeroZoom improves Windows Magnifier, AeroSnip enhances
      Snipping Tool giving a Mac/Linux screen-capturing experience on Win
@@ -55,7 +56,7 @@
        new capture.
   
 
-     [ ZoomIt Panel - enhances Sysinternals ZoomIt on XP/Vista/7 ]
+     [ ZoomIt Panel - enhances Sysinternals ZoomIt ]
 
   #  Switching to ZoomIt Panel improves mouse operation of Sysinternals
      ZoomIt by adding an interface, elastic/wheel-zoom and more
@@ -86,14 +87,16 @@
      [ More Features from v3 ]
 
   .  Custom Hotkeys -- 30+ mouse-utilizing hotkeys and functions
-  .  Support for Win 7 limited accounts, partially with UAC, Vista & XP
+  .  Support for latest Windows versions - Windows 10, 8.1, 8, 7, Vista, XP
+  .  Partial support for limited user accounts
+  .  Compatible with User Account Control (UAC)
   .  Configuration import and export (auto-backup on exit)
   .  Access Windows and misc tools from AeroZoom Panel
   .  Workaround of Windows Media Center, WizMouse. See [Compatibility]
   .  Now compatible with AeroShake (Won't shake away stuff anymore)
 
 
-     [ Old Features from v2 ]
+     [ Previous Features from v2 ]
    
   #  Keyboard and mouse buttons as modifiers, just as Mac/Linux
      - Ctrl, Alt, Win, Shift, Middle, Back, Forward (and Left, Right)
@@ -213,16 +216,17 @@
   #  AeroZoom 3 does not need administrator rights to run anymore.
      (But the experience is better in some cases if available.)
   
-  1. Runs best on Windows 7 Home Premium/Professional/Ultimate/Ent.
-     Also supports Vista and XP. (some functions will be limited.)
+  1. Runs best on Windows 10, 8.1, 8, 7. Also partially supports Vista
+      and XP. (some functions will be limited on these old OS as well as
+      Home Basic, Starter version of Windows 7)
        
-  2. Aero (theme) is a must. Windows 7 Starter/Home Basic cannot
-     enable Aero at all, so Lens and Full Screen zoom cannot be used.
-     In such cases, we can check 'Tool > Wheel-Zoom by ZoomIt' so
-     that AeroZoom applies its wheel-Zoom support on Sysinternals
-     ZoomIt.
+  2. Aero (theme) is a must. For example, Windows 7 Starter/Home
+     Basic editions do not support Aero, so Lens and Full Screen zoom
+     cannot be used. In such cases, we can check 'Tool > Wheel-Zoom
+     by ZoomIt' so that AeroZoom applies its wheel-Zoom support on
+     Sysinternals ZoomIt.
 
-  3. Windows 8 beta support has been added unofficially since v3.3.
+  3. Windows 8 support has been added in v3.3; Windows 10 in v4.0.
 
      [ Compatibility ]
 
@@ -290,20 +294,65 @@
      You may have to set 'Operation delay' in 'Tool > Preferences
      > Advanced Options' to a higher value for your system.
 
+  8. Some modifiers may work better than others due to OS
+     limitations and program compatibility. In one case of Windows 10,
+     Ctrl and Alt work better than Shift and Win for wheel-zoom.
+       
 	 
-     [ Version 3 Release History ]
+     [ Recent Release History ]
+
+  #  [TBA] - next version
+
+      - A quick switch for temporarily disabling AeroZoom Panel mouse
+        hotkeys (zooming still works) under 'Tool > Panel Mouse Hotkey'.
+        This won't last across AeroZoom restarts. (To permanently disable
+        it, use Custom Hotkeys to change Show Panel to None for
+        Left+Right / Right+Left actions).
+      - Better AeroSnip support on Windows 10, 8.1 and 8.
+      - Quickly switch between multiple setting profiles Home, School,
+        Work, On-the-Go, Presentation, Gaming.
+      - Help improve AeroZoom! Let us know about your experence by
+        completing our survey under "? > Survey".
+
+  #  2015/09/24 - 4.0 beta 1
+
+     - Windows 10 Support.
+     - Enhanced zoom operations on Win 7, 8, 8.1
+     - Fixed "xx hotkeys have been received in the last xx ms" error with 
+       a higher limit of #MaxHotkeysPerInterval
+     - Fixed '-' character being generated during zoomout for key modifiers
+       with a new set of options in "Tool > Preferences > Workaround:
+       Prefer NumpadAdd/Sub to +/-". By default NumpadAdd is enabled
+       while NumpadSub is disabled. This combination was found to work
+       best under Windows 7-10. You may finetune this setting as modifiers
+       still may have their own issues.
+     - Experimental feature: Center Zoom under
+       Tool > Preferences > Experiment: Center Zoom (Windows Magnifier)
+     - Base AutoHotKey updated to 1.1.22.06
+     - New option to restore default settings in tray icon and
+       'Az\Config File' panel menu.
+     - Supports "Old Windows 7 Calculator for Windows 10" from Winaero
+       if calc1.exe is detected under Windows\System32.
+     - Fixed misbehavior after performing a setting reset. AeroZoom will
+       now quit instead of rerun after a reset.
+     - Shut down/reboot/sleep/lock PC via Panel (Tool > Windows Tools)
+       helping Windows 8 users without a start button.
+     - New default setting: Holding the middle button will trigger nothing
+       by default (instead of Snipping)
+     - New default setting: Zoom Rate slider is selected on the panel
+       (instead of Snipping)
 
   #  2012/05/26 - 3.3
 
-		- Fixed the problem of holding middle button action being
-		  triggered very easily.
-		- Improved look of elements under basic theme.
-		- Added a restart option to Tray and Az menu.
-		- Double-click panel to switch between ZoomIt/Magnifier
-		  panels; middle-double-click to restart.
-		- Improved tips and tricks.
-		- More use of OSD. Various bug fixes.
-		- First unofficial support for Windows 8 Consumer Preview.
+     - Fixed the problem of holding middle button action being
+       triggered very easily.
+     - Improved look of elements under basic theme.
+     - Added a restart option to Tray and Az menu.
+     - Double-click panel to switch between ZoomIt/Magnifier
+       panels; middle-double-click to restart.
+     - Improved tips and tricks.
+     - More use of OSD. Various bug fixes.
+     - First unofficial support for Windows 8 Consumer Preview.
 	 
   #  2012/05/09 - 3.2a
 
@@ -313,12 +362,12 @@
 
      -  Many subtle UI improvements, e.g. Menu separator.
      -  Right-clicking the Panel switches between Modern/Classic.
-     -  Single-clicking the tray icon or the 'off' button on AZ Panel
+     -  Single-clicking the tray icon or the 'off' button on Panel
         turns off/on AeroZoom temporarily in an easy way.
      -  Non-admins can now have their configs auto backed up.
      -  Fixed a Custom Hotkeys bug that exclusively takes over hotkeys.
-        (Now compatible with the Firefox add-on Image Zoom.)
-     -  More use of the OSD. Custom Hotkeys can be dis/enabled in sets.
+        (Now compatible with the Firefox add-on Image Zoom)
+     -  Uses the OSD more. Custom Hotkeys can be dis/enabled in sets.
      -  Latest AutoHotkey_L version (1.1.7.3).
 
   #  2012/01/10 - 3.1
@@ -335,8 +384,8 @@
   #  AutoHotkey and AutoIt
   
   #  Windows Magnifier, Snipping Tool, Sysinternals ZoomIt, NirCmd
-     - AeroZoom is proudly based on these excellent solutions but it's
-	   not affilated with any of them)
+     -  AeroZoom is proudly based on these excellent solutions but it
+        isn't affilated with any of them)
   
   #  Thanks to all who sent me suggestions and bug reports that made
      what AeroZoom is today.
@@ -350,5 +399,5 @@
      wandersick@gmail.com or my blog (address below).
        
 
-  (c) 2009-12 a wandersick | http://wandersick.blogspot.com
+  (c) 2009-2015 a wandersick production | http://wandersick.blogspot.com
 

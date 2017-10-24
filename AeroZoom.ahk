@@ -1,4 +1,4 @@
-; (c) Copyright 2009-2012 AeroZoom by Ning Ng (Wandersick) | http://wandersick.blogspot.com
+; (c) Copyright 2009-2015 AeroZoom by Ning Ng (Wandersick) | http://wandersick.blogspot.com
 ;
 ; This is the redirector. See main script for more.
 
