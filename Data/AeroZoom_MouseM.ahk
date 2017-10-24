@@ -442,7 +442,7 @@ return
 
 ; ----------------------------------------------------- Left Button Assignment START
 
-~LButton & WheelUp::
+~MButton & WheelUp::
 if not (paused=1) {
 	Gosub, ZoomPad
 	; send {LWin down}{NumpadAdd}{LWin up}
@@ -455,7 +455,7 @@ if not (paused=1) {
 }
 return
 
-~LButton & WheelDown::
+~MButton & WheelDown::
 if not (paused=1) {
 	; only enable zoompad when modifier is a mouse button
 	if (chkMod>4)
@@ -522,17 +522,14 @@ goto, resetZoom
 ; dontHideMag = 1
 goto, resetZoom
 
-~LButton & MButton::
+; for Middle mode only:
+~MButton & RButton::
 ; dontHideMag = 0
 if not (paused=1) {
 	Gosub, ZoomPad
 	goto, resetZoom
 }
 return
-
-; for Middle mode only:
-;~MButton & RButton::
-;goto, resetZoom
 
 resetZoom:
 ; check if a last magnifier window is available and record its status
@@ -582,20 +579,12 @@ If not hideOrMinLast { ; if last window var not defined, use the default setting
 }
 return
 
-~MButton:: ; in MButton ahk, this is changed to ~MButton & LButton::
-if not holdMiddle ; in MButton ahk, this is removed
-	return ; in MButton ahk, this is removed
+~MButton & LButton::
 if not (paused=1) {
-	MouseGetPos, oldX, oldY, ; in MButton ahk, this is removed
-	sleep %stillZoomDelay% ; in MButton ahk, this is removed
-	if GetKeyState("MButton") ; in MButton ahk, this is removed
 	{
 		Process, Exist, ZoomIt.exe
 		If errorlevel
 		{
-			MouseGetPos, newX, newY,  ; in MButton ahk, this is removed
-			if Abs(newX - oldX) > 200 || Abs(newY - oldY) > 200  ; in MButton ahk, this is removed
-				return  ; in MButton ahk, this is removed
 			RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
 			if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
 				goto, ViewPreview
@@ -1366,7 +1355,7 @@ if (TipDisabled=1) {
 	Menu, AboutMenu, Uncheck, &Disable Startup Tips
 }
 
-; Menu, ToolboxMenu, Disable, &Hold Middle as Trigger ; uncomment in MButton.ahk
+Menu, ToolboxMenu, Disable, &Hold Middle as Trigger ; uncomment in MButton.ahk
 
 RegRead,holdMiddle,HKCU,Software\WanderSick\AeroZoom,holdMiddle
 If (holdMiddle=1) {

@@ -442,7 +442,7 @@ return
 
 ; ----------------------------------------------------- Left Button Assignment START
 
-~LButton & WheelUp::
+~XButton2 & WheelUp::
 if not (paused=1) {
 	Gosub, ZoomPad
 	; send {LWin down}{NumpadAdd}{LWin up}
@@ -455,7 +455,7 @@ if not (paused=1) {
 }
 return
 
-~LButton & WheelDown::
+~XButton2 & WheelDown::
 if not (paused=1) {
 	; only enable zoompad when modifier is a mouse button
 	if (chkMod>4)
@@ -522,7 +522,7 @@ goto, resetZoom
 ; dontHideMag = 1
 goto, resetZoom
 
-~LButton & MButton::
+~XButton2 & MButton::
 ; dontHideMag = 0
 if not (paused=1) {
 	Gosub, ZoomPad
@@ -617,290 +617,290 @@ if not (paused=1) {
 }
 return
 
-;; the following only applies for X1 X2 modifiers and does not exist in other ahk
-;; except this one, rename others to XButton1 in X2.ahk and vice versa
-;~XButton2 & LButton:: ; this is the same as holding the Middle button except you dont need to hold it
-;if not (paused=1) {
-;	Process, Exist, ZoomIt.exe
-;	If errorlevel
-;	{
-;		RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
-;		if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
-;		{
-;			Gosub, ZoomPad
-;			goto, ViewPreview
-;		}
-;		WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
-;		sendinput ^1
-;		WinWait, ahk_class ZoomitClass,,5
-;		WinWaitClose, ahk_class ZoomitClass
-;		If onTopBit
-;			WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-;		Else
-;			WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
-;	} else {
-;		RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
-;		if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
-;		{
-;			Gosub, ZoomPad
-;			goto, ViewPreview
-;		}
-;		; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
-;		RegRead,padStayTime,HKCU,Software\WanderSick\AeroZoom,padStayTime
-;		if errorlevel
-;		{
-;			padStayTime=150
-;		}
-;		padStayTimeTemp:=padStayTime*2 ; *2 is needed. see zoompad.ahk
-;		Gosub, ZoomPad
-;		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
-;		Gosub, SnippingTool
-;	}
-;}
-;return
+; the following only applies for X1 X2 modifiers and does not exist in other ahk
+; except this one, rename others to XButton1 in X2.ahk and vice versa
+~XButton2 & LButton:: ; this is the same as holding the Middle button except you dont need to hold it
+if not (paused=1) {
+	Process, Exist, ZoomIt.exe
+	If errorlevel
+	{
+		RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
+		if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
+		{
+			Gosub, ZoomPad
+			goto, ViewPreview
+		}
+		WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
+		sendinput ^1
+		WinWait, ahk_class ZoomitClass,,5
+		WinWaitClose, ahk_class ZoomitClass
+		If onTopBit
+			WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
+		Else
+			WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+	} else {
+		RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
+		if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
+		{
+			Gosub, ZoomPad
+			goto, ViewPreview
+		}
+		; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+		RegRead,padStayTime,HKCU,Software\WanderSick\AeroZoom,padStayTime
+		if errorlevel
+		{
+			padStayTime=150
+		}
+		padStayTimeTemp:=padStayTime*2 ; *2 is needed. see zoompad.ahk
+		Gosub, ZoomPad
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		Gosub, SnippingTool
+	}
+}
+return
 
-;~XButton1 & LButton:: ; Break Timer if ZoomIt is enabled; otherwise, toggle Color
-;if not (paused=1) {
-;	Process, Exist, ZoomIt.exe
-;	If errorlevel
-;	{	
-;		WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
-;		sendinput ^3
-;		WinWait, ahk_class ZoomitClass,,5
-;		WinWaitClose, ahk_class ZoomitClass
-;		If onTopBit
-;			WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
-;		Else
-;			WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
-;	} else {
-;		Gosub, ZoomPad
-;		goto, Color
-;	}
-;}
-;return
+~XButton1 & LButton:: ; Break Timer if ZoomIt is enabled; otherwise, toggle Color
+if not (paused=1) {
+	Process, Exist, ZoomIt.exe
+	If errorlevel
+	{	
+		WinSet, Bottom,,ahk_class AutoHotkeyGUI,AeroZoom
+		sendinput ^3
+		WinWait, ahk_class ZoomitClass,,5
+		WinWaitClose, ahk_class ZoomitClass
+		If onTopBit
+			WinSet, AlwaysOnTop, On, ahk_class AutoHotkeyGUI,AeroZoom
+		Else
+			WinActivate, ahk_class AutoHotkeyGUI,AeroZoom
+	} else {
+		Gosub, ZoomPad
+		goto, Color
+	}
+}
+return
 
-;~XButton1 & MButton:: ; this resets the zoom increment only
-;if (paused=1)
-;	return
+~XButton1 & MButton:: ; this resets the zoom increment only
+if (paused=1)
+	return
 
-;Gosub, ZoomPad
+Gosub, ZoomPad
 
-;; check if a last magnifier window is available and record its status
-;; so that after it restores it will remain hidden/minimized/normal
+; check if a last magnifier window is available and record its status
+; so that after it restores it will remain hidden/minimized/normal
 
-;; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
-;; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
-;Process, Exist, magnify.exe
-;If errorlevel
-;{
-;	IfWinExist, ahk_class MagUIClass
-;	{
-;		WinGet, chkMin, MinMax, ahk_class MagUIClass
-;		if (chkMin<0) { ; minimized
-;			hideOrMinLast=2 ; minimized
-;		} else {
-;			hideOrMinLast=3 ; normal
-;		}
-;	} else {
-;		hideOrMinLast=1 ; hidden
-;	}
-;} else {
-;	hideOrMinLast= ; if not defined, use default settings
-;}
-;Process, Close, magnify.exe
-;GuiControl,, ZoomInc, 3
-;RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
-;sleep, %delayButton%
-;Run,"%windir%\system32\magnify.exe",,Min
+; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
+; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
+Process, Exist, magnify.exe
+If errorlevel
+{
+	IfWinExist, ahk_class MagUIClass
+	{
+		WinGet, chkMin, MinMax, ahk_class MagUIClass
+		if (chkMin<0) { ; minimized
+			hideOrMinLast=2 ; minimized
+		} else {
+			hideOrMinLast=3 ; normal
+		}
+	} else {
+		hideOrMinLast=1 ; hidden
+	}
+} else {
+	hideOrMinLast= ; if not defined, use default settings
+}
+Process, Close, magnify.exe
+GuiControl,, ZoomInc, 3
+RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
+sleep, %delayButton%
+Run,"%windir%\system32\magnify.exe",,Min
 
-;	WinWait, ahk_class MagUIClass,,3 
+	WinWait, ahk_class MagUIClass,,3 
 
 
-;; Hide or minimize or normalize magnifier window
-;If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-;	if (hideOrMin=1) {
-;		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-;		WinHide, ahk_class MagUIClass
-;	} else if (hideOrMin=2) {
-;		WinMinimize, ahk_class MagUIClass
-;	}
-;} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-;	WinMinimize, ahk_class MagUIClass
-;	WinHide, ahk_class MagUIClass
-;} else if (hideOrMinLast=2) {
-;	WinMinimize, ahk_class MagUIClass
-;}
-;return
+; Hide or minimize or normalize magnifier window
+If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
+	if (hideOrMin=1) {
+		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
+		WinHide, ahk_class MagUIClass
+	} else if (hideOrMin=2) {
+		WinMinimize, ahk_class MagUIClass
+	}
+} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
+	WinMinimize, ahk_class MagUIClass
+	WinHide, ahk_class MagUIClass
+} else if (hideOrMinLast=2) {
+	WinMinimize, ahk_class MagUIClass
+}
+return
 
-;~XButton1 & RButton:: ; show magnifier
-;if (paused=1)
-;	return
-;Gosub, ZoomPad
-;sleep, 500 ; prevent zoompad from misplacing (workaround)
-;goto, ShowMagnifier
-;return
+~XButton1 & RButton:: ; show magnifier
+if (paused=1)
+	return
+Gosub, ZoomPad
+sleep, 500 ; prevent zoompad from misplacing (workaround)
+goto, ShowMagnifier
+return
 
-;~XButton1 & Wheelup:: ; increase the zoom increment one step
-;if (paused=1)
-;	return
-;Gosub, ZoomPad
-;IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-;	ExistAZ=1
-;RegRead,zoomIncRaw,HKCU,Software\Microsoft\ScreenMagnifier,ZoomIncrement
-;if (zoomIncRaw=0x19) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 2
-;	zoomInc=2
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x32
-;} else if (zoomIncRaw=0x32) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 3
-;	zoomInc=3
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
-;} else if (zoomIncRaw=0x64) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 4
-;	zoomInc=4
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x96
-;} else if (zoomIncRaw=0x96) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 5
-;	zoomInc=5
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0xc8
-;} else if (zoomIncRaw=0xc8) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 6
-;	zoomInc=6
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x190
-;}
-;ExistAZ=
+~XButton1 & Wheelup:: ; increase the zoom increment one step
+if (paused=1)
+	return
+Gosub, ZoomPad
+IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+	ExistAZ=1
+RegRead,zoomIncRaw,HKCU,Software\Microsoft\ScreenMagnifier,ZoomIncrement
+if (zoomIncRaw=0x19) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 2
+	zoomInc=2
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x32
+} else if (zoomIncRaw=0x32) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 3
+	zoomInc=3
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
+} else if (zoomIncRaw=0x64) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 4
+	zoomInc=4
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x96
+} else if (zoomIncRaw=0x96) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 5
+	zoomInc=5
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0xc8
+} else if (zoomIncRaw=0xc8) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 6
+	zoomInc=6
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x190
+}
+ExistAZ=
 
-;; check if a last magnifier window is available and record its status
-;; so that after it restores it will remain hidden/minimized/normal
+; check if a last magnifier window is available and record its status
+; so that after it restores it will remain hidden/minimized/normal
 
-;; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
-;; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
-;Process, Exist, magnify.exe
-;If errorlevel
-;{
-;	IfWinExist, ahk_class MagUIClass
-;	{
-;		WinGet, chkMin, MinMax, ahk_class MagUIClass
-;		if (chkMin<0) { ; minimized
-;			hideOrMinLast=2 ; minimized
-;		} else {
-;			hideOrMinLast=3 ; normal
-;		}
-;	} else {
-;		hideOrMinLast=1 ; hidden
-;	}
-;	Process, Close, magnify.exe ; !!!!!! If magnifier is running, rerun Magnifier to apply the setting
-;	sleep, %delayButton%
-;	Run,"%windir%\system32\magnify.exe",,Min
-;} else {
-;	hideOrMinLast= ; if not defined, use default settings
-;}
+; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
+; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
+Process, Exist, magnify.exe
+If errorlevel
+{
+	IfWinExist, ahk_class MagUIClass
+	{
+		WinGet, chkMin, MinMax, ahk_class MagUIClass
+		if (chkMin<0) { ; minimized
+			hideOrMinLast=2 ; minimized
+		} else {
+			hideOrMinLast=3 ; normal
+		}
+	} else {
+		hideOrMinLast=1 ; hidden
+	}
+	Process, Close, magnify.exe ; !!!!!! If magnifier is running, rerun Magnifier to apply the setting
+	sleep, %delayButton%
+	Run,"%windir%\system32\magnify.exe",,Min
+} else {
+	hideOrMinLast= ; if not defined, use default settings
+}
 
-;	WinWait, ahk_class MagUIClass,,3 
+	WinWait, ahk_class MagUIClass,,3 
 
-;; Hide or minimize or normalize magnifier window
-;If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-;	if (hideOrMin=1) {
-;		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-;		WinHide, ahk_class MagUIClass
-;	} else if (hideOrMin=2) {
-;		WinMinimize, ahk_class MagUIClass
-;	}
-;} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-;	WinMinimize, ahk_class MagUIClass
-;	WinHide, ahk_class MagUIClass
-;} else if (hideOrMinLast=2) {
-;	WinMinimize, ahk_class MagUIClass
-;}
+; Hide or minimize or normalize magnifier window
+If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
+	if (hideOrMin=1) {
+		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
+		WinHide, ahk_class MagUIClass
+	} else if (hideOrMin=2) {
+		WinMinimize, ahk_class MagUIClass
+	}
+} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
+	WinMinimize, ahk_class MagUIClass
+	WinHide, ahk_class MagUIClass
+} else if (hideOrMinLast=2) {
+	WinMinimize, ahk_class MagUIClass
+}
 
-;return
+return
 
-;~XButton1 & Wheeldown:: ; decrease the zoom increment one step
-;if (paused=1)
-;	return
-;Gosub, ZoomPad
-;IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-;	ExistAZ=1
-;	
-;	
-;RegRead,zoomIncRaw,HKCU,Software\Microsoft\ScreenMagnifier,ZoomIncrement
-;if (zoomIncRaw=0x32) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 1
-;	zoomInc=1
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x19
-;} else if (zoomIncRaw=0x64) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 2
-;	zoomInc=2
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x32
-;} else if (zoomIncRaw=0x96) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 3
-;	zoomInc=3
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
-;} else if (zoomIncRaw=0xc8) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 4
-;	zoomInc=4
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x96
-;} else if (zoomIncRaw=0x190) {
-;	if ExistAZ
-;		GuiControl,, ZoomInc, 5
-;	zoomInc=5
-;	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0xc8
-;}
-;ExistAZ=
+~XButton1 & Wheeldown:: ; decrease the zoom increment one step
+if (paused=1)
+	return
+Gosub, ZoomPad
+IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+	ExistAZ=1
+	
+	
+RegRead,zoomIncRaw,HKCU,Software\Microsoft\ScreenMagnifier,ZoomIncrement
+if (zoomIncRaw=0x32) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 1
+	zoomInc=1
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x19
+} else if (zoomIncRaw=0x64) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 2
+	zoomInc=2
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x32
+} else if (zoomIncRaw=0x96) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 3
+	zoomInc=3
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x64
+} else if (zoomIncRaw=0xc8) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 4
+	zoomInc=4
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0x96
+} else if (zoomIncRaw=0x190) {
+	if ExistAZ
+		GuiControl,, ZoomInc, 5
+	zoomInc=5
+	RegWrite, REG_DWORD, HKEY_CURRENT_USER, Software\Microsoft\ScreenMagnifier, ZoomIncrement, 0xc8
+}
+ExistAZ=
 
-;; check if a last magnifier window is available and record its status
-;; so that after it restores it will remain hidden/minimized/normal
+; check if a last magnifier window is available and record its status
+; so that after it restores it will remain hidden/minimized/normal
 
-;; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
-;; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
-;Process, Exist, magnify.exe
-;If errorlevel
-;{
-;	IfWinExist, ahk_class MagUIClass
-;	{
-;		WinGet, chkMin, MinMax, ahk_class MagUIClass
-;		if (chkMin<0) { ; minimized
-;			hideOrMinLast=2 ; minimized
-;		} else {
-;			hideOrMinLast=3 ; normal
-;		}
-;	} else {
-;		hideOrMinLast=1 ; hidden
-;	}
-;	Process, Close, magnify.exe ; !!!!!! If magnifier is running, rerun Magnifier to apply the setting
-;	sleep, %delayButton%
-;	Run,"%windir%\system32\magnify.exe",,Min
-;} else {
-;	hideOrMinLast= ; if not defined, use default settings
-;}
+; hideOrMinLast : hide (1) or minimize (2) or do neither (3)
+; chkMin/MinMax -1 = minimized  0 = normal  1 = maximized  not defined = magnify.exe not running
+Process, Exist, magnify.exe
+If errorlevel
+{
+	IfWinExist, ahk_class MagUIClass
+	{
+		WinGet, chkMin, MinMax, ahk_class MagUIClass
+		if (chkMin<0) { ; minimized
+			hideOrMinLast=2 ; minimized
+		} else {
+			hideOrMinLast=3 ; normal
+		}
+	} else {
+		hideOrMinLast=1 ; hidden
+	}
+	Process, Close, magnify.exe ; !!!!!! If magnifier is running, rerun Magnifier to apply the setting
+	sleep, %delayButton%
+	Run,"%windir%\system32\magnify.exe",,Min
+} else {
+	hideOrMinLast= ; if not defined, use default settings
+}
 
-;	WinWait, ahk_class MagUIClass,,3 
+	WinWait, ahk_class MagUIClass,,3 
 
-;; Hide or minimize or normalize magnifier window
-;If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
-;	if (hideOrMin=1) {
-;		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
-;		WinHide, ahk_class MagUIClass
-;	} else if (hideOrMin=2) {
-;		WinMinimize, ahk_class MagUIClass
-;	}
-;} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
-;	WinMinimize, ahk_class MagUIClass
-;	WinHide, ahk_class MagUIClass
-;} else if (hideOrMinLast=2) {
-;	WinMinimize, ahk_class MagUIClass
-;}
+; Hide or minimize or normalize magnifier window
+If not hideOrMinLast { ; if last window var not defined, use the default setting defined in Advanced Options
+	if (hideOrMin=1) {
+		WinMinimize, ahk_class MagUIClass ; Minimize first before hiding to remove the floating magnifier icon
+		WinHide, ahk_class MagUIClass
+	} else if (hideOrMin=2) {
+		WinMinimize, ahk_class MagUIClass
+	}
+} else if (hideOrMinLast=1) { ; if last window var defined, use the setting of it
+	WinMinimize, ahk_class MagUIClass
+	WinHide, ahk_class MagUIClass
+} else if (hideOrMinLast=2) {
+	WinMinimize, ahk_class MagUIClass
+}
 
-;return
+return
 
 
 ; Show/hide magnifier by Win + Ctrl + ESC
@@ -948,15 +948,15 @@ IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
 ;Gui, Destroy
 goto, lastPos
 
-;; Undocumented way to launch AeroZoom panel
-;~XButton1 & RButton::
-;IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-;{
-;	Gosub, ZoomPad
-;	Gui, Destroy
-;	return
-;}
-;goto, lastPos
+; Undocumented way to launch AeroZoom panel
+~XButton2 & RButton::
+IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+{
+	Gosub, ZoomPad
+	Gui, Destroy
+	return
+}
+goto, lastPos
 
 ; Additional way to launch AeroZoom panel as backup
 ; ~MButton & LButton::

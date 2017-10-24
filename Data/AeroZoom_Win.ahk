@@ -442,7 +442,7 @@ return
 
 ; ----------------------------------------------------- Left Button Assignment START
 
-~LButton & WheelUp::
+#WheelUp::
 if not (paused=1) {
 	Gosub, ZoomPad
 	; send {LWin down}{NumpadAdd}{LWin up}
@@ -455,7 +455,7 @@ if not (paused=1) {
 }
 return
 
-~LButton & WheelDown::
+#WheelDown::
 if not (paused=1) {
 	; only enable zoompad when modifier is a mouse button
 	if (chkMod>4)
@@ -522,7 +522,7 @@ goto, resetZoom
 ; dontHideMag = 1
 goto, resetZoom
 
-~LButton & MButton::
+#MButton::
 ; dontHideMag = 0
 if not (paused=1) {
 	Gosub, ZoomPad
@@ -948,15 +948,15 @@ IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
 ;Gui, Destroy
 goto, lastPos
 
-;; Undocumented way to launch AeroZoom panel
-;~XButton1 & RButton::
-;IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
-;{
+; Undocumented way to launch AeroZoom panel
+#RButton::
+IfWinExist, ahk_class AutoHotkeyGUI, AeroZoom
+{
 ;	Gosub, ZoomPad
-;	Gui, Destroy
-;	return
-;}
-;goto, lastPos
+	Gui, Destroy
+	return
+}
+goto, lastPos
 
 ; Additional way to launch AeroZoom panel as backup
 ; ~MButton & LButton::
