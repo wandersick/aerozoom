@@ -1,38 +1,10 @@
-; (c) Copyright 2009-2011 AeroZoom by wandersick | http://wandersick.blogspot.com
+; (c) Copyright 2009-2012 AeroZoom by Ning Ng (Wandersick) | http://wandersick.blogspot.com
 
-; Sorry for the bad/messy commenting in advance. As my purpose is to contribute as much as possible,
-; the source is released. I hope it, sas a bad example, helps you write your scripts better.
+; Sorry for the messy commenting in advance. As my purpose is to contribute as much as possible,
+; the source is released (GPL v2). Hope it helps.
 
-; If you have any questions, corrections or suggestions, you may also send to wandersick@gmail.com or my blog
-; I speak English and Chinese(Cantonese). (For those who understand: Zhong Wen is okay!)
-
-; ------------------------------------------
-; Some unorganized notes for internal use:
-; * For each modifier.ahk, search for '~LButton &' and replace it with '~RButton &' '~MButton &' '~XButton1 &' '~XButton2 &'  '!' '#' '^'
-; * For middle.ahk, uncomment mbutton & rbutton
-;   replace mbutton:: with ~MButton & LButton:: and delete some lines there
-; * Search ;; for X1 and X2, but theres no need to do anything on them now. they are the same as others
-; * For each modifier except MButton, due to the zoom has taken mod+wup/wdown and mod+mbutton, the hotkey customization bit is not usable. remove the duplicated modifier.
-;   e.g. in Ctrl ahk, remove the ~^Wheelup and ~^Wheeldown for hotkey customization (~^LButton and ~^RButton can be kept though)
-; * in LButton and RButton ahk, remove as well the mod+mbutton (since Custom Hotkey for Left/Right supports the Mbutton)
-;   e.g. In RButton ahk, comment "~RButton & MButton::, uncomment "~LButton & MButton::"
-;        In all other ahk except LButton/RButton, uncomment both
-
-; Before release
-; - Set read-only flag for Readme and Tips, bat vbs
-; - Delete wget.gid
-; - Be sure to update the updater.bat search terms
-; - Check setup.ahk for more things (e.g. update verAZ)
-; - Update Product version in .ahk.ini
-; - Update src (Readme, etc.) in ahk.7z
-; - Empty configbackup folder
-; - Delete ZoomIt.exe, NirCmd.exe
-
-; Remember to create separate x64 executables (note: .ahk and _x64.ahk are exactly the same scripts. just compile them with different compilers)
-; _x64.ahk.ini aren't used because Compile AHK II doesnt seem to support 64bit AutoHotkey_L (or 32bit AutoHotkey_L)
-; Compile x64 executables with AutoHotkey_L (Installation being Unicode 64bit)
-; Compile x86 main files with AutoHotkey_L (unicode) in order to google in Chinese
-; Compile only ZoomPad, OpenTray, Setup, AeroZoom.exe with old AutoHotkey (with Compile AHK II for setting metadata) to keep size small...
+; If you have any questions, corrections or suggestions, you may also send them to wandersick@gmail.com or my blog.
+; I speak English and Chinese(Cantonese). For those who understand: Zhong Wen is okay!
 
 #Persistent
 #SingleInstance force
@@ -41,7 +13,7 @@ SetBatchLines -1 ; run at fastest speed before init
 IfEqual, unattendAZ, 1
 	goto Install
 
-verAZ = 3.0
+verAZ = 3.1
 paused = 
 
 ; Working directory check
@@ -50,6 +22,42 @@ IfNotExist, %A_WorkingDir%\Data
 	Msgbox, 262192, AeroZoom, Wrong working directory. Ensure AeroZoom is not run from its sub-folder.
 	ExitApp
 }
+
+RegRead,EnableAutoBackup,HKCU,Software\WanderSick\AeroZoom,EnableAutoBackup
+if errorlevel ; if the key is never created, i.e. first-run
+{
+	EnableAutoBackup=1 ; on by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EnableAutoBackup, 1
+}
+If not A_IsAdmin ; requires regedit.exe which requires admin rights.
+	EnableAutoBackup=0
+	
+RegRead,Welcome,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,Welcome
+if Welcome ; if AZ version 2.0 or above is found, that means AeroZoom settings are found
+{
+	RegRead,ProgramVer,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,ProgramVer
+	if (ProgramVer<>verAZ)
+	{
+		If A_IsAdmin
+		{
+			Msgbox, 262212, Found AeroZoom settings, Settings from a different version of AeroZoom has been found in the system registry. Would you like to use it or start over?`n`nIf you choose 'No', AeroZoom will back up the current settings before clearing them.`n`nTip: If problems arise after keeping old settings, a reset can be performed in 'Tool > Preferences > Advanced Options'.
+			IfMsgbox, No
+			{
+				RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom
+				GoSub, AutoConfigBackup
+				reload
+			}
+		} else { ; without admin rights, backup is unsupported
+			Msgbox, 262212, Found AeroZoom settings, Settings from a different version of AeroZoom has been found in the system registry. Would you like to use it or start over?`n`nTip: If problems arise after keeping old settings, a reset can be performed in 'Tool > Preferences > Advanced Options'.
+			IfMsgbox, No
+			{
+				RegDelete, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom
+				reload
+			}
+		}
+	}
+}
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ProgramVer, %verAZ%
 
 RegRead,OSver,HKLM,SOFTWARE\Microsoft\Windows NT\CurrentVersion,CurrentVersion
 if (OSver<5.1) { ; if older than xp
@@ -61,7 +69,7 @@ if (OSver<5.1) { ; if older than xp
 	RegRead,newOSwarning,HKCU,Software\WanderSick\AeroZoom,newOSwarning
 	if errorlevel
 	{
-		Msgbox, 262144, This message will be shown once only, You're using an newer operating system AeroZoom may not totally support.`n`nPlease urges wandersick or check http://wandersick.blogspot.com for a new version.
+		Msgbox, 262144, This message will be shown once only, You're using an newer operating system AeroZoom may not totally support.`n`nPlease urge wandersick or check http://wandersick.blogspot.com for a new version.
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, newOSwarning, 1
 	}
 }
@@ -105,14 +113,14 @@ if (OSver>=6.1) { ; win 7 start/home basic doesnt support aero and snipping tool
 		RegRead,EditionMsg,HKCU,Software\WanderSick\AeroZoom,EditionMsg
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,You are using Windows 7 Starter which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only the Print Screen button is enhanced to save captures automatically to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures to Disk' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			Msgbox,262208,This message will be shown once only,You are using Windows 7 Starter which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only the Print Screen button is enhanced to save captures automatically to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures Automatically' and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EditionMsg, 1
 		}
 	} else if (EditionID="HomeBasic") {
 		RegRead,EditionMsg2,HKCU,Software\WanderSick\AeroZoom,EditionMsg2
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,You are using Windows 7 Home Basic which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it if a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to save captures automatically to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures to Disk' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			Msgbox,262208,This message will be shown once only,You are using Windows 7 Home Basic which does not support Aero.`n`nAero is required for Full Screen and Lens views of Magnifier, therefore only Docked view is available.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen. To use this feature, enable 'Tools > Wheel-Zoom by ZoomIt', or disable it if a docked magnifier is wanted.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to save captures automatically to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures Automatically' and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EditionMsg2, 1
 		}
 	}
@@ -144,7 +152,7 @@ if (OSver=6.0) { ; vista msg
 		RegRead,VistaMsg,HKCU,Software\WanderSick\AeroZoom,VistaMsg
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Starter which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically save captures to disk, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Starter which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically Save Captures Automatically, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, VistaMsg, 1
 		}
 	} else if (EditionID="HomeBasic") {
@@ -152,14 +160,14 @@ if (OSver=6.0) { ; vista msg
 		RegRead,VistaMsg2,HKCU,Software\WanderSick\AeroZoom,VistaMsg2
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Home Basic which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically save captures to disk, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista Home Basic which does not support full-screen zoom or Aero.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Still Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nAlso, AeroSnip requires Home Premium or later, so only Print Screen button is enhanced to automatically Save Captures Automatically, and optionally paste in an editor afterwards. You can enable this feature by pushing the slider on AeroZoom panel to the right and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, VistaMsg2, 1
 		}
 	} else {
 		RegRead,VistaMsg3,HKCU,Software\WanderSick\AeroZoom,VistaMsg3
 		if errorlevel
 		{
-			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista which does not support full-screen zoom.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nOn the other hand, AeroSnip enhances Snipping Tool and the Print Screen button to automatically save captures to disk, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures to Disk' and configure the details in 'Tool > Preferences > AeroSnip Options'.
+			Msgbox,262208,This message will be shown once only,AeroZoom works best on Windows 7 Home Premium or above. You are using Windows Vista which does not support full-screen zoom.`n`nAs a workaround, AeroZoom adds wheel-zoom capability to the Live Zoom function of Sysinternals ZoomIt, a Microsoft freeware screen magnifier, which is full screen.`n`nOn the other hand, AeroSnip enhances Snipping Tool and the Print Screen button to automatically Save Captures Automatically, and optionally paste in an editor afterwards. You can enable this feature in 'Tool > Save Captures Automatically' and configure the details in 'Tool > Preferences > AeroSnip Options'.
 			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, VistaMsg3, 1
 		}
 	}
@@ -191,11 +199,18 @@ IfExist, %windir%\system32\SnippingTool.exe
 ;   ExitApp
 ;}
 
-menu, tray, add
+; blank separator
+; menu, tray, add
+menu, tray, NoStandard
 ; When the user double-clicks the tray icon, its default menu item is launched (show panel). 
-menu, tray, add, Show/hide Panel, showPanel
-menu, tray, Default, Show/Hide Panel
-Menu, Tray, Icon, %A_WorkingDir%\Data\AeroZoom.ico
+menu, tray, add, &Show Panel`t[Win+Shift+ESC], showPanel
+menu, tray, Default, &Show Panel`t[Win+Shift+ESC]
+menu, tray, add, &Pause All Hotkeys, SuspendScript
+menu, tray, add, Pause &Mouse Hotkeys`t[Win+Alt+H], PauseScript
+menu, tray, add, &Quick Instructions`t[Win+Alt+Q], Instruction
+menu, tray, add, &About, HelpAbout
+menu, tray, add, &Exit, ExitAZ
+Menu, Tray, Icon, %A_WorkingDir%\Data\AeroZoom.ico, ,1
 
 ; disable Magnifier warning in XP
 if (OSver<6) { 
@@ -222,6 +237,13 @@ If (OSver>=6.1) {
 	calcClass=SciCalc
 }
 
+; RegData Ini Read
+
+IniRead, regName, %A_WorkingDir%\Data\AeroZoom.ini, RegData, Name
+IniRead, regType, %A_WorkingDir%\Data\AeroZoom.ini, RegData, Type
+IniRead, regSN, %A_WorkingDir%\Data\AeroZoom.ini, RegData, SN
+if (regSN="AZDF9-839JD-2UDUH-GYUA9-2I9EF")
+	registered:=1
 
 ; Snipping Tool init - START
 
@@ -666,8 +688,11 @@ if errorlevel {
 	DisableZoomItMiddle=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, DisableZoomItMiddle, 1
 }
-
+RegRead,disablePreviewFullScreen,HKCU,Software\WanderSick\AeroZoom,DisablePreviewFullScreen
 ; Retrieve hold middle setting
+
+RegRead,disableZoomResetHotkey,HKCU,Software\WanderSick\AeroZoom,DisableZoomResetHotkey
+; Retrieve disable zoom reset hotkey setting
 	
 RegRead,holdMiddle,HKCU,Software\WanderSick\AeroZoom,holdMiddle
 if errorlevel ; if the key is never created, i.e. first-run
@@ -790,14 +815,12 @@ if errorlevel ; if the key is never created, i.e. first-run
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomPad, 1
 }
 
-RegRead,EnableAutoBackup,HKCU,Software\WanderSick\AeroZoom,EnableAutoBackup
+RegRead,ElasticZoom,HKCU,Software\WanderSick\AeroZoom,ElasticZoom
 if errorlevel ; if the key is never created, i.e. first-run
 {
-	EnableAutoBackup=1 ; on by default
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, EnableAutoBackup, 1
+	ElasticZoom=1 ; Elastic Zoom on by default
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ElasticZoom, 1
 }
-If not A_IsAdmin ; requires regedit.exe which requires admin rights.
-	EnableAutoBackup=0
 
 RegRead,NirCmd,HKCU,Software\WanderSick\AeroZoom,NirCmd
 
@@ -912,11 +935,11 @@ if errorlevel
 }
 RegRead,stillZoomDelay,HKCU,Software\WanderSick\AeroZoom,stillZoomDelay
 if errorlevel
-	stillZoomDelay=750
+	stillZoomDelay=800
 ;Unnecessary
 ;RegRead,stillZoomDelayPrev,HKCU,Software\WanderSick\AeroZoom,stillZoomDelay
 ;if errorlevel
-;	stillZoomDelayPrev=750 ; Prev is for Advanced Options
+;	stillZoomDelayPrev=800 ; Prev is for Advanced Options
 	
 
 RegRead,delayButton,HKCU,Software\WanderSick\AeroZoom,delayButton
@@ -991,11 +1014,11 @@ if not errorlevel
 }
 
 ; First run welcome msg
-RegRead,Welcome,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,Welcome
+; RegRead,Welcome,HKEY_CURRENT_USER,Software\WanderSick\AeroZoom,Welcome
 if not Welcome
 {
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, Welcome, 1 ; do not set welcome=1 as the 'zoomit EULA message' check for first-run with this var not defined
-	Msgbox, 262148, AeroZoom %verAZ% Welcome, Welcome to AeroZoom!`n`nNew in this release:`n`n - AeroSnip captures regions/PrintScrn to disk/clipboard by hotkey`n - Elastic Zoom quickly zooms in and out with one press`n - ZoomIt Panel powers up and simplifies Sysinternals ZoomIt`n - Do anything with 30+ custom hotkeys and 30+ built-in functions`n - Support for Win 7 standard user accounts, Vista and XP patially`n`n[Other features] Config import/export (with auto backup), misc tools, keyboard-modifier wheel-zoom, one-click zoom (middle button), zoom-speed slider, misclick preventer, full screen preview.`n`nTo learn all about the features, visit 'AeroZoom on the Web' via ? menu.`n`nWould you like help on getting started and receive tips on start?
+	Msgbox, 262148, AeroZoom %verAZ% - Welcome to AeroZoom!, New in v3 release:`n`n1) - AeroSnip - streamlined operation for Print Screen and Snipping Tool, hotkeys, save-to-disk and custom editor.`n`n2) - Elastic Zoom - automatically zoom in and out by holding and releasing [Ctrl/Shift]+[Caps Lock].`n`n3) - ZoomIt Panel - improves mouse operation of Sysinternals ZoomIt by adding an easy-to-use interface, elastic zoom, wheel-zoom and more.`n`nAlso, custom hotkeys (define 30+ hotkeys with 30+ functions) and partial support for Windows 7 standard user accounts with UAC, Vista and XP.`n`nFor more features and to learn about them, visit 'AeroZoom on the Web' via '?' menu.`n`nWould you like help on getting started?
 	IfMsgBox, No
 	{
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, TipDisabled, 1 ; disabled bit is used so when enabled will continue where users left off
@@ -1073,11 +1096,13 @@ return
 ;; elastic zoom
 
 ^CapsLock::
+If not ElasticZoom
+	return
 if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) { ; elastic zoom with zoomit live zoom
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1094,7 +1119,7 @@ if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) { ; elastic zoo
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1122,10 +1147,12 @@ return
 
 +CapsLock::
 ; elastic zoom with zoomit still zoom
+If not ElasticZoom
+	return
 Process, Exist, zoomit.exe
 If not errorlevel
 {
-	Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+	Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 	return
 }
 IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1176,7 +1203,7 @@ if (OSver=6) { ; use zoomit live zoom for vista
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1193,7 +1220,7 @@ if (OSver=6) { ; use zoomit live zoom for vista
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1247,7 +1274,7 @@ if (OSver=6) { ; use zoomit live zoom for vista
 }
 return
 
-; Enhance print screen when NirCmd (Save Captures to Disk) is on
+; Enhance print screen when NirCmd (Save Captures Automatically) is on
 ~PrintScreen::
 If (!PrintScreenEnhanceCheckbox)
 	return
@@ -1432,7 +1459,7 @@ if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1449,7 +1476,7 @@ if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1568,9 +1595,12 @@ return
 
 #!h::
 goto, PauseScript
+return
 
-; Suspend hotkeys
-#!+h::Suspend
+; Suspend hotkeys (disabled as no way to turn it back on after turning it off)
+;#!+h::
+;goto, SuspendScript
+;return
 
 ; Kill magnifier
 #+k::
@@ -1601,9 +1631,11 @@ goto, resetZoom
 ; dontHideMag = 1
 goto, resetZoom
 
-;; for Middle mode only:
+; for Middle mode only:
 ~MButton & RButton::
 if paused
+	return
+if disableZoomResetHotkey
 	return
 IfWinExist, ahk_class MagnifierClass ; if zoomit is working, enhance (stop) it instead
 {
@@ -1650,185 +1682,195 @@ MagExists=
 Gosub, MagWinRestore
 return
 
-~MButton & LButton:: ; in MButton ahk, this is changed
+~MButton & LButton:: ; in MButton ahk, this is changed to ~MButton & LButton::
 if not paused {
-	Process, Exist, ZoomIt.exe
-	If (errorlevel AND !DisableZoomItMiddle)
 	{
-		RegRead,MButtonMsg,HKCU,Software\WanderSick\AeroZoom,MButtonMsg
-		if errorlevel
+		Process, Exist, ZoomIt.exe
+		If (errorlevel AND !DisableZoomItMiddle)
 		{
-			Msgbox,262208,This message will be shown once only,You've just triggered the Middle button for the first time!`n`nHolding Middle button for a specified time ('0.7s' by default) launches a specified task ('New snip' by default). And if the screen is magnified, the same button will trigger a Full Screen Preview instead (for Windows 7 only).`n`nTo customize the action, go to 'Tool > Preferences > Custom Hotkeys > Hold Middle as Trigger'.`n`nTo enable/disable this function quickly in order to avoid mis-triggering, go to 'Tool > Hold Middle as Trigger'.
-			RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MButtonMsg, 1
-		}
-		RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
-		if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
-			goto, ViewPreview
-		if not zoomItGuidance
-			Gosub, ZoomItGuidance
-		;process, close, zoompad.exe ; although this shouldn't be required here
-		process, close, osd.exe ; prevent osd from showing in 'picture'
-		WinHide, AeroZoom Panel
-		sendinput ^1
-		WinWait, ahk_class ZoomitClass,,5
-		WinWaitClose, ahk_class ZoomitClass
-		WinShow, AeroZoom Panel
-	} else {
-		RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
-		if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
-			goto, ViewPreview
-		if (MiddleButtonAction=1) {
-			Gosub, SnippingTool
-		} else if (MiddleButtonAction=2) {
-			GoSub, KillMagnifierHK
-		} else if (MiddleButtonAction=3) {
-			Gosub, ColorHK
-		} else if (MiddleButtonAction=4) {
-			Gosub, MouseHK
-		} else if (MiddleButtonAction=5) {
-			Gosub, KeyboardHK
-		} else if (MiddleButtonAction=6) {
-			Gosub, TextHK
-		} else if (MiddleButtonAction=7) {
-			Process, Exist, zoomit.exe
-			If not errorlevel
+			RegRead,MButtonMsg,HKCU,Software\WanderSick\AeroZoom,MButtonMsg
+			if errorlevel
 			{
-				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
-				return
+				Msgbox,262208,This message will be shown once only,You've just triggered the Middle button for the first time!`n`nHolding Middle button for a specified time ('0.7s' by default) launches a specified task ('New snip' by default). And if the screen is magnified, the same button will trigger a Full Screen Preview instead (for Windows 7 only).`n`nTo customize the action, go to 'Tool > Preferences > Custom Hotkeys > Middle'.`n`nTo enable/disable this function quickly in order to avoid mis-triggering, go to 'Tool > Hold Middle Button to Trigger'.
+				RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MButtonMsg, 1
 			}
-			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-				goto, zoomit
+			RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
+			If not disablePreviewFullScreen {
+				if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
+					goto, ViewPreview
+			}
 			if not zoomItGuidance
 				Gosub, ZoomItGuidance
-			goto, ViewType
-		} else if (MiddleButtonAction=8) {
-			Process, Exist, zoomit.exe
-			If not errorlevel
-			{
-				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
-				return
-			}
-			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-				goto, zoomit
-			if not zoomItGuidance
-				Gosub, ZoomItGuidance
-			goto, ViewLiveZoom
-		} else if (MiddleButtonAction=9) {
-			Process, Exist, zoomit.exe
-			If not errorlevel
-			{
-				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
-				return
-			}
-			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-				goto, zoomit
-			if not zoomItGuidance
-				Gosub, ZoomItGuidance
-			goto, ViewStillZoom
-		} else if (MiddleButtonAction=10) {
-			Process, Exist, zoomit.exe
-			If not errorlevel
-			{
-				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
-				return
-			}
-			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-				goto, zoomit
-			if not zoomItGuidance
-				Gosub, ZoomItGuidance
-			goto, ViewDraw
-		} else if (MiddleButtonAction=11) {
-			Process, Exist, zoomit.exe
-			If not errorlevel
-			{
-				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
-				return
-			}
-			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-				goto, zoomit
-			if not zoomItGuidance
-				Gosub, ZoomItGuidance
-			goto, ViewBreakTimer
-		} else if (MiddleButtonAction=12) {
-			Process, Exist, zoomit.exe
-			If not errorlevel
-			{
-				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
-				return
-			}
-			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-				goto, zoomit
-			if not zoomItGuidance
-				Gosub, ZoomItGuidance
-			goto, ViewBlackBoard
-		} else if (MiddleButtonAction=13) {
-			Process, Exist, zoomit.exe
-			If not errorlevel
-			{
-				Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
-				return
-			}
-			IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-				goto, zoomit
-			if not zoomItGuidance
-				Gosub, ZoomItGuidance
-			goto, ViewWhiteBoard
-		} else if (MiddleButtonAction=14) {
-			goto, notepad
-		} else if (MiddleButtonAction=15) {
-			goto, wordpad
-		} else if (MiddleButtonAction=16) {
-			goto, mscalc
-		} else if (MiddleButtonAction=17) {
-			gosub, mspaint
-		} else if (MiddleButtonAction=18) {
-			goto, Google
-		} else if (MiddleButtonAction=19) {
-			goto, GoogleHighlight
-		} else if (MiddleButtonAction=20) {
-			goto, GoogleClipboard
-		} else if (MiddleButtonAction=21) {
-			goto, SpeakIt
-		} else if (MiddleButtonAction=22) {
-			goto, SpeakHighlight
-		} else if (MiddleButtonAction=23) {
-			goto, SpeakClipboard
-		} else if (MiddleButtonAction=24) {
-			goto, MonitorOff
-		} else if (MiddleButtonAction=25) {
-			goto, OpenTray
-		} else if (MiddleButtonAction=26) {
-			goto, AlwaysOnTop
-		} else if (MiddleButtonAction=27) {
-			goto, WebTimer
-		} else if (MiddleButtonAction=28) {
-			goto, TimerTab
-		} else if (MiddleButtonAction=29) {
-			goto, ZoomFaster
-		} else if (MiddleButtonAction=30) {
-			goto, ZoomSlower
-		} else if (MiddleButtonAction=31) {
-			hotkeyMod=MButton
-			goto, ElasticZoom
-		} else if (MiddleButtonAction=32) {				
-			hotkeyMod=MButton
-			goto, ElasticStillZoom
-		} else if (MiddleButtonAction=33) {				
-			goto, SnipFree
-		} else if (MiddleButtonAction=34) {				
-			goto, SnipRect
-		} else if (MiddleButtonAction=35) {				
-			goto, SnipWin
-		} else if (MiddleButtonAction=36) {				
-			goto, SnipScreen
-		} else if (MiddleButtonAction=37) {				
-			Gosub, ShowMagnifierHK ; show hide magnifier
-		} else if (MiddleButtonAction=38) {				
-			goto, showHidePanel
-		} else if (MiddleButtonAction=39) {
-			Run, %CustomMiddlePath% ; all of these SHOULD NOT BE double-quoted in order to allow users to run commands such as: cmd /k dir (if quotes, it would be "cmd /k /dir" which is wrong.
+			;process, close, zoompad.exe ; although this shouldn't be required here
+			process, close, osd.exe ; prevent osd from showing in 'picture'
+			WinHide, AeroZoom Panel
+			sendinput ^1
+			WinWait, ahk_class ZoomitClass,,5
+			WinWaitClose, ahk_class ZoomitClass
+			WinShow, AeroZoom Panel
 		} else {
-			return ; this is unneeded
+			RegRead,MagnificationRaw,HKCU,Software\Microsoft\ScreenMagnifier,Magnification
+			If not disablePreviewFullScreen {
+				if (MagnificationRaw<>0x64) ; if magnificationRaw is NOT 100 (0x64, i.e. zoomed out), then preview full screen
+					goto, ViewPreview
+			}
+			if (MiddleButtonAction=1) {
+				Gosub, SnippingTool
+			} else if (MiddleButtonAction=2) {
+				GoSub, KillMagnifierHK
+			} else if (MiddleButtonAction=3) {
+				Gosub, ColorHK
+			} else if (MiddleButtonAction=4) {
+				Gosub, MouseHK
+			} else if (MiddleButtonAction=5) {
+				Gosub, KeyboardHK
+			} else if (MiddleButtonAction=6) {
+				Gosub, TextHK
+			} else if (MiddleButtonAction=7) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewType
+			} else if (MiddleButtonAction=8) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewLiveZoom
+			} else if (MiddleButtonAction=9) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewStillZoom
+			} else if (MiddleButtonAction=10) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewDraw
+			} else if (MiddleButtonAction=11) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewBreakTimer
+			} else if (MiddleButtonAction=12) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewBlackBoard
+			} else if (MiddleButtonAction=13) {
+				Process, Exist, zoomit.exe
+				If not errorlevel
+				{
+					Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+					return
+				}
+				IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+					goto, zoomit
+				if not zoomItGuidance
+					Gosub, ZoomItGuidance
+				goto, ViewWhiteBoard
+			} else if (MiddleButtonAction=14) {
+				goto, notepad
+			} else if (MiddleButtonAction=15) {
+				goto, wordpad
+			} else if (MiddleButtonAction=16) {
+				goto, mscalc
+			} else if (MiddleButtonAction=17) {
+				gosub, mspaint
+			} else if (MiddleButtonAction=18) {
+				goto, Google
+			} else if (MiddleButtonAction=19) {
+				goto, GoogleHighlight
+			} else if (MiddleButtonAction=20) {
+				goto, GoogleClipboard
+			} else if (MiddleButtonAction=21) {
+				goto, SpeakIt
+			} else if (MiddleButtonAction=22) {
+				goto, SpeakHighlight
+			} else if (MiddleButtonAction=23) {
+				goto, SpeakClipboard
+			} else if (MiddleButtonAction=24) {
+				goto, MonitorOff
+			} else if (MiddleButtonAction=25) {
+				goto, OpenTray
+			} else if (MiddleButtonAction=26) {
+				goto, AlwaysOnTop
+			} else if (MiddleButtonAction=27) {
+				goto, WebTimer
+			} else if (MiddleButtonAction=28) {
+				goto, TimerTab
+			} else if (MiddleButtonAction=29) {
+				goto, ZoomFaster
+			} else if (MiddleButtonAction=30) {
+				goto, ZoomSlower
+			} else if (MiddleButtonAction=31) {
+				hotkeyMod=MButton
+				goto, ElasticZoom
+			} else if (MiddleButtonAction=32) {				
+				hotkeyMod=MButton
+				goto, ElasticStillZoom
+			} else if (MiddleButtonAction=33) {				
+				goto, SnipFree
+			} else if (MiddleButtonAction=34) {				
+				goto, SnipRect
+			} else if (MiddleButtonAction=35) {				
+				goto, SnipWin
+			} else if (MiddleButtonAction=36) {				
+				goto, SnipScreen
+			} else if (MiddleButtonAction=37) {				
+				Gosub, ShowMagnifierHK ; show hide magnifier
+			} else if (MiddleButtonAction=38) {				
+				goto, showHidePanel
+			} else if (MiddleButtonAction=39) {				
+				goto, resetZoom
+			} else if (MiddleButtonAction=40) {				
+				goto, Default
+			} else if (MiddleButtonAction=41) {
+				Run, %CustomMiddlePath% ; all of these SHOULD NOT BE double-quoted in order to allow users to run commands such as: cmd /k dir (if quotes, it would be "cmd /k /dir" which is wrong.
+			} else {
+				return ; this is unneeded
+			}
 		}
 	}
 }
@@ -1865,7 +1907,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1877,7 +1919,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1889,7 +1931,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1901,7 +1943,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1913,7 +1955,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1925,7 +1967,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -1937,7 +1979,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2029,7 +2071,7 @@ if (BackRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2041,7 +2083,7 @@ if (BackRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2053,7 +2095,7 @@ if (BackRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2065,7 +2107,7 @@ if (BackRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2077,7 +2119,7 @@ if (BackRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2089,7 +2131,7 @@ if (BackRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2101,7 +2143,7 @@ if (BackRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2190,7 +2232,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2202,7 +2244,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2214,7 +2256,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2226,7 +2268,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2238,7 +2280,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2250,7 +2292,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2262,7 +2304,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2407,7 +2449,7 @@ if (ForwardRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2419,7 +2461,7 @@ if (ForwardRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2431,7 +2473,7 @@ if (ForwardRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2443,7 +2485,7 @@ if (ForwardRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2455,7 +2497,7 @@ if (ForwardRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2467,7 +2509,7 @@ if (ForwardRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2479,7 +2521,7 @@ if (ForwardRightAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2569,7 +2611,7 @@ if (BackWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2581,7 +2623,7 @@ if (BackWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2593,7 +2635,7 @@ if (BackWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2605,7 +2647,7 @@ if (BackWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2617,7 +2659,7 @@ if (BackWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2629,7 +2671,7 @@ if (BackWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2641,7 +2683,7 @@ if (BackWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2732,7 +2774,7 @@ if (BackWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2744,7 +2786,7 @@ if (BackWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2756,7 +2798,7 @@ if (BackWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2768,7 +2810,7 @@ if (BackWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2780,7 +2822,7 @@ if (BackWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2792,7 +2834,7 @@ if (BackWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2804,7 +2846,7 @@ if (BackWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2894,7 +2936,7 @@ if (ForwardWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2906,7 +2948,7 @@ if (ForwardWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2918,7 +2960,7 @@ if (ForwardWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2930,7 +2972,7 @@ if (ForwardWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2942,7 +2984,7 @@ if (ForwardWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2954,7 +2996,7 @@ if (ForwardWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -2966,7 +3008,7 @@ if (ForwardWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3056,7 +3098,7 @@ if (ForwardWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3068,7 +3110,7 @@ if (ForwardWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3080,7 +3122,7 @@ if (ForwardWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3092,7 +3134,7 @@ if (ForwardWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3104,7 +3146,7 @@ if (ForwardWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3116,7 +3158,7 @@ if (ForwardWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3128,7 +3170,7 @@ if (ForwardWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3200,6 +3242,7 @@ goto, ShowMagnifierHK
 IfWinExist, AeroZoom Panel
 {
 	Gui, Destroy
+	Menu, Tray, Uncheck, &Show Panel`t[Win+Shift+ESC]
 	return
 }
 ;Gui, Destroy
@@ -3211,6 +3254,7 @@ centerPanel = 1
 IfWinExist, AeroZoom Panel
 {
 	Gui, Destroy
+	Menu, Tray, Uncheck, &Show Panel`t[Win+Shift+ESC]
 	return
 }
 ;Gui, Destroy
@@ -3228,6 +3272,7 @@ showHidePanel:
 IfWinExist, AeroZoom Panel
 {
 	Gui, Destroy
+	Menu, Tray, Uncheck, &Show Panel`t[Win+Shift+ESC]
 	return
 }
 goto, lastPos
@@ -3264,7 +3309,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3276,7 +3321,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3288,7 +3333,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3300,7 +3345,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3312,7 +3357,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3324,7 +3369,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3336,7 +3381,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3435,7 +3480,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3447,7 +3492,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3459,7 +3504,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3471,7 +3516,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3483,7 +3528,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3495,7 +3540,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3507,7 +3552,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3606,7 +3651,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3618,7 +3663,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3630,7 +3675,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3642,7 +3687,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3654,7 +3699,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3666,7 +3711,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3678,7 +3723,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3777,7 +3822,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3789,7 +3834,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3801,7 +3846,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3813,7 +3858,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3825,7 +3870,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3837,7 +3882,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3849,7 +3894,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3948,7 +3993,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3960,7 +4005,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3972,7 +4017,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3984,7 +4029,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -3996,7 +4041,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4008,7 +4053,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4020,7 +4065,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4119,7 +4164,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4131,7 +4176,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4143,7 +4188,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4155,7 +4200,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4167,7 +4212,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4179,7 +4224,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4191,7 +4236,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4290,7 +4335,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4302,7 +4347,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4314,7 +4359,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4326,7 +4371,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4338,7 +4383,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4350,7 +4395,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4362,7 +4407,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4461,7 +4506,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4473,7 +4518,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4485,7 +4530,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4497,7 +4542,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4509,7 +4554,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4521,7 +4566,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4533,7 +4578,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4628,7 +4673,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4640,7 +4685,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4652,7 +4697,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4664,7 +4709,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4676,7 +4721,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4688,7 +4733,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4700,7 +4745,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4788,7 +4833,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4800,7 +4845,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4812,7 +4857,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4824,7 +4869,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4836,7 +4881,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4848,7 +4893,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4860,7 +4905,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4947,7 +4992,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4959,7 +5004,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4971,7 +5016,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4983,7 +5028,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -4995,7 +5040,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5007,7 +5052,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5019,7 +5064,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5107,7 +5152,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5119,7 +5164,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5131,7 +5176,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5143,7 +5188,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5155,7 +5200,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5167,7 +5212,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5179,7 +5224,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5267,7 +5312,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5279,7 +5324,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5291,7 +5336,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5303,7 +5348,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5315,7 +5360,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5327,7 +5372,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5339,7 +5384,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5427,7 +5472,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5439,7 +5484,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5451,7 +5496,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5463,7 +5508,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5475,7 +5520,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5487,7 +5532,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5499,7 +5544,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5587,7 +5632,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5599,7 +5644,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5611,7 +5656,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5623,7 +5668,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5635,7 +5680,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5647,7 +5692,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5659,7 +5704,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5747,7 +5792,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5759,7 +5804,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5771,7 +5816,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5783,7 +5828,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5795,7 +5840,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5807,7 +5852,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5819,7 +5864,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5918,7 +5963,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5930,7 +5975,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5942,7 +5987,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5954,7 +5999,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5966,7 +6011,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5978,7 +6023,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -5990,7 +6035,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6089,7 +6134,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6101,7 +6146,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6113,7 +6158,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6125,7 +6170,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6137,7 +6182,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6149,7 +6194,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6161,7 +6206,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6260,7 +6305,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6272,7 +6317,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6284,7 +6329,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6296,7 +6341,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6308,7 +6353,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6320,7 +6365,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6332,7 +6377,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6431,7 +6476,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6443,7 +6488,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6455,7 +6500,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6467,7 +6512,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6479,7 +6524,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6491,7 +6536,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6503,7 +6548,7 @@ if not paused {
 		Process, Exist, zoomit.exe
 		If not errorlevel
 		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 			return
 		}
 		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6607,7 +6652,7 @@ if (LeftWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6619,7 +6664,7 @@ if (LeftWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6631,7 +6676,7 @@ if (LeftWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6643,7 +6688,7 @@ if (LeftWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6655,7 +6700,7 @@ if (LeftWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6667,7 +6712,7 @@ if (LeftWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6679,7 +6724,7 @@ if (LeftWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6770,7 +6815,7 @@ if (LeftWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6782,7 +6827,7 @@ if (LeftWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6794,7 +6839,7 @@ if (LeftWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6806,7 +6851,7 @@ if (LeftWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6818,7 +6863,7 @@ if (LeftWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6830,7 +6875,7 @@ if (LeftWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6842,7 +6887,7 @@ if (LeftWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6932,7 +6977,7 @@ if (RightWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6944,7 +6989,7 @@ if (RightWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6956,7 +7001,7 @@ if (RightWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6968,7 +7013,7 @@ if (RightWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6980,7 +7025,7 @@ if (RightWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -6992,7 +7037,7 @@ if (RightWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -7004,7 +7049,7 @@ if (RightWupAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -7094,7 +7139,7 @@ if (RightWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -7106,7 +7151,7 @@ if (RightWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -7118,7 +7163,7 @@ if (RightWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -7130,7 +7175,7 @@ if (RightWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -7142,7 +7187,7 @@ if (RightWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -7154,7 +7199,7 @@ if (RightWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -7166,7 +7211,7 @@ if (RightWdownAction=1) {
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -7232,7 +7277,7 @@ return
 lastPos:
 
 Gui, Destroy ; ensure running Gui is impossible (otherwise strange errors)
-	
+Menu, Tray, Check, &Show Panel`t[Win+Shift+ESC]	
 if lastPosY
 {
 	if lastPosX
@@ -7550,15 +7595,15 @@ Bye_TT := "Quit AeroZoom [Q]"
 
 ; Adds Texts
 Gui, Font, s10, Tahoma
-
+Gui, Font, c666666
 if (!A_IsAdmin AND EnableLUA AND OSver>6.0 AND !zoomitPanel) OR (OSver<6.1 AND !zoomitPanel) {
-	Gui, Add, Text, x27 y229 w100 h42 vTxt gUiMove, AeroZoom v%verAZ% ; v%verAZ%
+	Gui, Add, Text, x27 y229 w100 h42 vTxt gUiMove, A e r o Z o o m ; v%verAZ%
 } else {
 	if SwitchMiniMode
 	{
-		Gui, Add, Text, x27 y324 w100 h42 vTxt gUiMove, AeroZoom v%verAZ% ; v%verAZ%
+		Gui, Add, Text, x27 y324 w100 h42 vTxt gUiMove, A e r o Z o o m ; v%verAZ%
 	} else {
-		Gui, Add, Text, x27 y402 w100 h42 vTxt gUiMove, AeroZoom v%verAZ% ; v%verAZ%
+		Gui, Add, Text, x27 y402 w100 h42 vTxt gUiMove, A e r o Z o o m ; v%verAZ%
 	}
 }
 
@@ -7570,15 +7615,20 @@ Menu, AboutMenu, Add, Disable Startup &Tips, startupTips
 Menu, AboutMenu, Add, Disable First-Use &Guide, firstUseGuide
 Menu, AboutMenu, Add, &Quick Instructions, Instruction
 Menu, AboutMenu, Add, &About, HelpAbout
+if registered
+	Menu, AboutMenu, Add, &Registration, Donate
 ; Menu, AboutMenu, Add, &Email a Bug, EmailBugs ; Cancelled due to not universally supported
 Menu, AboutMenu, Add, &Check for Update, CheckUpdate
+if not registered
+	Menu, AboutMenu, Add, &Make a Donation, Donate
 Menu, AboutMenu, Add, AeroZoom on the &Web, VisitWeb
 
 Menu, SnipMenu, Add, Free-form`tWin+Alt+F, SnipFree
 Menu, SnipMenu, Add, Rectangular`tWin+Alt+R, SnipRect
 Menu, SnipMenu, Add, Window`tWin+Alt+W, SnipWin
 Menu, SnipMenu, Add, Screen`tWin+Alt+S, SnipScreen
-Menu, SnipMenu, Add, Snipping Tool Options, SnippingToolOptions
+Menu, SnipMenu, Add, AeroSnip Options, CaptureOptions
+; Menu, SnipMenu, Add, Snipping Tool Options, SnippingToolOptions
 
 Menu, ZoomitMenu, Add, Still Zoom`tCtrl+1, ViewStillZoom
 If (OSver>=6)
@@ -7651,9 +7701,9 @@ if (!A_IsAdmin AND EnableLUA AND OSver>6.0)
 }
 
 if not zoomitPanel {
-	Menu, FileMenu, Add, Enable ZoomIt &Panel, ZoomItPanel
+	Menu, FileMenu, Add, Go to ZoomIt &Panel, ZoomItPanel
 } else {
-	Menu, FileMenu, Add, Disable ZoomIt &Panel, ZoomItPanel
+	Menu, FileMenu, Add, Go to Windows Magnifier &Panel, ZoomItPanel
 }
 
 if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA)) {
@@ -7668,6 +7718,10 @@ if (OSver>=6.1 AND !(!A_IsAdmin AND EnableLUA)) {
 ; Menu, FileMenu, Add, &Hide/Show Magnifier`tM, ShowMagnifier
 ; Menu, FileMenu, Add, &Hide/Show Magnifier`tWin+Shift+``, ShowMagnifier
 
+If (OSver>=6.0) {
+	Menu, FileMenu, Add, &Run on Startup, RunOnStartup
+}
+Menu, FileMenu, Add, &Install as Current User, Install
 Menu, FileMenu, Add, &Hide This Panel`tESC, HideAZ
 Menu, FileMenu, Add, &Quit AeroZoom`tQ, ExitAZ
 
@@ -7682,9 +7736,11 @@ Menu, MySubmenu, Add, ClearType Text Tuner, ctTune
 IfExist, %windir%\System32\cmd.exe
 	Menu, MySubmenu, Add, Command Prompt, WinCMD
 
-if (OSver>5.9) {
-	IfExist, %windir%\System32\cmd.exe
-		Menu, MySubmenu, Add, Command Prompt (Admin), WinCmdAdmin
+If not A_IsAdmin {
+	if (OSver>5.9) {
+		IfExist, %windir%\System32\cmd.exe
+			Menu, MySubmenu, Add, Command Prompt (Admin), WinCmdAdmin
+	}
 }
 
 IfExist, %windir%\system32\NetProj.exe
@@ -7751,12 +7807,12 @@ IfNotExist, %ProgramFiles%\Windows NT\Accessories\wordpad.exe ; for vista's file
 IfExist, %windir%\Speech\Common\sapisvr.exe
 	Menu, MySubmenu, Add, Windows Speech Recognition, WinSpeech
 
-Menu, CustomizeMenu, Add, &Holding Middle, CustomizeMiddle
-Menu, CustomizeMenu, Add, &Ctrl/Alt/Shift/Win, CustomizeKeys
-Menu, CustomizeMenu, Add, &Forward/Back, CustomizeForwardBack
-Menu, CustomizeMenu, Add, &Left/Right, CustomizeLeftRight
+Menu, CustomizeMenu, Add, &Middle, CustomizeMiddle
+Menu, CustomizeMenu, Add, &Ctrl/Alt/Shift/Win (Beta), CustomizeKeys
+Menu, CustomizeMenu, Add, &Forward/Back (Beta), CustomizeForwardBack
+Menu, CustomizeMenu, Add, &Left/Right (Beta), CustomizeLeftRight
 
-Menu, OptionsMenu, Add, Custom Hotkeys (Beta), :CustomizeMenu
+Menu, OptionsMenu, Add, Custom Hotkeys, :CustomizeMenu
 Menu, OptionsMenu, Add, AeroSnip Options, CaptureOptions
 ;Menu, OptionsMenu, Add, Snipping Tool, SnippingToolOptions
 ;Menu, OptionsMenu, Add, ZoomIt Options, zoomitOptions
@@ -7794,21 +7850,17 @@ If !(OSver<6) AND !(EditionID="HomeBasic" OR EditionID="Starter") AND !(!A_IsAdm
 Menu, ToolboxMenu, Add, &Windows Tools, :MySubmenu
 Menu, ToolboxMenu, Add, Misc &Tools, :MiscToolsMenu
 Menu, ToolboxMenu, Add, &Preferences, :OptionsMenu
-Menu, ToolboxMenu, Add, &Hold Middle as Trigger, HoldMiddle
+Menu, ToolboxMenu, Add, &Hold Middle Button to Trigger, HoldMiddle
+Menu, ToolboxMenu, Add, Save &Captures Automatically, NirCmd
 Menu, ToolboxMenu, Add, &Misclick-Preventing Pad, UseZoomPad
-Menu, ToolboxMenu, Add, Save &Captures to Disk, NirCmd
 Menu, ToolboxMenu, Add, Type with &Notepad, UseNotepad
+Menu, ToolboxMenu, Add, Elastic &Zoom, ToggleElasticZoom
 Menu, ToolboxMenu, Add, &Always on Top, OnTop
-If (OSver>=6.0) {
-	Menu, ToolboxMenu, Add, &Run on Startup, RunOnStartup
-}
-Menu, ToolboxMenu, Add, &Enable ZoomIt, ZoomIt
+Menu, ToolboxMenu, Add, &Use ZoomIt as Magnifier, ZoomIt
 If (OSver>=6.0) {
 	Menu, ToolboxMenu, Add, Wheel with ZoomIt (&Live), ZoomItLive
 	Menu, ToolboxMenu, Add, Wheel with ZoomIt (&Still), ZoomitStill
 }
-Menu, ToolboxMenu, Add, &Install to This Computer, Install
-
 Process, Exist, zoomit.exe
 If (errorlevel=0) {
 	Menu, ViewsMenu, Disable, Sysinternals &ZoomIt
@@ -7865,7 +7917,7 @@ if (notepad=1) {
 }
 
 if (NirCmd=1) {
-	Menu, ToolboxMenu, Check, Save &Captures to Disk
+	Menu, ToolboxMenu, Check, Save &Captures Automatically
 }
 
 if (EnableAutoBackup=1) {
@@ -7887,7 +7939,7 @@ if (GuideDisabled=1) {
 }
 
 ;if (chkMod=7) { ; if MButton ahk, disable the menu item
-;	Menu, ToolboxMenu, Disable, &Hold Middle as Trigger
+;	Menu, ToolboxMenu, Disable, &Hold Middle Button to Trigger
 ;	Menu, ToolboxMenu, Disable, &Customize Holding Middle
 ;}
 
@@ -7901,9 +7953,9 @@ if (GuideDisabled=1) {
 
 RegRead,holdMiddle,HKCU,Software\WanderSick\AeroZoom,holdMiddle
 If (holdMiddle=1) {
-	Menu, ToolboxMenu, Check, &Hold Middle as Trigger
+	Menu, ToolboxMenu, Check, &Hold Middle Button to Trigger
 } Else {
-	Menu, ToolboxMenu, Uncheck, &Hold Middle as Trigger
+	Menu, ToolboxMenu, Uncheck, &Hold Middle Button to Trigger
 }
 
 ; Check if zoompad is preferred
@@ -7911,35 +7963,39 @@ if (zoomPad=1) {
 	Menu, ToolboxMenu, Check, &Misclick-Preventing Pad
 }
 
+if (elasticZoom=1) {
+	Menu, ToolboxMenu, Check, Elastic &Zoom
+}
+
 ; Check if AeroZoom is set to run in Startup in the current user startup folder
 ;IfExist, %A_Startup%\*AeroZoom*.*
 ;{
-;	Menu, ToolboxMenu, Check, &Run on Startup
+;	Menu, FileMenu, Check, &Run on Startup
 ;}
 
 ; Below causes a huge delay in calling the AZ Panel. so now uses Reg key instead
 ;RunWait, "%A_WorkingDir%\Data\AeroZoom_Task.bat" /check,"%A_WorkingDir%\",min ; check if task exist
 ;if (errorlevel=4) {
-	;Menu, ToolboxMenu, Check, &Run on Startup
+	;Menu, FileMenu, Check, &Run on Startup
 ;}
 
 RegRead,RunOnStartup,HKCU,Software\WanderSick\AeroZoom,RunOnStartup
 If (RunOnStartup=1) {
-	Menu, ToolboxMenu, Check, &Run on Startup
+	Menu, FileMenu, Check, &Run on Startup
 }
 
 ; Check if AeroZoom is installed on this computer
 IfExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
-	Menu, ToolboxMenu, Check, &Install to This Computer
+	Menu, FileMenu, Check, &Install as Current User
 IfExist, %programfiles%\WanderSick\AeroZoom\AeroZoom.exe
-	Menu, ToolboxMenu, Check, &Install to This Computer
+	Menu, FileMenu, Check, &Install as Current User
 IfExist, %programfiles% (x86)\WanderSick\AeroZoom\AeroZoom.exe
-	Menu, ToolboxMenu, Check, &Install to This Computer
+	Menu, FileMenu, Check, &Install as Current User
 
 ; Check if zoomit.exe is running or zoomit was perferred
 
 if (zoomit=1) {
-	Menu, ToolboxMenu, Check, &Enable ZoomIt
+	Menu, ToolboxMenu, Check, &Use ZoomIt as Magnifier
 }
 
 if zoomitPanel {
@@ -7994,7 +8050,7 @@ if not A_IsAdmin
 {
 	Menu, Configuration, Disable, &Save Config on Exit
 	If (OSver>=6) {
-		Menu, ToolboxMenu, Disable, &Run on Startup
+		Menu, FileMenu, Disable, &Run on Startup
 	}
 }
 
@@ -8078,7 +8134,7 @@ if (OSver>6) {
 }
 
 if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
-	Menu, ToolboxMenu, Disable, &Run on Startup
+	Menu, FileMenu, Disable, &Run on Startup
 }
 
 return
@@ -8267,7 +8323,7 @@ if zoomitPanel {
 				{
 					if not GuideDisabled
 					{
-						Msgbox, 262144, This message will only be shown once, 'Reset' is suggested as a replacement for 'Kill' because of its better zoom performance.`n`n'Kill magnifier' is only useful for stopping Docked and Lens view and to work around a bug of Windows Media Center where the cursor is gone while Magnifier is running.`n`nIf you do happen to use Windows Media Center with AeroZoom, consider enabling holding the middle button to kill magnifier in 'Tool > Preferences > Custom Hotkeys > Holding Middle' so that you can bring the cursor back more easily.
+						Msgbox, 262144, This message will only be shown once, 'Reset' is suggested as a replacement for 'Kill' because of its better zoom performance.`n`n'Kill magnifier' is only useful for stopping Docked and Lens view and to work around a bug of Windows Media Center where the cursor is gone while Magnifier is running.`n`nIf you do happen to use Windows Media Center with AeroZoom, consider enabling holding the middle button to kill magnifier in 'Tool > Preferences > Custom Hotkeys > Middle' so that you can bring the cursor back more easily.
 						killGuidance = 1
 						RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, killGuidance, 1
 					}
@@ -8299,7 +8355,7 @@ if (!A_IsAdmin AND EnableLUA AND OSver>6.0) {
 			{
 				if not GuideDisabled
 				{
-					Msgbox, 262144, This message will only be shown once, 'Reset' is suggested as a replacement for 'Kill' because of its better zoom performance.`n`n'Kill magnifier' is only useful for stopping Docked and Lens view and to work around a bug of Windows Media Center where the cursor is gone while Magnifier is running.`n`nIf you do happen to use Windows Media Center with AeroZoom, consider enabling holding the middle button to kill magnifier in 'Tool > Preferences > Custom Hotkeys > Holding Middle' so that you can bring the cursor back more easily.
+					Msgbox, 262144, This message will only be shown once, 'Reset' is suggested as a replacement for 'Kill' because of its better zoom performance.`n`n'Kill magnifier' is only useful for stopping Docked and Lens view and to work around a bug of Windows Media Center where the cursor is gone while Magnifier is running.`n`nIf you do happen to use Windows Media Center with AeroZoom, consider enabling holding the middle button to kill magnifier in 'Tool > Preferences > Custom Hotkeys > Middle' so that you can bring the cursor back more easily.
 					killGuidance = 1
 					RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, killGuidance, 1
 				}
@@ -8815,14 +8871,24 @@ if not paused {
 	Gui, Font, s8 Bold, Arial
 	GuiControl,,PauseScript,&off
 	GuiControl, Font, PauseScript
+	Menu, Tray, Check, Pause &Mouse Hotkeys`t[Win+Alt+H]
 } else {
 	paused =
 	Gui, Font, s8 Norm, Arial
 	GuiControl,,PauseScript,&off
 	GuiControl, Font, PauseScript
+	Menu, Tray, Uncheck, Pause &Mouse Hotkeys`t[Win+Alt+H]
 }
 Gui, Font, s10 Norm, Tahoma
 Gui, %guiDestroy%
+return
+
+SuspendScript:
+suspend
+If A_IsSuspended
+	Menu, Tray, Check, &Pause All Hotkeys
+Else
+	Menu, Tray, Uncheck, &Pause All Hotkeys
 return
 
 ;Hide:
@@ -8872,7 +8938,7 @@ Gui, 2:+ToolWindow
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Global Keyboard Shortcuts (Windows 7)
 Gui, 2:Font, s9, Arial, 
-Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom speed`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   [Win] + [Alt] + [Shift] + [H]`nQuick help`t`t   [Win] + [Alt] + [Q]
+Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom speed`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   (See tray menu)`nQuick help`t`t   [Win] + [Alt] + [Q]
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Modifier (User-defined Mouse Button)
 Gui, 2:Font, s9, Arial, 
@@ -8904,7 +8970,7 @@ Gui, 2:+ToolWindow
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Global Keyboard Shortcuts (Limited)
 Gui, 2:Font, s9, Arial, 
-Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom speed`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset magnifier`t   [Win] + [Shift] + [R]  *close mag first`nRun magnifier`t`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   [Win] + [Alt] + [Shift] + [H]`nQuick help`t`t   [Win] + [Alt] + [Q]
+Gui, 2:Add, Text, , Elastic zoom live|still`t   [Ctrl] or [Shift] + [Caps Lock]`nFull scr|lens|docked`t   [Ctrl] + [Alt] + [F] / [L] / [D]`nPreview full screen`t   [Ctrl] + [Alt] + [Space]`nZoom speed`t`t   [Win] + [Alt] + [F1 to F6]`nInvert|mouse|key|text`t   [Win] + [Alt] + [I] / [M] / [K] / [T]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset magnifier`t   [Win] + [Shift] + [R]  *close mag first`nRun magnifier`t`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   (See tray menu)`nQuick help`t`t   [Win] + [Alt] + [Q]
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Modifier (User-defined Mouse Button)
 Gui, 2:Font, s9, Arial, 
@@ -8936,7 +9002,7 @@ Gui, 2:+ToolWindow
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Global Keyboard Shortcuts (Vista and XP)
 Gui, 2:Font, s9, Arial, 
-Gui, 2:Add, Text, , Elastic zoom`t`t   [Ctrl] + [Caps Lock]  *Vista + Aero`nElastic zoom (still)`t   [Shift] + [Caps Lock]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]  *Vista`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   [Win] + [Alt] + [Shift] + [H]`nQuick help`t`t   [Win] + [Alt] + [Q]
+Gui, 2:Add, Text, , Elastic zoom`t`t   [Ctrl] + [Caps Lock]  *Vista + Aero`nElastic zoom (still)`t   [Shift] + [Caps Lock]`n`nZoom in|out`t`t   [Win] + [+ or -]`nReset zoom`t`t   [Win] + [Shift] + [-]`nReset|kill magnifier`t   [Win] + [Shift] + [R] / [K]`nShow|hide magnifier`t   [Win] + [Shift] + [``]`nShow|hide panel`t   [Win] + [Shift] + [Esc]`n`nAeroSnip modes`t   [Win] + [Alt] + [F] / [R] / [W] / [S]  *Vista`nHotkey-mouse on|off`t   [Win] + [Alt] + [H]`nHotkey-all on|off`t   (See tray menu)`nQuick help`t`t   [Win] + [Alt] + [Q]
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Add, Text, , Modifier (User-defined Mouse Button)
 Gui, 2:Font, s9, Arial, 
@@ -8963,17 +9029,25 @@ Gui, 1:Font, CRed,
 GuiControl,1:Font,Txt,
 GuiControl,1:,Txt,- Please Wait -
 ; Gui, 1:-AlwaysOnTop   ; To let the update check popup message show on top after checking, which is done thru batch and VBScript.
-Run, "%comspec%" /c "%A_WorkingDir%\Data\_updateCheck.bat" /quiet, ,Min
+; "" (escape char) avoids cmd to interpret folders with reserved char
+Run, "%comspec%" /c ""%A_WorkingDir%\Data\_updateCheck.bat"" /quiet, ,Min
 WinWait, Update Check,,30
 WinSet, AlwaysOnTop, on, Update Check
 WinWaitClose, Update Check,,30
 ;If onTopBit
 ;	Gui, 1:+AlwaysOnTop
-Gui, 1:Font, CDefault, 
+Gui, 1:Font, c666666
 GuiControl,1:Font,Txt,
-GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 WinActivate
 Return
+
+Donate:
+if registered
+	MsgBox,262144,Licensed to, User: %regName%`n`nLicense: %regType%
+else
+	Run, http://wandersick.blogspot.com/p/donate.html
+return
 
 VisitWeb:
 Run, www.wandersick.blogspot.com/p/aerozoom-for-windows-7-magnifier.html
@@ -8991,20 +9065,25 @@ HelpAbout:
 if (OSver<6.1) OR (EditionID="HomeBasic" OR EditionID="Starter") OR (!A_IsAdmin AND EnableLUA AND OSver>6.0) { ; limited mode means anything that is not win 7 home prem or above
 	goto, HelpAboutLimited
 }
-Gui, 2:+owner1  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
-Gui +Disabled  ; Disable main window.
+IfWinExist, AeroZoom Panel
+{
+	Gui, 2:+owner1  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
+	Gui +Disabled  ; Disable main window.
+}
 Gui, 2:+ToolWindow
 Gui, 2:Font, s12, Arial bold, 
 Gui, 2:Add, Text, , AeroZoom %verAZ% with AeroSnip
 ; Gui, 2:Font, norm,
 Gui, 2:Font, s10, Tahoma, 
-Gui, 2:Add, Text, ,The wheel zoom and presentation kit?`nBetter Magnifier, Snipping Tool and ZoomIt?`nJust thought the idea's neat, so I created It.`n`nAn AutoHotkey-ware by a Cantonese.`nThis software is GPL so completely free.`n`nIf you like this, just love this world still.`nOr donate any $ to any cause you wish.
+Gui, 2:Add, Text, ,The wheel zoom and presentation kit?`nBetter Magnifier, Snipping Tool and ZoomIt?`nJust thought the idea's neat, so I created It.`n`nAn AutoHotkey-ware by a Chinese.`nThe source is open so completely free.`n`nJust love life if you like this,`nor donate to me or any cause you please.
 Gui, 2:Font, s10, Tahoma,
-Gui, 2:Add, Text, ,Lastly if you have words to me, send it.`n@Wandersick via Gmail or a tweet.
+Gui, 2:Add, Text, ,If you have words for me, bitter or sweet,`nsend to 'wandersick' via Gmail or a tweet.
 Gui, 2:Font, s10, Tahoma, 
 Gui, 2:Font, norm,
-Gui, 2:Add, Button, x94 y254 h30 w60 vContacttemp2, &Support
-Contacttemp2_TT := "Methods to contact AeroZoom's creator"
+; Gui, 2:Add, Button, x34 y254 h30 w60 vDonatetemp2, &Donate
+; Donatetemp2_TT := "Donate to support AeroZoom"
+Gui, 2:Add, Button, x94 y254 h30 w60 vContacttemp2, &Contact
+Contacttemp2_TT := "Methods to contact AeroZoom's creator for support"
 Gui, 2:Add, Button, x154 y254 h30 w60 vReadmetemp2, &Readme
 Readmetemp2_TT := "View Readme"
 Gui, 2:Add, Button, x214 y254 h30 w60 Default vOKtemp2, &OK
@@ -9020,15 +9099,17 @@ Gui, 2:Font, s12, Arial bold,
 Gui, 2:Add, Text, , AeroZoom %verAZ% with AeroSnip
 ; Gui, 2:Font, norm,
 Gui, 2:Font, s10, Tahoma, 
-Gui, 2:Add, Text, ,The wheel zoom and presentation kit?`nBetter Magnifier, Snipping Tool and ZoomIt?`nJust thought the idea's neat, so I created It.`n`nAn AutoHotkey-ware by a Cantonese.`nThis software is GPL so completely free.`n`nIf you like this, just love this world still.`nOr donate any $ to any cause you wish.
+Gui, 2:Add, Text, ,The wheel zoom and presentation kit?`nBetter Magnifier, Snipping Tool and ZoomIt?`nJust thought the idea's neat, so I created It.`n`nAn AutoHotkey-ware by a Cantonese.`nThis software is GPL so completely free.`n`nJust love this world if you like this.`nOr donate to me or any cause you please.
 Gui, 2:Font, s10, Tahoma,
-Gui, 2:Add, Text, ,Lastly if you have words to me, send it.`n@Wandersick via Gmail or tweet.
+Gui, 2:Add, Text, ,Lastly if you have words to me, send it.`n@Wandersick via Gmail or a tweet.
 Gui, 2:Font, s10, Arial bold, 
 Gui, 2:Font, CRed, 
 Gui, 2:Add, Text, ,AeroZoom is working in limited mode.
 Gui, 2:Font, CDefault, 
 Gui, 2:Font, s10 Norm, Tahoma
-Gui, 2:Add, Button, x94 y289 h30 w60 vContacttemp2, &Support
+; Gui, 2:Add, Button, x34 y289 h30 w60 vDonatetemp2, &Donate
+; Donatetemp2_TT := "Donate to support AeroZoom"
+Gui, 2:Add, Button, x94 y289 h30 w60 vContacttemp2, &Contact
 Contacttemp2_TT := "Methods to contact AeroZoom's creator"
 Gui, 2:Add, Button, x154 y289 h30 w60 vReadmetemp2, &Readme
 Readmetemp2_TT := "View Readme"
@@ -9042,15 +9123,21 @@ Msgbox, 262144, Default Hotkeys of Sysinternals ZoomIt, Operation Modes`n - Stil
 return
 
 ExtraInstButton:
-Msgbox, 262144, Custom Hotkeys, Before we begin, do you know what a modifier is?`n`nA modifier is a button like Ctrl, Alt, Shift, Win, that we hold before pressing another button to access another feature. Before AeroZoom 2.0, the modifiers supported were only Left and Right mouse buttons. Now, besides using the new modifiers (Ctrl, Alt, Win, Shift, Back, Forward, Middle) for zoom, AeroZoom also makes more Customizable hotkeys out of them. Let's take a look!`n`n1. 'Holding middle button' as a hotkey to automatically switch between 'New snip'/'Preview full screen' (for Windows 7).`n`n2. Sixteen hotkeys made using modifier keys [Ctrl/Alt/Win/Shift] and [Left/Right/Wheel-up/Wheel-down mouse button].`n`n3. Eight hotkeys out of Back and Forward buttons (if your mouse has one).`n`n4. Eight hotkeys out of Left and Right mouse buttons.`n`nBy default, all hotkeys except 'Holding Middle as Trigger' are disabled. To customize them, go to 'Tool > Preferences > Custom Hotkeys', where built-in functions such as these less-known ones: Speak, Google, Eject CD, Timer, Monitor Off, Always On Top or any command or program can be specified.`n`nNote 1: If you are currently using the modifier for zoom, the relevant hotkeys won't be available for editing (greyed out).`n`nNote 2: If AeroZoom is working in Limited mode (go to '? > About' to see), some internal functions may not work.
+Msgbox, 262144, Custom Hotkeys (Experimental), Before we begin, do you know what a modifier is?`n`nA modifier is a button like Ctrl, Alt, Shift, Win, that we hold before pressing another button to access another feature. Before AeroZoom 2.0, the modifiers supported were only Left and Right mouse buttons. Now, besides using the new modifiers (Ctrl, Alt, Win, Shift, Back, Forward, Middle) for zoom, AeroZoom also makes more customizable hotkeys out of them. Let's take a look!`n`n1. 'Holding middle button' as a hotkey to automatically switch between 'New snip'/'Preview full screen' (for Windows 7).`n`n2. Sixteen hotkeys made using modifier keys [Ctrl/Alt/Win/Shift] and [Left/Right/Wheel-up/Wheel-down mouse button].`n`n3. Eight hotkeys out of Back and Forward buttons (if your mouse has one).`n`n4. Eight hotkeys out of Left and Right mouse buttons.`n`nBy default, all hotkeys except 'Hold Middle Button to Trigger' are disabled. To customize them, go to 'Tool > Preferences > Custom Hotkeys', where built-in functions such as these less-known ones: Speak, Google, Eject CD, Timer, Monitor Off, Always On Top or any command or program can be specified.`n`nNote 1: If you are currently using the modifier for zoom, the relevant hotkeys won't be available for editing (greyed out).`n`nNote 2: If AeroZoom is working in Limited mode (go to '? > About' to see), some internal functions may not work.
 return
 
-2ButtonSupport:
+2ButtonDonate:
+Gui 1:-Disabled
+Gui, Destroy
+Run, http://wandersick.blogspot.com/p/donate.html
+return
+
+2ButtonContact:
 Gui, 5:+owner2  ; Make the main window (Gui #1) the owner of the "about box" (Gui #2).
 Gui 2:+Disabled  ; Disable parent window.
 Gui, 5:+ToolWindow
 Gui, 5:Font, s12, Arial bold, 
-Gui, 5:Add, Text, , Contact Wandersick
+Gui, 5:Add, Text, , Contact Wandersick (Ning Ng)
 Gui, 5:Font, norm,
 Gui, 5:Font, s10, Tahoma
 Gui, 5:Add, Text, ,(1) Blog  (2) Email 
@@ -9062,7 +9149,7 @@ BlogTemp_TT := "Visit Wandersick's blog"
 Gui, 5:Add, Text, cBlue gGmail vGmailTemp, wandersick@gmail.com
 GmailTemp_TT := "Email Wandersick"
 Gui, 5:Font, norm
-Gui, 5:Add, Text, ,Please report issues. (English/Chinese)
+Gui, 5:Add, Text, ,Feel free to send usage questions.
 Gui, 5:Add, Button, x213 y169 h30 w60 Default vOKtemp5, &OK
 OKtemp5_TT := "Click to close"
 Gui, 5:Show, w282 h206 , Support
@@ -9158,7 +9245,7 @@ if errorlevel
 ;RegRead,stillZoomDelay,HKCU,Software\WanderSick\AeroZoom,stillZoomDelay
 ;if errorlevel
 ;{
-;	stillZoomDelay=750
+;	stillZoomDelay=800
 ;}
 
 RegRead,delayButton,HKCU,Software\WanderSick\AeroZoom,delayButton
@@ -9296,7 +9383,7 @@ Gui, 3:Add, GroupBox, x12 y160 w180 h250 , Position / Fine-tuning
 Gui, 3:Add, GroupBox, x12 y10 w180 h140 , Buttons
 
 ;Gui, 3:Add, Edit, x132 y350 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vStillZoomDelayTemp, 
-;StillZoomDelayTemp_TT := "How long holding [Middle] button triggers snip/preview. Default: 750 ms (Require program restart)"
+;StillZoomDelayTemp_TT := "How long holding [Middle] button triggers snip/preview. Default: 800 ms (Require program restart)"
 ;Gui, 3:Add, UpDown, x164 y350 w18 h20 vStillZoomDelay Range0-9999, %stillZoomDelay%
 
 Gui, 3:Font, CRed, 
@@ -9340,7 +9427,7 @@ else
 {
 	Checked=Checked0
 }
-Gui, 3:Add, CheckBox, %Checked% -Wrap x22 y533 w170 h30 vRunMagOnStart, Run &Magnifier with AeroZoom
+Gui, 3:Add, CheckBox, %Checked% -Wrap x22 y533 w170 h30 vRunMagOnStart, Run &Magnifier on AZ start
 RunMagOnStart_TT := "Run Magnifier as soon as AeroZoom starts (for better performance). Default: Checked"
 
 Gui, 3:Add, Text, x22 y510 w90 h20 , Search engine
@@ -9920,20 +10007,20 @@ IfExist, %A_StartupCommon%\*AeroZoom*.*
 
 RunWait, "%A_WorkingDir%\Data\AeroZoom_Task.bat","%A_WorkingDir%\",min ; dynamically cre/del task
 if (errorlevel=2) { ; if task existed and has just been successfully deleted
-	Menu, ToolboxMenu, Uncheck, &Run on Startup
+	Menu, FileMenu, Uncheck, &Run on Startup
 	RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, RunOnStartup, 0
 	Msgbox, 262144, AeroZoom, Task successfully removed.
 } else if (errorlevel=3) { ; if task did not exist has just been successfully created
-	Menu, ToolboxMenu, Check, &Run on Startup
+	Menu, FileMenu, Check, &Run on Startup
 	RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, RunOnStartup, 1
 	Msgbox, 262144, AeroZoom, Task successfully created.`n`nAeroZoom will start at boot time with current settings for this user: %A_UserName%`n`nUnder this copy of AeroZoom: %A_WorkingDir%
 } else {
 	Msgbox, 262192, AeroZoom, Sorry. There was a problem creating or deleting task.`n`nMaybe you don't have administrator rights?
 }
 
-Gui, 1:Font, CDefault,
-GuiControl,1:Font,Txt,	
-GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+Gui, 1:Font, c666666
+GuiControl,1:Font,Txt,
+GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 Gui,-Disabled
 GuiControl,Enable,Bye
 
@@ -9948,7 +10035,7 @@ IfExist, %programfiles% (x86)\WanderSick\AeroZoom\AeroZoom.exe
 {
 	if ExistAZ
 	{
-		Menu, ToolboxMenu, Disable, &Install to This Computer
+		Menu, FileMenu, Disable, &Install as Current User
 	}
 	Msgbox, 262192, AeroZoom, Please uninstall AeroZoom from 'Control Panel\Programs and Features' or use Setup.exe /programfiles.
 	ExistAZ=
@@ -9958,7 +10045,7 @@ IfExist, %programfiles%\WanderSick\AeroZoom\AeroZoom.exe
 {
 	if ExistAZ
 	{
-		Menu, ToolboxMenu, Disable, &Install to This Computer
+		Menu, FileMenu, Disable, &Install as Current User
 	}
 	Msgbox, 262192, AeroZoom, Please uninstall AeroZoom from 'Control Panel\Programs and Features' or use Setup.exe /programfiles.
 	ExistAZ=
@@ -10005,11 +10092,11 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 			RunWait, "%A_WorkingDir%\Data\AeroZoom_Task.bat" /cretask /localappdata,"%A_WorkingDir%\",min ; create new one
 			if (errorlevel=3) { ; if created successfully
 				RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, RunOnStartup, 1
-				Menu, ToolboxMenu, Check, &Run on Startup
+				Menu, FileMenu, Check, &Run on Startup
 			}
 		} else if (errorlevel=5) {
 			RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, RunOnStartup, 0
-			Menu, ToolboxMenu, Uncheck, &Run on Startup
+			Menu, FileMenu, Uncheck, &Run on Startup
 		}
 		;IfExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 		;{
@@ -10017,7 +10104,7 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 		;}
 		;IfExist, %A_Startup%\*AeroZoom*.*
 		;{
-		;	Menu, ToolboxMenu, Check, &Run on Startup
+		;	Menu, FileMenu, Check, &Run on Startup
 		;}
 	; Write uninstall entry to registry 
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, DisplayIcon, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe,0
@@ -10051,7 +10138,7 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 		}	
 		if ExistAZ
 		{
-			Menu, ToolboxMenu, Check, &Install to This Computer
+			Menu, FileMenu, Check, &Install as Current User
 		}
 		Msgbox, 262144, AeroZoom, Successfully installed.`n`nAccess the uninstaller in 'Control Panel\Programs and Features'. ; 262144 = Always on top
 	} else {
@@ -10106,12 +10193,12 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 			;**  the uninstaller code below is abandoned.
 			if ExistAZ
 			{
-				Menu, ToolboxMenu, Disable, &Install to This Computer
+				Menu, FileMenu, Disable, &Install as Current User
 			}
 			Msgbox, 262192, AeroZoom, Please uninstall AeroZoom from 'Control Panel\Programs and Features' or use Setup.exe.
-			Gui, 1:Font, CDefault,
+			Gui, 1:Font, c666666
 			GuiControl,1:Font,Txt,	
-			GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+			GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 			Gui,-Disabled
 			GuiControl,Enable,Bye
 			ExistAZ=
@@ -10129,7 +10216,7 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 	RunWait, "%A_WorkingDir%\Data\AeroZoom_Task.bat" /check,"%A_WorkingDir%\",min
 	if (errorlevel=5) {
 		RegWrite, REG_SZ, HKCU, Software\WanderSick\AeroZoom, RunOnStartup, 0
-		Menu, ToolboxMenu, Uncheck, &Run on Startup
+		Menu, FileMenu, Uncheck, &Run on Startup
 	}
 	; remove reg keys
 	RegDelete, HKEY_CURRENT_USER, %regKey%
@@ -10157,7 +10244,7 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 		}
 		if ExistAZ
 		{
-			Menu, ToolboxMenu, Uncheck, &Install to This Computer
+			Menu, FileMenu, Uncheck, &Install as Current User
 		}
 		if zoomitTemp
 		{
@@ -10178,9 +10265,9 @@ IfNotExist, %localappdata%\WanderSick\AeroZoom\AeroZoom.exe
 		Msgbox, 262192, AeroZoom, Uninstallation failed.`n`nPlease ensure this folder is unlocked:`n`n%localappdata%\WanderSick\AeroZoom
 	}
 }
-Gui, 1:Font, CDefault,
+Gui, 1:Font, c666666
 GuiControl,1:Font,Txt,	
-GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 Gui,-Disabled
 GuiControl,Enable,Bye
 ExistAZ=
@@ -10192,14 +10279,14 @@ IfNotExist, %A_WorkingDir%\Data\NirCmd.exe
 if (NirCmd=1) {
 	NirCmd=0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, NirCmd, 0
-	Menu, ToolboxMenu, Uncheck, Save &Captures to Disk
+	Menu, ToolboxMenu, Uncheck, Save &Captures Automatically
 	If (OSver<6.1) {
 		GuiControl,1:, SnipSlider, 1
 	}
 } else {
 	NirCmd=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, NirCmd, 1
-	Menu, ToolboxMenu, Check, Save &Captures to Disk
+	Menu, ToolboxMenu, Check, Save &Captures Automatically
 	If (OSver<6.1) {
 		GuiControl,1:, SnipSlider, 2
 	}
@@ -10226,7 +10313,7 @@ Process, Exist, ZoomIt.exe
 if (errorlevel<>0) {
 	Process, Close, zoomit.exe
 	Process, Close, zoomit64.exe
-	Menu, ToolboxMenu, Uncheck, &Enable ZoomIt
+	Menu, ToolboxMenu, Uncheck, &Use ZoomIt as Magnifier
 	Menu, ViewsMenu, Disable, Sysinternals &ZoomIt
 	zoomit=0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomIt, 0
@@ -10276,7 +10363,7 @@ if (errorlevel<>0) {
 	RegRead,EulaAccepted,HKCU,Software\Sysinternals\ZoomIt,EulaAccepted
 	If not EulaAccepted
 		return
-	Menu, ToolboxMenu, Check, &Enable ZoomIt
+	Menu, ToolboxMenu, Check, &Use ZoomIt as Magnifier
 	Menu, ViewsMenu, Enable, Sysinternals &ZoomIt
 	zoomit=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomIt, 1
@@ -10297,15 +10384,27 @@ if (zoomPad=1) {
 }
 return
 
+ToggleElasticZoom:
+if (ElasticZoom=1) {
+	ElasticZoom=0
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ElasticZoom, 0
+	Menu, ToolboxMenu, Uncheck, Elastic &Zoom
+} else {
+	ElasticZoom=1
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ElasticZoom, 1
+	Menu, ToolboxMenu, Check, Elastic &Zoom
+}
+return
+
 HoldMiddle:
 if (holdMiddle=1) {
 	holdMiddle=0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, holdMiddle, 0
-	Menu, ToolboxMenu, Uncheck, &Hold Middle as Trigger
+	Menu, ToolboxMenu, Uncheck, &Hold Middle Button to Trigger
 } else {
 	holdMiddle=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, holdMiddle, 1
-	Menu, ToolboxMenu, Check, &Hold Middle as Trigger
+	Menu, ToolboxMenu, Check, &Hold Middle Button to Trigger
 }
 return
 
@@ -11673,7 +11772,7 @@ If (A_ThisHotkey="~MButton")
 If not SnippingToolExists
 {
 	IfInString, A_ThisHotkey, MButton
-		MButtonErrorMsg=`n`nTip: You may define the Middle button to do things other than snipping in 'Tool > Preferences > Custom Hotkeys > Holding Middle'.
+		MButtonErrorMsg=`n`nTip: You may define the Middle button to do things other than snipping in 'Tool > Preferences > Custom Hotkeys > Middle'.
 	Else
 		MButtonErrorMsg=
 	If (OSver=6.0) {
@@ -11925,7 +12024,7 @@ Gui, 4:Add, Button, x142 y210 w70 h30 Default g4ButtonOK v4ButtonOKTemp, &OK
 4ButtonOKTemp_TT := "Click to continue"
 Gui, 4:Add, Button, x212 y210 w70 h30 g4ButtonCancel v4ButtonCancelTemp, &Cancel
 4ButtonCancelTemp_TT := "Click to withdraw"
-Gui, 4:Add, Text, x12 y10 w270 h120 , AeroZoom eases mouse operations of Sysinternals ZoomIt`, a free Microsoft magnifier`, with features as ZoomIt Panel`, wheel zoom`, elastic zoom`, Customizable mouse hotkeys`, timer, pen color, black or white board and more via panel slider, buttons and menus.`n`nZoomIt's hotkeys will be set to defaults for it to work.`n`nTo continue`, please specify the path to ZoomIt.exe:
+Gui, 4:Add, Text, x12 y10 w270 h120 , AeroZoom eases mouse operations of Sysinternals ZoomIt`, a free Microsoft magnifier`, with features as ZoomIt Panel (an easy-to-use interface)`, elastic/wheel zoom`, custom hotkeys`, pen color slider, black/white board and more via panel, buttons and menus.`n`nZoomIt's hotkeys will be set to defaults for it to work.`n`nTo continue`, please specify the path to ZoomIt.exe:
 Gui, 4:Show, h252 w298, ZoomIt Enhancements Setup
 return
 
@@ -11985,7 +12084,7 @@ RegRead,MiddleTriggerMsg,HKCU,Software\WanderSick\AeroZoom,MiddleTriggerMsg
 }
 if not HoldMiddle
 {
-	Msgbox, 262180, Umm, 'Hold Middle as Trigger' is currently disabled. Enable it?
+	Msgbox, 262180, Umm, 'Hold Middle Button to Trigger' is currently disabled. Enable it?
 	IfMsgbox Yes
 		gosub, HoldMiddle
 }
@@ -11994,24 +12093,24 @@ Gui, 7:+owner1
 ;Gui, 7:-MinimizeBox -MaximizeBox 
 Gui, 7:+ToolWindow
 Gui, 7:Font, s8, Tahoma
-Gui, 7:Add, Edit, x62 y40 w180 h20 -Multi -WantTab -WantReturn vCustomMiddlePath, %CustomMiddlePath%
-Gui, 7:Add, DropDownList, x186 y10 w115 h10 R40 +AltSubmit vMiddleButtonAction Choose%MiddleButtonAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Preview full screen (7)|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Custom (define)|None
+Gui, 7:Add, Edit, x67 y60 w180 h20 -Multi -WantTab -WantReturn vCustomMiddlePath, %CustomMiddlePath%
+Gui, 7:Add, DropDownList, x191 y30 w115 h21 R42 +AltSubmit vMiddleButtonAction Choose%MiddleButtonAction%, New snip|Kill magnifier|Invert color (7/vista)|Mouse (7/vista)|Keyboard (7/vista)|Text (7/vista)|ZoomIt: Type|ZoomIt: Live zoom|ZoomIt: Still zoom|ZoomIt: Draw|ZoomIt: Timer|ZoomIt: Black|ZoomIt: White|Notepad|Wordpad|Calculator|Preview full screen (7)|Search: on Hover|Search: Highlight|Search: Clipboard|Speak: on Hover|Speak: Highlight|Speak: Clipboard|Monitor off|Eject disc|Always on top|Aero Timer Web|Timer Tab|Zoom faster (7)|Zoom slower (7)|Elastic zoom (7/vista)|Elastic still zoom|Snip: Free (7/vista)|Snip: Rect (7/vista)|Snip: Window (7/vista)|Snip: Screen (7/vista)|Show/hide magnifier|Show/hide panel|Reset Zoom|Reset Magnifier|Custom (define)|None
 MiddleButtonAction_TT := "Choose an action"
-Gui, 7:Add, Text, x12 y16 w172 h20 , Pick an action or 'Custom (define)':
-Gui, 7:Add, Button, x242 y39 w60 h22 v7BrowseTemp, &Browse
+Gui, 7:Add, Text, x17 y36 w172 h20 , Pick an action or 'Custom (define)':
+Gui, 7:Add, Button, x247 y59 w60 h22 v7BrowseTemp, &Browse
 7BrowseTemp_TT := "Browse for an executable"
 CustomMiddlePath_TT := "If 'Custom (define)' is chosen above, specify here a program to run"
-Gui, 7:Add, Text, x12 y45 w50 h20 , Custom:
-Gui, 7:Add, Button, x122 y130 w60 h30 v7OKtemp Default, &OK
+Gui, 7:Add, Text, x17 y65 w50 h20 , Custom:
+Gui, 7:Add, Button, x134 y200 w60 h30 v7OKtemp Default, &OK
 7OKtemp_TT := "Click to save changes"
-Gui, 7:Add, Button, x242 y130 w60 h30 v7HelpTemp, &Help
+Gui, 7:Add, Button, x254 y200 w60 h30 v7HelpTemp, &Help
 7HelpTemp_TT := "Click to get help"
-Gui, 7:Add, Button, x182 y130 w60 h30 v7CancelTemp, &Cancel
+Gui, 7:Add, Button, x194 y200 w60 h30 v7CancelTemp, &Cancel
 7CancelTemp_TT := "Click to cancel changes"
-Gui, 7:Add, Text, x72 y100 w210 h20 , How long to hold the middle button (in ms)
-Gui, 7:Add, Edit, x12 y98 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vStillZoomDelayTemp, 
-StillZoomDelayTemp_TT := "How long holding [Middle] button triggers snip/preview. Default: 750 ms"
-Gui, 7:Add, UpDown, x44 y98 w18 h20 vStillZoomDelay Range0-9999, %stillZoomDelay%
+Gui, 7:Add, Text, x77 y144 w210 h20 , How long to hold the middle button (in ms)
+Gui, 7:Add, Edit, x17 y142 w50 h20 +Center +Limit4 -Multi +Number -WantTab -WantReturn vStillZoomDelayTemp, 
+StillZoomDelayTemp_TT := "How long holding [Middle] button triggers snip/preview. Default: 800 ms"
+Gui, 7:Add, UpDown, x49 y142 w18 h20 vStillZoomDelay Range0-9999, %stillZoomDelay%
 
 if DisableZoomItMiddle ; if checkbox was checked
 {
@@ -12022,10 +12121,32 @@ else
 	Checked=Checked0
 }
 ;Gui, 7:Font, Bold s8, Tahoma
-Gui, 7:Add, CheckBox, %Checked% -Wrap x12 y65 w290 h30 vDisableZoomItMiddle, Legacy: &Disable dynamic switching
+Gui, 7:Add, CheckBox, %Checked% -Wrap x17 y109 w290 h30 vDisableZoomItMiddle, &Disable ZoomIt auto switching (legacy)
 ;Gui, 7:Font, s8, Tahoma
-DisableZoomItMiddle_TT := "If this is checked, middle button performs 'still zoom' instead of the action here when 'Tool > Enable ZoomIt' is on."
-Gui, 7:Show, h168 w312, Holding Middle as Trigger
+DisableZoomItMiddle_TT := "Holding middle does the action specified here instead of 'still zoom' when 'Tool > Use ZoomIt as Magnifier' is on."
+
+if disablePreviewFullScreen ; if checkbox was checked
+{
+	Checked=Checked1
+}
+else
+{
+	Checked=Checked0
+}
+Gui, 7:Add, CheckBox, %Checked% -Wrap x17 y84 w290 h30 vDisablePreviewFullScreen, &Disable Full Screen Preview auto switching
+disablePreviewFullScreen_TT := "When zoomed in, holding middle does the action specified here instead of 'full screen preview' (for 'Full Screen' view of Windows 7 Magnifier.)"
+Gui, 7:Add, GroupBox, x7 y10 w310 h160 , Hold Middle Button to Trigger
+if disableZoomResetHotkey ; if checkbox was checked
+{
+	Checked=Checked1
+}
+else
+{
+	Checked=Checked0
+}
+Gui, 7:Add, CheckBox, %Checked% -Wrap x17 y173 w250 h23 vDisableZoomResetHotkey, &Disable Zoom Reset hotkey (modifier+middle)
+DisableZoomResetHotkey_TT := "For systems that conflicts with the hotkey. (Please report if you need this on.)"
+Gui, 7:Show, h236 h236, Customize Middle
 
 ;if (chkMod=7) { ; if MButton ahk, disable the menu item
 ;	GuiControl,7:Disable,7BrowseTemp
@@ -12040,7 +12161,7 @@ Gui, 7:Show, h168 w312, Holding Middle as Trigger
 return
 
 7ButtonHelp:
-Msgbox, 262208, Help: Customize Holding Middle, Hey! Before I help, I hope you don't mix up this feature with the radio button named 'Middle' down the panel. While that Middle button is held for zooming, this one is about holding the Middle button to run Customizable tasks.`n`nIntroduction: AeroZoom creates a hotkey out of 'holding the middle button'. By default, it automatically switches between 2 operations.`n`n1. When zoomed in`, enter a full screen preview.`n2. When unzoomed`, starts an enhanced regional screen capture with Snipping Tool (AeroSnip).`n`nAlso, if 'Disable dynamic switching' is not on, when unzoomed and ZoomIt is on`, still zoom of ZoomIt will be entered. (As this may interfere with the hotkey customization, it is by default on and disabled since AeroZoom 3.0).`n`nThe default actions above can be customized here, with built-in functions such as these less known ones: Speak, Google, Timer, Eject CD, Monitor Off, Always On Top or any external application or command.`n`nNote 1: Choose 'Custom (define)' from the built-in functions (dropdown menu) before specifying an action in the Custom bar.`n`nNote 2: If the Middle button is used for zoom, this feature needs to be called with another hotkey: [Middle]+[Left].
+Msgbox, 262208, Help: Customize Holding Middle, Please don't mix up this feature with the radio button named 'Middle' down the panel. While that Middle button is held for zooming, this one is about holding it to run customizable tasks.`n`nIntroduction: AeroZoom creates a hotkey out of the action of 'holding the middle button'. By default, triggering it automatically switches between 2 operations.`n`n1. When zoomed in`, enter a full screen preview.`n2. When unzoomed`, starts an enhanced regional screen capture with Snipping Tool (AeroSnip).`n`nAlso, if 'Disable ZoomIt auto switching (legacy)' is unchecked, when unzoomed and ZoomIt is on`, still zoom of ZoomIt will be entered. (As this may interfere with the customizable hotkeys, it is now by default checked i.e. disabled since AeroZoom 3.0).`n`nThe default actions above can be customized here, with built-in functions such as these less known ones: Speak, Google, Timer, Eject CD, Monitor Off, Always On Top or any external application or command.`n`nNote 1: Choose 'Custom (define)' from the built-in functions (dropdown menu) before specifying an action in the Custom bar.`n`nNote 2: If the Middle button is used for zoom, this feature needs to be called with another hotkey: [Middle]+[Left].
 return
 
 7ButtonBrowse:
@@ -12062,6 +12183,8 @@ if CustomMiddlePath
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, CustomMiddlePath, %CustomMiddlePath%
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, MiddleButtonAction, %MiddleButtonAction%
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, DisableZoomItMiddle, %DisableZoomItMiddle%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, DisablePreviewFullScreen, %disablePreviewFullScreen%
+RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, DisableZoomResetHotkey, %disableZoomResetHotkey%
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, stillZoomDelay, %stillZoomDelay%
 
 return
@@ -12980,7 +13103,7 @@ return
 4GuiClose:   ; On "Close" button press
 4GuiEscape:   ; On ESC press
 Gui, 1:-Disabled  ; Re-enable the main window (must be done prior to the next step).
-Menu, ToolboxMenu, Uncheck, &Enable ZoomIt
+Menu, ToolboxMenu, Uncheck, &Use ZoomIt as Magnifier
 Menu, ViewsMenu, Disable, Sysinternals &ZoomIt
 zoomit=0
 RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, ZoomIt, 0
@@ -13014,7 +13137,7 @@ Gui, 1:-Disabled  ; Re-enable the main window
 Gui, Submit ; required to update the user-submitted variable
 Gui, Destroy
 IfWinExist, AeroZoom Panel
-	Menu, ToolboxMenu, Disable, Save &Captures to Disk
+	Menu, ToolboxMenu, Disable, Save &Captures Automatically
 Gui, 1:Font, CRed,
 GuiControl,1:Font,Txt, ; to apply the color change 
 GuiControl,1:,Txt,- Please Wait -
@@ -13025,12 +13148,12 @@ IfNotInString, Haystack, %Needle%
 	IfNotExist, %userNirCmdPath%
 	{
 		Msgbox, 262192, ERROR, File does not exist:`n`n%userNirCmdPath%
-		Gui, 1:Font, CDefault,
+		Gui, 1:Font, c666666
 		GuiControl,1:Font,Txt,	
-		GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+		GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 		;Gui,-Disabled
 		IfWinExist, AeroZoom Panel
-			Menu, ToolboxMenu, Enable, Save &Captures to Disk
+			Menu, ToolboxMenu, Enable, Save &Captures Automatically
 		If (OSver<6.1) { ; vista or xp uses the snipslider
 			GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
 		}
@@ -13040,12 +13163,12 @@ IfNotInString, Haystack, %Needle%
 	IfNotExist, %userNirCmdPath%
 	{
 		Msgbox, 262192, ERROR, File copy failed:`n`n%userNirCmdPath%`n`nEnsure destination is not locked.
-		Gui, 1:Font, CDefault,
+		Gui, 1:Font, c666666
 		GuiControl,1:Font,Txt,	
-		GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+		GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 		;Gui,-Disabled
 		IfWinExist, AeroZoom Panel
-			Menu, ToolboxMenu, Enable, Save &Captures to Disk
+			Menu, ToolboxMenu, Enable, Save &Captures Automatically
 		If (OSver<6.1) { ; vista or xp uses the snipslider
 			GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
 		}
@@ -13064,13 +13187,13 @@ RunWait, "%A_WorkingDir%\Data\3rdparty\wget.exe" -U "Mozilla/5.0 (Windows; U; Wi
 if (errorlevel<>0) {
 	Msgbox, 262192, AeroZoom, Cannot download the file. Check Internet connection.`n`nYou may also manually put NirCmd.exe into:`n`n%A_WorkingDir%\Data
 	FileDelete, %A_WorkingDir%\Data\NirCmd.exe
-	Gui, 1:Font, CDefault,
+	Gui, 1:Font, c666666
 	GuiControl,1:Font,Txt,	
-	GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+	GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 	;Gui,-Disabled
 	GuiControl,1:Enable,Bye
 	IfWinExist, AeroZoom Panel
-		Menu, ToolboxMenu, Enable, Save &Captures to Disk
+		Menu, ToolboxMenu, Enable, Save &Captures Automatically
 	If (OSver<6.1) { ; vista or xp uses the snipslider
 		GuiControl,1:, SnipSlider, 1 ; restore slider to original position on cancel
 	}
@@ -13081,13 +13204,13 @@ if (errorlevel<>0) {
 If onTopBit
 	Gui, 1:+AlwaysOnTop
 SkipNirCmdDownload:
-Gui, 1:Font, CDefault,
+Gui, 1:Font, c666666
 GuiControl,1:Font,Txt,	
-GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 GuiControl,1:Enable,Bye
 ;Gui,-Disabled
 IfWinExist, AeroZoom Panel
-	Menu, ToolboxMenu, Enable, Save &Captures to Disk
+	Menu, ToolboxMenu, Enable, Save &Captures Automatically
 if not onlyDownloadNirCmd
 {
 	Msgbox, 262144, AeroZoom, Success.
@@ -13102,7 +13225,7 @@ return
 Gui, 1:-Disabled  ; Re-enable the main window
 Gui, Submit ; required to update the user-submitted variable
 Gui, Destroy
-Menu, ToolboxMenu, Disable, &Enable ZoomIt
+Menu, ToolboxMenu, Disable, &Use ZoomIt as Magnifier
 Gui, 1:Font, CRed,
 GuiControl,1:Font,Txt, ; to apply the color change 
 GuiControl,1:,Txt,- Please Wait -
@@ -13121,22 +13244,22 @@ IfNotInString, Haystack, %Needle%
 	IfNotExist, %userZoomItPath%
 	{
 		Msgbox, 262192, ERROR, File does not exist:`n`n%userZoomItPath%
-		Gui, 1:Font, CDefault,
+		Gui, 1:Font, c666666
 		GuiControl,1:Font,Txt,	
-		GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+		GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 		;Gui,-Disabled
-		Menu, ToolboxMenu, Enable, &Enable ZoomIt
+		Menu, ToolboxMenu, Enable, &Use ZoomIt as Magnifier
 		return
 	}
 	FileCopy, %userZoomItPath%, %A_WorkingDir%\Data\ZoomIt.exe
 	IfNotExist, %userZoomItPath%
 	{
 		Msgbox, 262192, ERROR, File copy failed:`n`n%userZoomItPath%`n`nEnsure destination is not locked.
-		Gui, 1:Font, CDefault,
+		Gui, 1:Font, c666666
 		GuiControl,1:Font,Txt,	
-		GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+		GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 		;Gui,-Disabled
-		Menu, ToolboxMenu, Enable, &Enable ZoomIt
+		Menu, ToolboxMenu, Enable, &Use ZoomIt as Magnifier
 		return
 	}
 	goto, SkipZoomItDownload
@@ -13152,12 +13275,12 @@ RunWait, "%A_WorkingDir%\Data\3rdparty\wget.exe" -U "Mozilla/5.0 (Windows; U; Wi
 if (errorlevel<>0) {
 	Msgbox, 262192, AeroZoom, Cannot download the file. Check Internet connection.`n`nYou may also manually put zoomit.exe into:`n`n%A_WorkingDir%\Data
 	FileDelete, %A_WorkingDir%\Data\ZoomIt.exe
-	Gui, 1:Font, CDefault,
+	Gui, 1:Font, c666666
 	GuiControl,1:Font,Txt,	
-	GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+	GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 	;Gui,-Disabled
 	GuiControl,1:Enable,Bye
-	Menu, ToolboxMenu, Enable, &Enable ZoomIt
+	Menu, ToolboxMenu, Enable, &Use ZoomIt as Magnifier
 	If onTopBit
 		Gui, 1:+AlwaysOnTop
 	return
@@ -13165,10 +13288,10 @@ if (errorlevel<>0) {
 If onTopBit
 	Gui, 1:+AlwaysOnTop
 SkipZoomItDownload:
-Gui, 1:Font, CDefault,
+Gui, 1:Font, c666666
 GuiControl,1:Font,Txt,	
-Menu, ToolboxMenu, Enable, &Enable ZoomIt
-GuiControl,1:,Txt, AeroZoom v%verAZ% ; v%verAZ%
+Menu, ToolboxMenu, Enable, &Use ZoomIt as Magnifier
+GuiControl,1:,Txt, A e r o Z o o m ; v%verAZ%
 GuiControl,1:Enable,Bye
 ;Gui,-Disabled
 Msgbox, 262144, AeroZoom, Success.`n`nZoomIt will run in system tray alongside AeroZoom from now on.`n`nFunctions of ZoomIt such as pen color are accessible with slider and buttons on the AeroZoom Panel. Enable/disable this feature (ZoomIt Panel) anytime by clicking the small 'zoom' button near the bottom of the panel.`n`nElastic still zoom is also available now. You may press [Shift+Caps Lock] to try it after clicking OK. (Note: Elastic live zoom [Ctrl+Caps Lock] requires Vista or later.)`n`nYou may also define hotkeys to access any ZoomIt functions more conveniently at 'Tool > Preferences > Custom Hotkeys.`n`nStill/Live Zoom of ZoomIt is automatically used for wheel-zoom on systems without Aero (Windows 7 Home Basic/Starter) or older systems (Vista/XP).`n`nFor usage and help, press [Win]+[Alt]+[Q] anytime, or go to '? > Quick Instructions > ZoomIt'.
@@ -13302,7 +13425,7 @@ If not configGuidance
 {
 	if not GuideDisabled
 	{
-		Msgbox, 262144, This message will only be shown once, While the program of AeroZoom is portable, its settings are specific to each PC, so that incompatibility between different Windows versions can be prevented. In case you really want to use the old settings, the automatic backup may be used. AeroZoom automatically backs up its settings up to last 30 days on exit (for user accounts with admin rights only) in the following folder:`n`n%A_WorkingDir%\Data\ConfigBackup\`n`nYou can import them at 'Az > Configuration File > Import Settings'.`nOr, manually export them anytime at 'Configuration File > Export Settings'.`n`nNote: If possible, do not import settings from a different Windows version. In any case, AeroZoom tries it best to avoid misbehavior.
+		Msgbox, 262144, This message will only be shown once, While the program files of AeroZoom is portable, settings are specific to each PC in order to prevent incompatibility between different Windows versions.`n`nIn case you want to load previous settings, AeroZoom automatically backs up its settings up to last 30 days on exit (for admin users only) in the following folder:`n`n%A_WorkingDir%\Data\ConfigBackup\`n`nThey can be loaded at 'Az > Configuration File > Import Settings'.`nOr manually exported anytime at 'Configuration File > Export Settings'.`n`nAdvice: If possible, do not import settings from a different Windows version. In any case, AeroZoom tries it best to avoid misbehavior. If misbehavior is observed, please reset AeroZoom to factory settings at 'Tool > Preferences > Advanced Options > Reset'.
 		configGuidance = 1
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, configGuidance, 1
 	}
@@ -13403,7 +13526,7 @@ if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) { ; elastic zoo
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -13420,7 +13543,7 @@ if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) { ; elastic zoo
 	Process, Exist, zoomit.exe
 	If not errorlevel
 	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 		return
 	}
 	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -13449,7 +13572,7 @@ ElasticStillZoom:
 Process, Exist, zoomit.exe
 If not errorlevel
 {
-	Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Enable ZoomIt'.
+	Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
 	return
 }
 IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
@@ -13687,9 +13810,11 @@ if zoomitStill
 	zoomitStill=1
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitStill, 1
 	Menu, ToolboxMenu, Check, Wheel with ZoomIt (&Still)
-	zoomitLive=
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLive, 0
-	Menu, ToolboxMenu, Uncheck, Wheel with ZoomIt (&Live)
+	If (OSver>6) {
+		zoomitLive=
+		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\WanderSick\AeroZoom, zoomitLive, 0
+		Menu, ToolboxMenu, Uncheck, Wheel with ZoomIt (&Live)
+	}
 	gosub, resetZoom ; restore zoom level (if zoomed in)
 	Process, Exist, ZoomIt.exe
 	if not errorlevel
@@ -14161,7 +14286,7 @@ if zoomitPanel
 	If (OSver<6.1) {
 		Menu, FileMenu, Uncheck, Switch to Capture-to-&Disk Slider
 	}
-	Menu, FileMenu, Rename, Disable ZoomIt &Panel, Enable ZoomIt &Panel
+	Menu, FileMenu, Rename, Go to Windows Magnifier &Panel, Go to ZoomIt &Panel
 	if (SwitchSlider=1) {
 		GuiControl, Enable, ZoomInc
 		GuiControl, Show, ZoomInc
@@ -14278,7 +14403,7 @@ if zoomitPanel
 		GuiControl, Disable, SnipMode
 		GuiControl, Hide, SnipMode
 	}
-	Menu, FileMenu, Rename, Enable ZoomIt &Panel, Disable ZoomIt &Panel
+	Menu, FileMenu, Rename, Go to ZoomIt &Panel, Go to Windows Magnifier &Panel
 	GuiControlGet, SliderExists, , ZoomItColor
 	if errorlevel ;if slider not created yet
 		Gui, Add, Slider, TickInterval1 Range1-6 x12 y3 w120 h25 vZoomItColor gZoomItColorPreview, %ZoomItColor%
@@ -14335,7 +14460,7 @@ if errorlevel
 {
 	If (OSver>=6.1) AND !(!A_IsAdmin AND EnableLUA)
 	{
-		zoomitLiveTempMsg=`n`nAlso, there is a problem with the Full Screen view of Windows Magnifier and the Live Zoom mode of ZoomIt working together, where the cursor is lost after zooming out. As a workaround, AeroZoom will kill the magnifier (in affected situations only) right after 'Live Zoom' is triggered. (If you do want to use Live Zoom with AeroZoom on Windows 7, you may also go to 'Tool > Preferences > Advanced Options', uncheck 'Run Magnifier with AeroZoom'.)
+		zoomitLiveTempMsg=`n`nAlso, there is a problem with the Full Screen view of Windows Magnifier and the Live Zoom mode of ZoomIt working together, where the cursor is lost after zooming out. As a workaround, AeroZoom will kill the magnifier (in affected situations only) right after 'Live Zoom' is triggered. (If you do want to use Live Zoom with AeroZoom on Windows 7, you may also go to 'Tool > Preferences > Advanced Options', uncheck 'Run Magnifier on AZ start'.)
 	}
 	If (OSver>=6.1 AND EditionID<>"Starter" AND EditionID<>"HomeBasic")
 		zoomitLiveTempMsg2=`n`nIf you are already using Windows 7 Home Premium (or better) and have Aero, it is suggested not using this as Windows 7 Magnifier's own full-screen zoom is already great.
@@ -14416,8 +14541,47 @@ uiMove:
 PostMessage, 0xA1, 2,,, A 
 Return
 
+
+; ------------------------------------------
+; Some random unorganized notes for internal use:
+
+; First step: use LButton as base, make a copy of it. uncomment LButton & Wheelup, LButton & WheelDown, LButton & MButton in the copy. Then use the copy as base for all other ahk.
+
+; * For each modifier.ahk, search for '~LButton & ' and replace it with '~RButton &' '~MButton &' '~XButton1 &' '~XButton2 &'  '!' '^' '+' '#'
+; * For middle.ahk, uncomment mbutton & rbutton (and del ~LButton & MButton)
+;   replace mbutton:: with ~MButton & LButton:: and delete some lines there
+; * Search ;; for X1 and X2, but theres no need to do anything on them now. they are the same as others
+; * For each modifier except MButton, because the zoom has taken mod+wup/wdown and mod+mbutton, the hotkey customization bit is not usable. remove the duplicated modifier.
+;   e.g. in Ctrl ahk, comment/del ~^Wheelup and ~^Wheeldown due to hotkey customization (~^LButton and ~^RButton can be kept though)
+; * in RButton ahk (already done for LButton), remove as well the custom hotkey mod+mbutton (since Custom Hotkey for Left/Right includes the Mbutton)
+;   e.g. In RButton ahk, comment/del custom hotkey's "~RButton & MButton::" (the 2nd one, not the 1st one), ensure uncomment "~LButton & MButton::", (vice versa in LButton ahk but should be done if used as base)
+;        In all other ahk except LButton/RButton, ensure uncomment both
+
+; Before release
+; - Set read-only flag for Readme and Tips, bat vbs
+; - Be sure to update the updater.bat search terms
+; - Check setup.ahk for more things (e.g. update verAZ)
+; - Update verAZ in setup.ahk and all mod ahk
+; - Update Product version in .ahk.ini (no need scripts that need AutoHotKey_L Unicode )
+; - Update src (Readme, etc.) in ahk.7z (removed to redirect people to Github)
+; - Empty configbackup folder
+; - Delete ZoomIt.exe, NirCmd.exe
+
+; Remember to create separate x64 executables (note: .ahk and _x64.ahk are exactly the same scripts. just compile them with different compilers)
+; .ahk.ini aren't used for e.g. AeroZoom_Mouse*.ahk scripts because Compile AHK II doesnt seem to support 64bit AutoHotkey_L Unicode (or 32bit AutoHotkey_L Unicode)
+; Compile x64 main files with AutoHotkey_L 64bit unicode (during ahk installation choose Unicode 64bit)
+; Compile x86 main files with AutoHotkey_L 32bit unicode in order to google in Chinese, Japanese, etc. (during ahk installation choose Unicode 32bit)
+; Compile only ZoomPad, OpenTray, DisableUAC, OSD, Setup, AeroZoom.exe with original 32bit AutoHotkey to keep size small...(not AutoHotkey_L's ANSI mode) (with Compile AHK II for setting metadata)
+; * note: compiling across x64 and x86 requires 2 systems. (or 2 VMs)
+; Test all functions and modifier executables under x86 and x64 systems. Compiling all ahk at once causes problems at times.
+
+; When a new version of AeroZoom is installed, any found old copy is upgraded. This is usually fine except new default settings won't apply as old settings are respected. So it's recommended to do a reset in 'Tool > Preferences > Advanced Options > Reset' anyway.
+; Programmer's note: don't change some important key functions (e.g. default no and order of Custom Hotkey items). Upgrading will still cause problems. Create a new variable in that case.
+; ------------------------------------------
+
+
 ; EmailBugs:
 ; Run, mailto:wandersick+aerozoom@gmail.com?subject=AeroZoom %verAZ% Bug Report&body=Please describe your problem.
 ; return
 
-; (c) Copyright 2009-2011 AeroZoom by wandersick | http://wandersick.blogspot.com
+; (c) Copyright 2009-2011 AeroZoom by Ning Ng (Wandersick) | http://wandersick.blogspot.com

@@ -1442,7 +1442,7 @@ return
 
 ; ----------------------------------------------------- Left Button Assignment START
 
-~RButton & WheelUp::
+~LButton & WheelUp::
 if paused
 	return
 IfWinExist, ahk_class MagnifierClass  ; if zoomit is working, enhance it instead
@@ -1508,7 +1508,7 @@ if (OSver=6.0 AND !zoomitStill) OR (OSver>=6.1 AND zoomitLive=1) {
 }
 return
 
-~RButton & WheelDown::
+~LButton & WheelDown::
 if paused
 	return
 IfWinExist, ahk_class MagnifierClass ; if zoomit is working, enhance it instead
@@ -1631,7 +1631,7 @@ goto, resetZoom
 ; dontHideMag = 1
 goto, resetZoom
 
-~RButton & MButton::
+~LButton & MButton::
 if paused
 	return
 if disableZoomResetHotkey
@@ -5967,176 +5967,176 @@ return
 
 ;; Customize Left/Right - Start
 
-~LButton & MButton::
-if (LeftMiddleAction=41) { ; 41 = None
-	return
-}
-if not paused {
-	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
-	if (LeftMiddleAction<>38 AND LeftMiddleAction<>26 AND LeftMiddleAction<>18 AND LeftMiddleAction<>19 AND LeftMiddleAction<>21 AND LeftMiddleAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
-		Gosub, ZoomPad
-		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
-			padStayTimeTemp:=padStayTime*2
-			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
-		}
-	}
-	if (LeftMiddleAction=1) { 
-		Gosub, SnippingTool
-	} else if (LeftMiddleAction=2) { 
-		GoSub, KillMagnifierHK
-	} else if (LeftMiddleAction=3) { 
-		Gosub, ColorHK
-	} else if (LeftMiddleAction=4) { 
-		Gosub, MouseHK
-	} else if (LeftMiddleAction=5) { 
-		Gosub, KeyboardHK
-	} else if (LeftMiddleAction=6) { 
-		Gosub, TextHK
-	} else if (LeftMiddleAction=7) {
-		Process, Exist, zoomit.exe
-		If not errorlevel
-		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-			return
-		}
-		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-			goto, zoomit
-		if not zoomItGuidance
-			Gosub, ZoomItGuidance
-		goto, ViewType
-	} else if (LeftMiddleAction=8) {
-		Process, Exist, zoomit.exe
-		If not errorlevel
-		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-			return
-		}
-		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-			goto, zoomit
-		if not zoomItGuidance
-			Gosub, ZoomItGuidance
-		goto, ViewLiveZoom
-	} else if (LeftMiddleAction=9) { 
-		Process, Exist, zoomit.exe
-		If not errorlevel
-		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-			return
-		}
-		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-			goto, zoomit
-		if not zoomItGuidance
-			Gosub, ZoomItGuidance
-		goto, ViewStillZoom
-	} else if (LeftMiddleAction=10) { 
-		Process, Exist, zoomit.exe
-		If not errorlevel
-		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-			return
-		}
-		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-			goto, zoomit
-		if not zoomItGuidance
-			Gosub, ZoomItGuidance
-		goto, ViewDraw
-	} else if (LeftMiddleAction=11) { 
-		Process, Exist, zoomit.exe
-		If not errorlevel
-		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-			return
-		}
-		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-			goto, zoomit
-		if not zoomItGuidance
-			Gosub, ZoomItGuidance
-		goto, ViewBreakTimer
-	} else if (LeftMiddleAction=12) { 
-		Process, Exist, zoomit.exe
-		If not errorlevel
-		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-			return
-		}
-		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-			goto, zoomit
-		if not zoomItGuidance
-			Gosub, ZoomItGuidance
-		goto, ViewBlackBoard
-	} else if (LeftMiddleAction=13) { 
-		Process, Exist, zoomit.exe
-		If not errorlevel
-		{
-			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-			return
-		}
-		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-			goto, zoomit
-		if not zoomItGuidance
-			Gosub, ZoomItGuidance
-		goto, ViewWhiteBoard
-	} else if (LeftMiddleAction=14) { 
-		goto, notepad
-	} else if (LeftMiddleAction=15) { 
-		goto, wordpad
-	} else if (LeftMiddleAction=16) { 
-		goto, mscalc
-	} else if (LeftMiddleAction=17) { 
-		gosub, mspaint
-	} else if (LeftMiddleAction=18) {
-		goto, Google
-	} else if (LeftMiddleAction=19) {
-		goto, GoogleHighlight
-	} else if (LeftMiddleAction=20) {
-		goto, GoogleClipboard
-	} else if (LeftMiddleAction=21) {
-		goto, SpeakIt
-	} else if (LeftMiddleAction=22) {
-		goto, SpeakHighlight
-	} else if (LeftMiddleAction=23) {
-		goto, SpeakClipboard
-	} else if (LeftMiddleAction=24) {
-		goto, MonitorOff
-	} else if (LeftMiddleAction=25) {
-		goto, OpenTray
-	} else if (LeftMiddleAction=26) {
-		goto, AlwaysOnTop
-	} else if (LeftMiddleAction=27) {
-		goto, WebTimer
-	} else if (LeftMiddleAction=28) {
-		goto, TimerTab
-	} else if (LeftMiddleAction=29) {
-		goto, ZoomFaster
-	} else if (LeftMiddleAction=30) {
-		goto, ZoomSlower
-	} else if (LeftMiddleAction=31) {
-		hotkeyMod=Left
-		goto, ElasticZoom
-	} else if (LeftMiddleAction=32) {				
-		hotkeyMod=Left
-		goto, ElasticStillZoom
-	} else if (LeftMiddleAction=33) {				
-		goto, SnipFree
-	} else if (LeftMiddleAction=34) {				
-		goto, SnipRect
-	} else if (LeftMiddleAction=35) {				
-		goto, SnipWin
-	} else if (LeftMiddleAction=36) {				
-		goto, SnipScreen
-	} else if (LeftMiddleAction=37) {				
-		Gosub, ShowMagnifierHK ; show hide magnifier
-	} else if (LeftMiddleAction=38) {				
-		goto, showHidePanel
-	} else if (LeftMiddleAction=39) {
-		sendinput ^!{Space}
-	} else if (LeftMiddleAction=40) {
-		Run, %CustomLeftMiddlePath%
-	} else {
-		return ; this is unneeded
-	}
-}
-return
+;~LButton & MButton::
+;if (LeftMiddleAction=41) { ; 41 = None
+;	return
+;}
+;if not paused {
+;	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+;	if (LeftMiddleAction<>38 AND LeftMiddleAction<>26 AND LeftMiddleAction<>18 AND LeftMiddleAction<>19 AND LeftMiddleAction<>21 AND LeftMiddleAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+;		Gosub, ZoomPad
+;		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+;			padStayTimeTemp:=padStayTime*2
+;			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+;		}
+;	}
+;	if (LeftMiddleAction=1) { 
+;		Gosub, SnippingTool
+;	} else if (LeftMiddleAction=2) { 
+;		GoSub, KillMagnifierHK
+;	} else if (LeftMiddleAction=3) { 
+;		Gosub, ColorHK
+;	} else if (LeftMiddleAction=4) { 
+;		Gosub, MouseHK
+;	} else if (LeftMiddleAction=5) { 
+;		Gosub, KeyboardHK
+;	} else if (LeftMiddleAction=6) { 
+;		Gosub, TextHK
+;	} else if (LeftMiddleAction=7) {
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewType
+;	} else if (LeftMiddleAction=8) {
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewLiveZoom
+;	} else if (LeftMiddleAction=9) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewStillZoom
+;	} else if (LeftMiddleAction=10) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewDraw
+;	} else if (LeftMiddleAction=11) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewBreakTimer
+;	} else if (LeftMiddleAction=12) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewBlackBoard
+;	} else if (LeftMiddleAction=13) { 
+;		Process, Exist, zoomit.exe
+;		If not errorlevel
+;		{
+;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+;			return
+;		}
+;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+;			goto, zoomit
+;		if not zoomItGuidance
+;			Gosub, ZoomItGuidance
+;		goto, ViewWhiteBoard
+;	} else if (LeftMiddleAction=14) { 
+;		goto, notepad
+;	} else if (LeftMiddleAction=15) { 
+;		goto, wordpad
+;	} else if (LeftMiddleAction=16) { 
+;		goto, mscalc
+;	} else if (LeftMiddleAction=17) { 
+;		gosub, mspaint
+;	} else if (LeftMiddleAction=18) {
+;		goto, Google
+;	} else if (LeftMiddleAction=19) {
+;		goto, GoogleHighlight
+;	} else if (LeftMiddleAction=20) {
+;		goto, GoogleClipboard
+;	} else if (LeftMiddleAction=21) {
+;		goto, SpeakIt
+;	} else if (LeftMiddleAction=22) {
+;		goto, SpeakHighlight
+;	} else if (LeftMiddleAction=23) {
+;		goto, SpeakClipboard
+;	} else if (LeftMiddleAction=24) {
+;		goto, MonitorOff
+;	} else if (LeftMiddleAction=25) {
+;		goto, OpenTray
+;	} else if (LeftMiddleAction=26) {
+;		goto, AlwaysOnTop
+;	} else if (LeftMiddleAction=27) {
+;		goto, WebTimer
+;	} else if (LeftMiddleAction=28) {
+;		goto, TimerTab
+;	} else if (LeftMiddleAction=29) {
+;		goto, ZoomFaster
+;	} else if (LeftMiddleAction=30) {
+;		goto, ZoomSlower
+;	} else if (LeftMiddleAction=31) {
+;		hotkeyMod=Left
+;		goto, ElasticZoom
+;	} else if (LeftMiddleAction=32) {				
+;		hotkeyMod=Left
+;		goto, ElasticStillZoom
+;	} else if (LeftMiddleAction=33) {				
+;		goto, SnipFree
+;	} else if (LeftMiddleAction=34) {				
+;		goto, SnipRect
+;	} else if (LeftMiddleAction=35) {				
+;		goto, SnipWin
+;	} else if (LeftMiddleAction=36) {				
+;		goto, SnipScreen
+;	} else if (LeftMiddleAction=37) {				
+;		Gosub, ShowMagnifierHK ; show hide magnifier
+;	} else if (LeftMiddleAction=38) {				
+;		goto, showHidePanel
+;	} else if (LeftMiddleAction=39) {
+;		sendinput ^!{Space}
+;	} else if (LeftMiddleAction=40) {
+;		Run, %CustomLeftMiddlePath%
+;	} else {
+;		return ; this is unneeded
+;	}
+;}
+;return
 
 ~LButton & RButton::
 if (LeftRightAction=41) { ; 41 = None
@@ -6480,533 +6480,208 @@ if not paused {
 }
 return
 
-;~RButton & MButton::
-;if (RightMiddleAction=41) { ; 41 = None
-;	return
-;}
-;if not paused {
-;	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
-;	if (RightMiddleAction<>38 AND RightMiddleAction<>26 AND RightMiddleAction<>18 AND RightMiddleAction<>19 AND RightMiddleAction<>21 AND RightMiddleAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
-;		Gosub, ZoomPad
-;		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
-;			padStayTimeTemp:=padStayTime*2
-;			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
-;		}
-;	}
-;	if (RightMiddleAction=1) { 
-;		Gosub, SnippingTool
-;	} else if (RightMiddleAction=2) { 
-;		GoSub, KillMagnifierHK
-;	} else if (RightMiddleAction=3) { 
-;		Gosub, ColorHK
-;	} else if (RightMiddleAction=4) { 
-;		Gosub, MouseHK
-;	} else if (RightMiddleAction=5) { 
-;		Gosub, KeyboardHK
-;	} else if (RightMiddleAction=6) { 
-;		Gosub, TextHK
-;	} else if (RightMiddleAction=7) {
-;		Process, Exist, zoomit.exe
-;		If not errorlevel
-;		{
-;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-;			return
-;		}
-;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-;			goto, zoomit
-;		if not zoomItGuidance
-;			Gosub, ZoomItGuidance
-;		goto, ViewType
-;	} else if (RightMiddleAction=8) {
-;		Process, Exist, zoomit.exe
-;		If not errorlevel
-;		{
-;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-;			return
-;		}
-;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-;			goto, zoomit
-;		if not zoomItGuidance
-;			Gosub, ZoomItGuidance
-;		goto, ViewLiveZoom
-;	} else if (RightMiddleAction=9) { 
-;		Process, Exist, zoomit.exe
-;		If not errorlevel
-;		{
-;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-;			return
-;		}
-;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-;			goto, zoomit
-;		if not zoomItGuidance
-;			Gosub, ZoomItGuidance
-;		goto, ViewStillZoom
-;	} else if (RightMiddleAction=10) { 
-;		Process, Exist, zoomit.exe
-;		If not errorlevel
-;		{
-;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-;			return
-;		}
-;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-;			goto, zoomit
-;		if not zoomItGuidance
-;			Gosub, ZoomItGuidance
-;		goto, ViewDraw
-;	} else if (RightMiddleAction=11) { 
-;		Process, Exist, zoomit.exe
-;		If not errorlevel
-;		{
-;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-;			return
-;		}
-;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-;			goto, zoomit
-;		if not zoomItGuidance
-;			Gosub, ZoomItGuidance
-;		goto, ViewBreakTimer
-;	} else if (RightMiddleAction=12) { 
-;		Process, Exist, zoomit.exe
-;		If not errorlevel
-;		{
-;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-;			return
-;		}
-;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-;			goto, zoomit
-;		if not zoomItGuidance
-;			Gosub, ZoomItGuidance
-;		goto, ViewBlackBoard
-;	} else if (RightMiddleAction=13) { 
-;		Process, Exist, zoomit.exe
-;		If not errorlevel
-;		{
-;			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-;			return
-;		}
-;		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-;			goto, zoomit
-;		if not zoomItGuidance
-;			Gosub, ZoomItGuidance
-;		goto, ViewWhiteBoard
-;	} else if (RightMiddleAction=14) { 
-;		goto, notepad
-;	} else if (RightMiddleAction=15) { 
-;		goto, wordpad
-;	} else if (RightMiddleAction=16) { 
-;		goto, mscalc
-;	} else if (RightMiddleAction=17) { 
-;		gosub, mspaint
-;	} else if (RightMiddleAction=18) {
-;		goto, Google
-;	} else if (RightMiddleAction=19) {
-;		goto, GoogleHighlight
-;	} else if (RightMiddleAction=20) {
-;		goto, GoogleClipboard
-;	} else if (RightMiddleAction=21) {
-;		goto, SpeakIt
-;	} else if (RightMiddleAction=22) {
-;		goto, SpeakHighlight
-;	} else if (RightMiddleAction=23) {
-;		goto, SpeakClipboard
-;	} else if (RightMiddleAction=24) {
-;		goto, MonitorOff
-;	} else if (RightMiddleAction=25) {
-;		goto, OpenTray
-;	} else if (RightMiddleAction=26) {
-;		goto, AlwaysOnTop
-;	} else if (RightMiddleAction=27) {
-;		goto, WebTimer
-;	} else if (RightMiddleAction=28) {
-;		goto, TimerTab
-;	} else if (RightMiddleAction=29) {
-;		goto, ZoomFaster
-;	} else if (RightMiddleAction=30) {
-;		goto, ZoomSlower
-;	} else if (RightMiddleAction=31) {
-;		hotkeyMod=Right
-;		goto, ElasticZoom
-;	} else if (RightMiddleAction=32) {				
-;		hotkeyMod=Right
-;		goto, ElasticStillZoom
-;	} else if (RightMiddleAction=33) {				
-;		goto, SnipFree
-;	} else if (RightMiddleAction=34) {				
-;		goto, SnipRect
-;	} else if (RightMiddleAction=35) {				
-;		goto, SnipWin
-;	} else if (RightMiddleAction=36) {				
-;		goto, SnipScreen
-;	} else if (RightMiddleAction=37) {				
-;		Gosub, ShowMagnifierHK ; show hide magnifier
-;	} else if (RightMiddleAction=38) {				
-;		goto, showHidePanel
-;	} else if (RightMiddleAction=39) {
-;		sendinput ^!{Space}
-;	} else if (RightMiddleAction=40) {
-;		Run, %CustomRightMiddlePath%
-;	} else {
-;		return ; this is unneeded
-;	}
-;}
-;return
+~RButton & MButton::
+if (RightMiddleAction=41) { ; 41 = None
+	return
+}
+if not paused {
+	; *** specially launching zoompad (to prevent back/forward misclikcks) before snipping but be sure to exit it before launching snipping tool
+	if (RightMiddleAction<>38 AND RightMiddleAction<>26 AND RightMiddleAction<>18 AND RightMiddleAction<>19 AND RightMiddleAction<>21 AND RightMiddleAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel), speak and google (except 2 clipboard versions) and 'always on top' 
+		Gosub, ZoomPad
+		if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+			padStayTimeTemp:=padStayTime*2
+			Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+		}
+	}
+	if (RightMiddleAction=1) { 
+		Gosub, SnippingTool
+	} else if (RightMiddleAction=2) { 
+		GoSub, KillMagnifierHK
+	} else if (RightMiddleAction=3) { 
+		Gosub, ColorHK
+	} else if (RightMiddleAction=4) { 
+		Gosub, MouseHK
+	} else if (RightMiddleAction=5) { 
+		Gosub, KeyboardHK
+	} else if (RightMiddleAction=6) { 
+		Gosub, TextHK
+	} else if (RightMiddleAction=7) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewType
+	} else if (RightMiddleAction=8) {
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewLiveZoom
+	} else if (RightMiddleAction=9) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewStillZoom
+	} else if (RightMiddleAction=10) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewDraw
+	} else if (RightMiddleAction=11) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBreakTimer
+	} else if (RightMiddleAction=12) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewBlackBoard
+	} else if (RightMiddleAction=13) { 
+		Process, Exist, zoomit.exe
+		If not errorlevel
+		{
+			Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+			return
+		}
+		IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+			goto, zoomit
+		if not zoomItGuidance
+			Gosub, ZoomItGuidance
+		goto, ViewWhiteBoard
+	} else if (RightMiddleAction=14) { 
+		goto, notepad
+	} else if (RightMiddleAction=15) { 
+		goto, wordpad
+	} else if (RightMiddleAction=16) { 
+		goto, mscalc
+	} else if (RightMiddleAction=17) { 
+		gosub, mspaint
+	} else if (RightMiddleAction=18) {
+		goto, Google
+	} else if (RightMiddleAction=19) {
+		goto, GoogleHighlight
+	} else if (RightMiddleAction=20) {
+		goto, GoogleClipboard
+	} else if (RightMiddleAction=21) {
+		goto, SpeakIt
+	} else if (RightMiddleAction=22) {
+		goto, SpeakHighlight
+	} else if (RightMiddleAction=23) {
+		goto, SpeakClipboard
+	} else if (RightMiddleAction=24) {
+		goto, MonitorOff
+	} else if (RightMiddleAction=25) {
+		goto, OpenTray
+	} else if (RightMiddleAction=26) {
+		goto, AlwaysOnTop
+	} else if (RightMiddleAction=27) {
+		goto, WebTimer
+	} else if (RightMiddleAction=28) {
+		goto, TimerTab
+	} else if (RightMiddleAction=29) {
+		goto, ZoomFaster
+	} else if (RightMiddleAction=30) {
+		goto, ZoomSlower
+	} else if (RightMiddleAction=31) {
+		hotkeyMod=Right
+		goto, ElasticZoom
+	} else if (RightMiddleAction=32) {				
+		hotkeyMod=Right
+		goto, ElasticStillZoom
+	} else if (RightMiddleAction=33) {				
+		goto, SnipFree
+	} else if (RightMiddleAction=34) {				
+		goto, SnipRect
+	} else if (RightMiddleAction=35) {				
+		goto, SnipWin
+	} else if (RightMiddleAction=36) {				
+		goto, SnipScreen
+	} else if (RightMiddleAction=37) {				
+		Gosub, ShowMagnifierHK ; show hide magnifier
+	} else if (RightMiddleAction=38) {				
+		goto, showHidePanel
+	} else if (RightMiddleAction=39) {
+		sendinput ^!{Space}
+	} else if (RightMiddleAction=40) {
+		Run, %CustomRightMiddlePath%
+	} else {
+		return ; this is unneeded
+	}
+}
+return
 
 ;; Customize Left/Right - END
 
 ;; Customize Left/Right Wheelup/down - START
 
 
-~LButton & Wheelup::
-if (LeftWupAction=37) { ; 37 = None
-	return
-}
-if paused
-	return
-if (LeftWupAction<>34 AND LeftWupAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
-	Gosub, ZoomPad
-	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
-		padStayTimeTemp:=padStayTime*2
-		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
-	}
-}
-if (LeftWupAction=1) { 
-	Gosub, SnippingTool
-} else if (LeftWupAction=2) { 
-	GoSub, KillMagnifierHK
-} else if (LeftWupAction=3) { 
-	Gosub, ColorHK
-} else if (LeftWupAction=4) { 
-	Gosub, MouseHK
-} else if (LeftWupAction=5) { 
-	Gosub, KeyboardHK
-} else if (LeftWupAction=6) { 
-	Gosub, TextHK
-} else if (LeftWupAction=7) {
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewType
-} else if (LeftWupAction=8) {
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewLiveZoom
-} else if (LeftWupAction=9) { 
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewStillZoom
-} else if (LeftWupAction=10) { 
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewDraw
-} else if (LeftWupAction=11) { 
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewBreakTimer
-} else if (LeftWupAction=12) { 
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewBlackBoard
-} else if (LeftWupAction=13) { 
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewWhiteBoard
-} else if (LeftWupAction=14) { 
-	goto, notepad
-} else if (LeftWupAction=15) { 
-	goto, wordpad
-} else if (LeftWupAction=16) { 
-	goto, mscalc
-} else if (LeftWupAction=17) { 
-	gosub, mspaint
-} else if (LeftWupAction=18) { 
-	goto, GoogleClipboard
-} else if (LeftWupAction=19) { 
-	goto, SpeakClipboard
-} else if (LeftWupAction=20) { 
-	goto, MonitorOff
-} else if (LeftWupAction=21) { 
-	goto, OpenTray
-} else if (LeftWupAction=22) { 
-	goto, AlwaysOnTop
-} else if (LeftWupAction=23) { 
-	goto, WebTimer
-} else if (LeftWupAction=24) { 
-	goto, TimerTab
-} else if (LeftWupAction=25) { 
-	goto, ZoomFaster
-} else if (LeftWupAction=26) { 
-	goto, ZoomSlower
-} else if (LeftWupAction=27) {
-	hotkeyMod=LButton
-	goto, ElasticZoom
-} else if (LeftWupAction=28) {				
-	hotkeyMod=LButton
-	goto, ElasticStillZoom
-} else if (LeftWupAction=29) {				
-	goto, SnipFree
-} else if (LeftWupAction=30) {				
-	goto, SnipRect
-} else if (LeftWupAction=31) {				
-	goto, SnipWin
-} else if (LeftWupAction=32) {				
-	goto, SnipScreen
-} else if (LeftWupAction=33) {				
-	Gosub, ShowMagnifierHK ; show hide magnifier
-} else if (LeftWupAction=34) {				
-	goto, showHidePanel
-} else if (LeftWupAction=35) { 
-	sendinput ^!{Space}
-} else if (LeftWupAction=36) { 
-	Run, %CustomLeftWupPath%
-} else {
-	return ; this is unneeded
-}
-return
-
-
-~LButton & Wheeldown::
-if (LeftWdownAction=37) { ; 37 = None
-	return
-}
-if paused
-	return
-if (LeftWdownAction<>34 AND LeftWdownAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
-	Gosub, ZoomPad
-	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
-		padStayTimeTemp:=padStayTime*2
-		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
-	}
-}
-if (LeftWdownAction=1) { 
-	Gosub, SnippingTool
-} else if (LeftWdownAction=2) { 
-	GoSub, KillMagnifierHK
-} else if (LeftWdownAction=3) { 
-	Gosub, ColorHK
-} else if (LeftWdownAction=4) { 
-	Gosub, MouseHK
-} else if (LeftWdownAction=5) { 
-	Gosub, KeyboardHK
-} else if (LeftWdownAction=6) { 
-	Gosub, TextHK
-} else if (LeftWdownAction=7) {
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewType
-} else if (LeftWdownAction=8) {
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewLiveZoom
-} else if (LeftWdownAction=9) { 
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewStillZoom
-} else if (LeftWdownAction=10) { 
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewDraw
-} else if (LeftWdownAction=11) { 
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewBreakTimer
-} else if (LeftWdownAction=12) { 
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewBlackBoard
-} else if (LeftWdownAction=13) { 
-	Process, Exist, zoomit.exe
-	If not errorlevel
-	{
-		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
-		return
-	}
-	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
-		goto, zoomit
-	if not zoomItGuidance
-		Gosub, ZoomItGuidance
-	goto, ViewWhiteBoard
-} else if (LeftWdownAction=14) { 
-	goto, notepad
-} else if (LeftWdownAction=15) { 
-	goto, wordpad
-} else if (LeftWdownAction=16) { 
-	goto, mscalc
-} else if (LeftWdownAction=17) { 
-	gosub, mspaint
-} else if (LeftWdownAction=18) { 
-	goto, GoogleClipboard
-} else if (LeftWdownAction=19) { 
-	goto, SpeakClipboard
-} else if (LeftWdownAction=20) { 
-	goto, MonitorOff
-} else if (LeftWdownAction=21) { 
-	goto, OpenTray
-} else if (LeftWdownAction=22) { 
-	goto, AlwaysOnTop
-} else if (LeftWdownAction=23) { 
-	goto, WebTimer
-} else if (LeftWdownAction=24) { 
-	goto, TimerTab
-} else if (LeftWdownAction=25) { 
-	goto, ZoomFaster
-} else if (LeftWdownAction=26) { 
-	goto, ZoomSlower
-} else if (LeftWdownAction=27) {
-	hotkeyMod=LButton
-	goto, ElasticZoom
-} else if (LeftWdownAction=28) {				
-	hotkeyMod=LButton
-	goto, ElasticStillZoom
-} else if (LeftWdownAction=29) {				
-	goto, SnipFree
-} else if (LeftWdownAction=30) {				
-	goto, SnipRect
-} else if (LeftWdownAction=31) {				
-	goto, SnipWin
-} else if (LeftWdownAction=32) {				
-	goto, SnipScreen
-} else if (LeftWdownAction=33) {				
-	Gosub, ShowMagnifierHK ; show hide magnifier
-} else if (LeftWdownAction=34) {				
-	goto, showHidePanel
-} else if (LeftWdownAction=35) { 
-	sendinput ^!{Space}
-} else if (LeftWdownAction=36) { 
-	Run, %CustomLeftWdownPath%
-} else {
-	return ; this is unneeded
-}
-return
-
-;~RButton & Wheelup::
-;if (RightWupAction=37) { ; 37 = None
+;~LButton & Wheelup::
+;if (LeftWupAction=37) { ; 37 = None
 ;	return
 ;}
 ;if paused
 ;	return
-;if (RightWupAction<>34 AND RightWupAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+;if (LeftWupAction<>34 AND LeftWupAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
 ;	Gosub, ZoomPad
 ;	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
 ;		padStayTimeTemp:=padStayTime*2
 ;		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
 ;	}
 ;}
-;if (RightWupAction=1) { 
+;if (LeftWupAction=1) { 
 ;	Gosub, SnippingTool
-;} else if (RightWupAction=2) { 
+;} else if (LeftWupAction=2) { 
 ;	GoSub, KillMagnifierHK
-;} else if (RightWupAction=3) { 
+;} else if (LeftWupAction=3) { 
 ;	Gosub, ColorHK
-;} else if (RightWupAction=4) { 
+;} else if (LeftWupAction=4) { 
 ;	Gosub, MouseHK
-;} else if (RightWupAction=5) { 
+;} else if (LeftWupAction=5) { 
 ;	Gosub, KeyboardHK
-;} else if (RightWupAction=6) { 
+;} else if (LeftWupAction=6) { 
 ;	Gosub, TextHK
-;} else if (RightWupAction=7) {
+;} else if (LeftWupAction=7) {
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7018,7 +6693,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewType
-;} else if (RightWupAction=8) {
+;} else if (LeftWupAction=8) {
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7030,7 +6705,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewLiveZoom
-;} else if (RightWupAction=9) { 
+;} else if (LeftWupAction=9) { 
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7042,7 +6717,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewStillZoom
-;} else if (RightWupAction=10) { 
+;} else if (LeftWupAction=10) { 
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7054,7 +6729,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewDraw
-;} else if (RightWupAction=11) { 
+;} else if (LeftWupAction=11) { 
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7066,7 +6741,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewBreakTimer
-;} else if (RightWupAction=12) { 
+;} else if (LeftWupAction=12) { 
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7078,7 +6753,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewBlackBoard
-;} else if (RightWupAction=13) { 
+;} else if (LeftWupAction=13) { 
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7090,85 +6765,86 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewWhiteBoard
-;} else if (RightWupAction=14) { 
+;} else if (LeftWupAction=14) { 
 ;	goto, notepad
-;} else if (RightWupAction=15) { 
+;} else if (LeftWupAction=15) { 
 ;	goto, wordpad
-;} else if (RightWupAction=16) { 
+;} else if (LeftWupAction=16) { 
 ;	goto, mscalc
-;} else if (RightWupAction=17) { 
+;} else if (LeftWupAction=17) { 
 ;	gosub, mspaint
-;} else if (RightWupAction=18) { 
+;} else if (LeftWupAction=18) { 
 ;	goto, GoogleClipboard
-;} else if (RightWupAction=19) { 
+;} else if (LeftWupAction=19) { 
 ;	goto, SpeakClipboard
-;} else if (RightWupAction=20) { 
+;} else if (LeftWupAction=20) { 
 ;	goto, MonitorOff
-;} else if (RightWupAction=21) { 
+;} else if (LeftWupAction=21) { 
 ;	goto, OpenTray
-;} else if (RightWupAction=22) { 
+;} else if (LeftWupAction=22) { 
 ;	goto, AlwaysOnTop
-;} else if (RightWupAction=23) { 
+;} else if (LeftWupAction=23) { 
 ;	goto, WebTimer
-;} else if (RightWupAction=24) { 
+;} else if (LeftWupAction=24) { 
 ;	goto, TimerTab
-;} else if (RightWupAction=25) { 
+;} else if (LeftWupAction=25) { 
 ;	goto, ZoomFaster
-;} else if (RightWupAction=26) { 
+;} else if (LeftWupAction=26) { 
 ;	goto, ZoomSlower
-;} else if (RightWupAction=27) {
-;	hotkeyMod=RButton
+;} else if (LeftWupAction=27) {
+;	hotkeyMod=LButton
 ;	goto, ElasticZoom
-;} else if (RightWupAction=28) {				
-;	hotkeyMod=RButton
+;} else if (LeftWupAction=28) {				
+;	hotkeyMod=LButton
 ;	goto, ElasticStillZoom
-;} else if (RightWupAction=29) {				
+;} else if (LeftWupAction=29) {				
 ;	goto, SnipFree
-;} else if (RightWupAction=30) {				
+;} else if (LeftWupAction=30) {				
 ;	goto, SnipRect
-;} else if (RightWupAction=31) {				
+;} else if (LeftWupAction=31) {				
 ;	goto, SnipWin
-;} else if (RightWupAction=32) {				
+;} else if (LeftWupAction=32) {				
 ;	goto, SnipScreen
-;} else if (RightWupAction=33) {				
+;} else if (LeftWupAction=33) {				
 ;	Gosub, ShowMagnifierHK ; show hide magnifier
-;} else if (RightWupAction=34) {				
+;} else if (LeftWupAction=34) {				
 ;	goto, showHidePanel
-;} else if (RightWupAction=35) { 
+;} else if (LeftWupAction=35) { 
 ;	sendinput ^!{Space}
-;} else if (RightWupAction=36) { 
-;	Run, %CustomRightWupPath%
+;} else if (LeftWupAction=36) { 
+;	Run, %CustomLeftWupPath%
 ;} else {
 ;	return ; this is unneeded
 ;}
 ;return
 
-;~RButton & Wheeldown::
-;if (RightWdownAction=37) { ; 37 = None
+
+;~LButton & Wheeldown::
+;if (LeftWdownAction=37) { ; 37 = None
 ;	return
 ;}
 ;if paused
 ;	return
-;if (RightWdownAction<>34 AND RightWdownAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+;if (LeftWdownAction<>34 AND LeftWdownAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
 ;	Gosub, ZoomPad
 ;	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
 ;		padStayTimeTemp:=padStayTime*2
 ;		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
 ;	}
 ;}
-;if (RightWdownAction=1) { 
+;if (LeftWdownAction=1) { 
 ;	Gosub, SnippingTool
-;} else if (RightWdownAction=2) { 
+;} else if (LeftWdownAction=2) { 
 ;	GoSub, KillMagnifierHK
-;} else if (RightWdownAction=3) { 
+;} else if (LeftWdownAction=3) { 
 ;	Gosub, ColorHK
-;} else if (RightWdownAction=4) { 
+;} else if (LeftWdownAction=4) { 
 ;	Gosub, MouseHK
-;} else if (RightWdownAction=5) { 
+;} else if (LeftWdownAction=5) { 
 ;	Gosub, KeyboardHK
-;} else if (RightWdownAction=6) { 
+;} else if (LeftWdownAction=6) { 
 ;	Gosub, TextHK
-;} else if (RightWdownAction=7) {
+;} else if (LeftWdownAction=7) {
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7180,7 +6856,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewType
-;} else if (RightWdownAction=8) {
+;} else if (LeftWdownAction=8) {
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7192,7 +6868,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewLiveZoom
-;} else if (RightWdownAction=9) { 
+;} else if (LeftWdownAction=9) { 
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7204,7 +6880,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewStillZoom
-;} else if (RightWdownAction=10) { 
+;} else if (LeftWdownAction=10) { 
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7216,7 +6892,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewDraw
-;} else if (RightWdownAction=11) { 
+;} else if (LeftWdownAction=11) { 
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7228,7 +6904,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewBreakTimer
-;} else if (RightWdownAction=12) { 
+;} else if (LeftWdownAction=12) { 
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7240,7 +6916,7 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewBlackBoard
-;} else if (RightWdownAction=13) { 
+;} else if (LeftWdownAction=13) { 
 ;	Process, Exist, zoomit.exe
 ;	If not errorlevel
 ;	{
@@ -7252,58 +6928,382 @@ return
 ;	if not zoomItGuidance
 ;		Gosub, ZoomItGuidance
 ;	goto, ViewWhiteBoard
-;} else if (RightWdownAction=14) { 
+;} else if (LeftWdownAction=14) { 
 ;	goto, notepad
-;} else if (RightWdownAction=15) { 
+;} else if (LeftWdownAction=15) { 
 ;	goto, wordpad
-;} else if (RightWdownAction=16) { 
+;} else if (LeftWdownAction=16) { 
 ;	goto, mscalc
-;} else if (RightWdownAction=17) { 
+;} else if (LeftWdownAction=17) { 
 ;	gosub, mspaint
-;} else if (RightWdownAction=18) { 
+;} else if (LeftWdownAction=18) { 
 ;	goto, GoogleClipboard
-;} else if (RightWdownAction=19) { 
+;} else if (LeftWdownAction=19) { 
 ;	goto, SpeakClipboard
-;} else if (RightWdownAction=20) { 
+;} else if (LeftWdownAction=20) { 
 ;	goto, MonitorOff
-;} else if (RightWdownAction=21) { 
+;} else if (LeftWdownAction=21) { 
 ;	goto, OpenTray
-;} else if (RightWdownAction=22) { 
+;} else if (LeftWdownAction=22) { 
 ;	goto, AlwaysOnTop
-;} else if (RightWdownAction=23) { 
+;} else if (LeftWdownAction=23) { 
 ;	goto, WebTimer
-;} else if (RightWdownAction=24) { 
+;} else if (LeftWdownAction=24) { 
 ;	goto, TimerTab
-;} else if (RightWdownAction=25) { 
+;} else if (LeftWdownAction=25) { 
 ;	goto, ZoomFaster
-;} else if (RightWdownAction=26) { 
+;} else if (LeftWdownAction=26) { 
 ;	goto, ZoomSlower
-;} else if (RightWdownAction=27) {
-;	hotkeyMod=RButton
+;} else if (LeftWdownAction=27) {
+;	hotkeyMod=LButton
 ;	goto, ElasticZoom
-;} else if (RightWdownAction=28) {				
-;	hotkeyMod=RButton
+;} else if (LeftWdownAction=28) {				
+;	hotkeyMod=LButton
 ;	goto, ElasticStillZoom
-;} else if (RightWdownAction=29) {				
+;} else if (LeftWdownAction=29) {				
 ;	goto, SnipFree
-;} else if (RightWdownAction=30) {				
+;} else if (LeftWdownAction=30) {				
 ;	goto, SnipRect
-;} else if (RightWdownAction=31) {				
+;} else if (LeftWdownAction=31) {				
 ;	goto, SnipWin
-;} else if (RightWdownAction=32) {				
+;} else if (LeftWdownAction=32) {				
 ;	goto, SnipScreen
-;} else if (RightWdownAction=33) {				
+;} else if (LeftWdownAction=33) {				
 ;	Gosub, ShowMagnifierHK ; show hide magnifier
-;} else if (RightWdownAction=34) {				
+;} else if (LeftWdownAction=34) {				
 ;	goto, showHidePanel
-;} else if (RightWdownAction=35) { 
+;} else if (LeftWdownAction=35) { 
 ;	sendinput ^!{Space}
-;} else if (RightWdownAction=36) {
-; 	Run, %CustomRightWdownPath%
+;} else if (LeftWdownAction=36) { 
+;	Run, %CustomLeftWdownPath%
 ;} else {
 ;	return ; this is unneeded
 ;}
 ;return
+
+~RButton & Wheelup::
+if (RightWupAction=37) { ; 37 = None
+	return
+}
+if paused
+	return
+if (RightWupAction<>34 AND RightWupAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (RightWupAction=1) { 
+	Gosub, SnippingTool
+} else if (RightWupAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (RightWupAction=3) { 
+	Gosub, ColorHK
+} else if (RightWupAction=4) { 
+	Gosub, MouseHK
+} else if (RightWupAction=5) { 
+	Gosub, KeyboardHK
+} else if (RightWupAction=6) { 
+	Gosub, TextHK
+} else if (RightWupAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (RightWupAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (RightWupAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (RightWupAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (RightWupAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (RightWupAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (RightWupAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (RightWupAction=14) { 
+	goto, notepad
+} else if (RightWupAction=15) { 
+	goto, wordpad
+} else if (RightWupAction=16) { 
+	goto, mscalc
+} else if (RightWupAction=17) { 
+	gosub, mspaint
+} else if (RightWupAction=18) { 
+	goto, GoogleClipboard
+} else if (RightWupAction=19) { 
+	goto, SpeakClipboard
+} else if (RightWupAction=20) { 
+	goto, MonitorOff
+} else if (RightWupAction=21) { 
+	goto, OpenTray
+} else if (RightWupAction=22) { 
+	goto, AlwaysOnTop
+} else if (RightWupAction=23) { 
+	goto, WebTimer
+} else if (RightWupAction=24) { 
+	goto, TimerTab
+} else if (RightWupAction=25) { 
+	goto, ZoomFaster
+} else if (RightWupAction=26) { 
+	goto, ZoomSlower
+} else if (RightWupAction=27) {
+	hotkeyMod=RButton
+	goto, ElasticZoom
+} else if (RightWupAction=28) {				
+	hotkeyMod=RButton
+	goto, ElasticStillZoom
+} else if (RightWupAction=29) {				
+	goto, SnipFree
+} else if (RightWupAction=30) {				
+	goto, SnipRect
+} else if (RightWupAction=31) {				
+	goto, SnipWin
+} else if (RightWupAction=32) {				
+	goto, SnipScreen
+} else if (RightWupAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (RightWupAction=34) {				
+	goto, showHidePanel
+} else if (RightWupAction=35) { 
+	sendinput ^!{Space}
+} else if (RightWupAction=36) { 
+	Run, %CustomRightWupPath%
+} else {
+	return ; this is unneeded
+}
+return
+
+~RButton & Wheeldown::
+if (RightWdownAction=37) { ; 37 = None
+	return
+}
+if paused
+	return
+if (RightWdownAction<>34 AND RightWdownAction<>22) { ; dont show zoompad for 'show panel' (as zoompad will misalign the panel) and 'always on top' 
+	Gosub, ZoomPad
+	if (padTrans>1) { ; no need to wait for zoompad if pad is transparent (ie. 1)
+		padStayTimeTemp:=padStayTime*2
+		Sleep, %padStayTimeTemp% ; after zoompad finishes, wake up
+	}
+}
+if (RightWdownAction=1) { 
+	Gosub, SnippingTool
+} else if (RightWdownAction=2) { 
+	GoSub, KillMagnifierHK
+} else if (RightWdownAction=3) { 
+	Gosub, ColorHK
+} else if (RightWdownAction=4) { 
+	Gosub, MouseHK
+} else if (RightWdownAction=5) { 
+	Gosub, KeyboardHK
+} else if (RightWdownAction=6) { 
+	Gosub, TextHK
+} else if (RightWdownAction=7) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewType
+} else if (RightWdownAction=8) {
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewLiveZoom
+} else if (RightWdownAction=9) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewStillZoom
+} else if (RightWdownAction=10) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewDraw
+} else if (RightWdownAction=11) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBreakTimer
+} else if (RightWdownAction=12) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewBlackBoard
+} else if (RightWdownAction=13) { 
+	Process, Exist, zoomit.exe
+	If not errorlevel
+	{
+		Msgbox, 262192, ERROR, ZoomIt is not running or zoomit.exe is missing.`n`nPlease click 'Tool > Use ZoomIt as Magnifier'.
+		return
+	}
+	IfNotExist, %A_WorkingDir%\Data\ZoomIt.exe
+		goto, zoomit
+	if not zoomItGuidance
+		Gosub, ZoomItGuidance
+	goto, ViewWhiteBoard
+} else if (RightWdownAction=14) { 
+	goto, notepad
+} else if (RightWdownAction=15) { 
+	goto, wordpad
+} else if (RightWdownAction=16) { 
+	goto, mscalc
+} else if (RightWdownAction=17) { 
+	gosub, mspaint
+} else if (RightWdownAction=18) { 
+	goto, GoogleClipboard
+} else if (RightWdownAction=19) { 
+	goto, SpeakClipboard
+} else if (RightWdownAction=20) { 
+	goto, MonitorOff
+} else if (RightWdownAction=21) { 
+	goto, OpenTray
+} else if (RightWdownAction=22) { 
+	goto, AlwaysOnTop
+} else if (RightWdownAction=23) { 
+	goto, WebTimer
+} else if (RightWdownAction=24) { 
+	goto, TimerTab
+} else if (RightWdownAction=25) { 
+	goto, ZoomFaster
+} else if (RightWdownAction=26) { 
+	goto, ZoomSlower
+} else if (RightWdownAction=27) {
+	hotkeyMod=RButton
+	goto, ElasticZoom
+} else if (RightWdownAction=28) {				
+	hotkeyMod=RButton
+	goto, ElasticStillZoom
+} else if (RightWdownAction=29) {				
+	goto, SnipFree
+} else if (RightWdownAction=30) {				
+	goto, SnipRect
+} else if (RightWdownAction=31) {				
+	goto, SnipWin
+} else if (RightWdownAction=32) {				
+	goto, SnipScreen
+} else if (RightWdownAction=33) {				
+	Gosub, ShowMagnifierHK ; show hide magnifier
+} else if (RightWdownAction=34) {				
+	goto, showHidePanel
+} else if (RightWdownAction=35) { 
+	sendinput ^!{Space}
+} else if (RightWdownAction=36) {
+ 	Run, %CustomRightWdownPath%
+} else {
+	return ; this is unneeded
+}
+return
 
 ;; Customize Left/Right Wheelup/down - END
 
@@ -14584,8 +14584,8 @@ Return
 ; * For each modifier.ahk, search for '~LButton & ' and replace it with '~RButton &' '~MButton &' '~XButton1 &' '~XButton2 &'  '!' '^' '+' '#'
 ; * For middle.ahk, uncomment mbutton & rbutton (and del ~LButton & MButton)
 ;   replace mbutton:: with ~MButton & LButton:: and delete some lines there
-; * Search ;; for X1 and X2, but theres no need to do anything on them now. they are the same as others
-; * For each modifier except MButton, because the zoom has taken mod+wup/wdown and mod+mbutton, the hotkey customization bit is not usable. remove the duplicated modifier.
+; * (cancelled line) Search ;; for X1 and X2, but theres no need to do anything on them now. they are the same as others
+; * For each modifier except MButton, because the zoom has taken mod+wup/wdown, the hotkey customization bit is not usable. remove the duplicated modifier.
 ;   e.g. in Ctrl ahk, comment/del ~^Wheelup and ~^Wheeldown due to hotkey customization (~^LButton and ~^RButton can be kept though)
 ; * in RButton ahk (already done for LButton), remove as well the custom hotkey mod+mbutton (since Custom Hotkey for Left/Right includes the Mbutton)
 ;   e.g. In RButton ahk, comment/del custom hotkey's "~RButton & MButton::" (the 2nd one, not the 1st one), ensure uncomment "~LButton & MButton::", (vice versa in LButton ahk but should be done if used as base)
@@ -14606,7 +14606,7 @@ Return
 ; Compile x64 main files with AutoHotkey_L 64bit unicode (during ahk installation choose Unicode 64bit)
 ; Compile x86 main files with AutoHotkey_L 32bit unicode in order to google in Chinese, Japanese, etc. (during ahk installation choose Unicode 32bit)
 ; Compile only ZoomPad, OpenTray, DisableUAC, OSD, Setup, AeroZoom.exe with original 32bit AutoHotkey to keep size small...(not AutoHotkey_L's ANSI mode) (with Compile AHK II for setting metadata)
-; * note: compiling across x64 and x86 requires 2 systems. (or 2 VMs)
+; * note: compiling across x64 and x86 requires 2 systems. (or 2 VMs) -- no longer the case with new AutoHotkey_L
 ; Test all functions and modifier executables under x86 and x64 systems. Compiling all ahk at once causes problems at times.
 
 ; When a new version of AeroZoom is installed, any found old copy is upgraded. This is usually fine except new default settings won't apply as old settings are respected. So it's recommended to do a reset in 'Tool > Preferences > Advanced Options > Reset' anyway.
