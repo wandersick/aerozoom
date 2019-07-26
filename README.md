@@ -2,8 +2,13 @@
 
 Scripted in AutoHotkey, AeroZoom enhances upon Windows Magnifier and optionally Sysinternals ZoomIt to enable screen magnification by mouse-wheeling, as well as turning any mouse into a Home-Theater PC/presentation mouse, where zooming and positioning becomes a breeze without a keyboard.
 
-For download of the latest version, visit Microsoft TechNet Gallery:
+For download of the latest version (portable application & per-user/all-users installer), visit Microsoft TechNet Gallery:
+
 - https://gallery.technet.microsoft.com/AeroZoom-The-smooth-wheel-e0cdf778
+
+For [Chocolatey](https://chocolatey.org/packages/aerozoom) users who prefers unattended installation into All Users location:
+
+- `choco install aerozoom`
 
 ## Become a Beta Tester for AeroZoom 5.0
 
@@ -173,3 +178,9 @@ The below issues have been identified and will be fixed in the upcoming AeroZoom
   - **Workaround**: They can be manually removed if desired
 - `zoomit.exe` cannot be downloaded by AeroZoom as the included `wget.exe` utility is out of date
   - **Workaround**: Simply download [zoomit.exe](https://live.sysinternals.com/zoomit.exe) manually
+
+## False-Positive Anti-virus Detection on Unattended Installer
+
+This section is for users who use the [unattended installer](https://wandersick.blogspot.com/2019/07/how-to-create-silent-installer-with.html) downloaded [here](https://github.com/wandersick/aerozoom/releases) or [Chocolatey](https://chocolatey.org/packages/aerozoom) installation option.
+
+Like certain AutoHotkey applications, [some anti-virus vendors may falsely identify the unattended installer created as undesirable](https://www.virustotal.com/gui/file/015da23376e29da9e7501eaaf9c501fbfd3fce87e5604cd09fbe4cd191537c27/detection). It is understandable considering the nature of the unattended installer is to perform installation and uninstallation in a silent way, which involves seemingly risky tasks such as modifying uninstallation keys in the registry. **This false-positive detection issue can be safely ignored**. It is recommended to [report the file to your anti-virus vendor as clean if possible](https://www.techsupportalert.com/content/how-report-malware-or-false-positives-multiple-antivirus-vendors.htm).
