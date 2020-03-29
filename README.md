@@ -2,9 +2,10 @@
 
 Scripted in AutoHotkey, AeroZoom enhances upon Windows Magnifier and optionally Sysinternals ZoomIt to enable screen magnification by mouse-wheeling, as well as turning any mouse into a Home-Theater PC/presentation mouse, where zooming and positioning becomes a breeze without a keyboard.
 
-For download of the latest version (portable application & per-user/all-users installer), visit Microsoft TechNet Gallery:
+For download of the latest version (portable application & per-user/all-users installer), visit one of the hosts below:
 
-- https://gallery.technet.microsoft.com/AeroZoom-The-smooth-wheel-e0cdf778
+- [Softpedia](https://www.softpedia.com/get/System/OS-Enhancements/AeroZoom.shtml)
+- [Download.com](https://download.cnet.com/AeroZoom/3000-2075_4-75728285.html)
 
 For [Chocolatey](https://chocolatey.org/packages/aerozoom) users who prefers unattended installation into All Users location:
 
