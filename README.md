@@ -27,7 +27,7 @@ If you are interested in being a beta tester, email <a href="mailto:wandersick@g
 
 ## Use Cases
 
-- Presentation / teaching / screencasting
+- Presentation / teaching / screencast / Zoom meetings & webinars (or Microsoft Teams, Cisco WebEx, etc.)
 - For the elderly / people with visual disabilities
 - Gaming
 - Home-Theater PC (HTPC)
