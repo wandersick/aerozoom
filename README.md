@@ -69,9 +69,9 @@ And if you would like to try out some more features:
 
 ## Media Coverage
 
-Alternative reviews are available via online search engines from the below sites (**thanks**):
+Alternative reviews are available via online search engines from these sites. (If you find an additional AeroZoom review, please let me know.)
 
-- Additive Tips, CHIP, ghacks.net, Lifehacker, MakeUseOf, Softpedia, Techniqued, 電腦玩物
+- [Additive Tips](https://www.addictivetips.com/windows-tips/aerozoom-presentation-mouse-from-windows-7-magnifier/), [CHIP](https://www.chip.de/downloads/AeroZoom_42640555.html), [ghacks.net](https://www.ghacks.net/2010/04/26/aerozoom-turns-windows-7-magnifier-into-presentation-tool/), [Lifehacker](https://lifehacker.com/aerozoom-supercharges-your-mouse-for-keyboard-free-pres-5524492), [MakeUseOf](http://web.archive.org/web/20161007201901/https://www.makeuseof.com/tag/show-all-aerozoom-computer-screen-magnifier/), [Softpedia](https://www.softpedia.com/get/System/OS-Enhancements/AeroZoom.shtml), [Techniqued](http://www.nirmaltv.com/2010/04/26/turn-your-mouse-into-presentation-mouse-with-aerozoom/) (NirmalTV), [電腦玩物](https://www.playpcesor.com/2010/04/aerozoom-windows-7.html)
 
 ---
 
