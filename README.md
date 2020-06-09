@@ -2,14 +2,18 @@
 
 Scripted in AutoHotkey, AeroZoom enhances upon Windows Magnifier and optionally Sysinternals ZoomIt to enable screen magnification by mouse-wheeling, as well as turning any mouse into a Home-Theater PC/presentation mouse, where zooming and positioning becomes a breeze without a keyboard.
 
-For download of the latest version (portable application & per-user/all-users installer), visit one of the hosts below:
+For download of the latest version (portable application & per-user/all-users installer), please visit its homepage:
 
-- [Softpedia](https://www.softpedia.com/get/System/OS-Enhancements/AeroZoom.shtml)
-- [Download.com](https://download.cnet.com/AeroZoom/3000-2075_4-75728285.html)
+- [Download AeroZoom](https://tech.wandersick.com/p/aerozoom-for-windows-7-magnifier.html#download)
 
-For [Chocolatey](https://chocolatey.org/packages/aerozoom) users who prefers unattended installation into All Users location:
+After downloading and extracting AeroZoom.zip, AeroZoom.exe portable application can be used immediately. Alternatively, Setup.exe (optional) provides installation into Current User or All Users location. For enterprise deployment, a silent installer is also available on request ([email the developer](https://tech.wandersick.com/p/about.html#contact)).
+
+For users of [Chocolatey](https://chocolatey.org/packages/aerozoom) and `winget` repositories who prefers unattended installation into All Users location:
 
 - `choco install aerozoom`
+- `winget install aerozoom`
+
+*Note for winget users: Please ignore the [warning from SmartScreen](https://live.staticflickr.com/65535/49987155847_d781799e16_o.gif), where you may safely click 'more info' to complete installation.
 
 ## Become a Beta Tester for AeroZoom 5.0
 
@@ -69,7 +73,7 @@ And if you would like to try out some more features:
 
 ## Media Coverage
 
-Alternative reviews are available via online search engines from these sites. (If you find an additional AeroZoom review, please let me know.)
+Alternative reviews are available via online search engines from these sites. (If you find an additional AeroZoom review, please let me know!)
 
 - [Additive Tips](https://www.addictivetips.com/windows-tips/aerozoom-presentation-mouse-from-windows-7-magnifier/), [CHIP](https://www.chip.de/downloads/AeroZoom_42640555.html), [ghacks.net](https://www.ghacks.net/2010/04/26/aerozoom-turns-windows-7-magnifier-into-presentation-tool/), [Lifehacker](https://lifehacker.com/aerozoom-supercharges-your-mouse-for-keyboard-free-pres-5524492), [MakeUseOf](http://web.archive.org/web/20161007201901/https://www.makeuseof.com/tag/show-all-aerozoom-computer-screen-magnifier/), [Softpedia](https://www.softpedia.com/get/System/OS-Enhancements/AeroZoom.shtml), [Techniqued](http://www.nirmaltv.com/2010/04/26/turn-your-mouse-into-presentation-mouse-with-aerozoom/) (NirmalTV), [電腦玩物](https://www.playpcesor.com/2010/04/aerozoom-windows-7.html)
 
