@@ -71,6 +71,18 @@ And if you would like to try out some more features:
 5. Try holding the middle mouse button to trigger drawing on screen, but first you would have to customize an action triggered on holding the middle mouse button at 'Tool > Custom Hotkeys > Settings > Holding Middle', i.e. 'ZoomIt: Draw' (or other functions e.g. taking a screenshot and auto-save it)
 6. Finding the zoom rate a bit too much or too little per press of zooming hotkey? Instead of going into sub-settings of Windows Magnifier, simply adjust the granularity (6 levels) on AeroZoom panel by dragging the Zoom Rate Slider (at the top right corner in the above picture)
 
+## Word of Mouth
+
+In the last decade, AeroZoom has been recommended by users including Microsoft MVP, the media and it has been downloaded at least over tens of thousands of times across the world. Thanks for the love! ❤️️ 
+
+Below are some of the kind comments left by AeroZoom users:
+
+- "[The presentation went well and I could zoom in to the menus and graphs to help the eyes of the people coming listening. It was very good.](https://www.instagram.com/p/-wJi_WDt4m/)"
+- "I'm used to the zoom on Mac so I was looking to reproduce this on Windows and your tool is the closed I've found."
+- "I use it everyday so it only seems fair to [donate](https://tech.wandersick.com/p/donate.html) to you. The tool helps me so much in my day to day."
+- "For my poor eyes it is really a great help. Thank you very much."
+- "[The must have tool for developers and other IT-guys doing presentations.](https://twitter.com/willem_meints/status/60754897573912576)"
+
 ## Media Coverage
 
 Alternative reviews are available via online search engines from these sites. (If you find an additional AeroZoom review, please let me know!)
