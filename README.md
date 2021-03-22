@@ -78,7 +78,8 @@ In the last decade, AeroZoom has been recommended by users including Microsoft M
 Below are some of the kind comments left by AeroZoom users:
 
 - "[The presentation went well and I could zoom in to the menus and graphs to help the eyes of the people coming listening. It was very good.](https://www.instagram.com/p/-wJi_WDt4m/)"
-- "I'm used to the zoom on Mac so I was looking to reproduce this on Windows and your tool is the closed I've found."
+- "I'm used to the zoom on Mac so I was looking to reproduce this on Windows and your tool is the closest I've found."
+- "Great for zooming TV screen while sitting in the sofa, much quicker and easier than the usual Windows magnifier. Exactly what I was looking for."
 - "I use it everyday so it only seems fair to [donate](https://tech.wandersick.com/p/donate.html) to you. The tool helps me so much in my day to day."
 - "For my poor eyes it is really a great help. Thank you very much."
 - "[The must have tool for developers and other IT-guys doing presentations.](https://twitter.com/willem_meints/status/60754897573912576)"
