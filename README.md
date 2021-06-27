@@ -1,6 +1,6 @@
-# AeroZoom – a smooth wheel-zooming mouse-enhancing panel
+# AeroZoom – Keyboard-Free Screen-Magnifying Presentation Tool and Mouse-Enhancing Panel for Windows
 
-Scripted in AutoHotkey, AeroZoom enhances upon Windows Magnifier and optionally Sysinternals ZoomIt to enable screen magnification by mouse-wheeling, as well as turning any mouse into a Home-Theater PC/presentation mouse, where zooming and positioning becomes a breeze without a keyboard.
+Scripted in AutoHotkey, AeroZoom enhances upon Windows Magnifier and optionally Sysinternals ZoomIt to enable screen magnification like macOS with mouse-wheeling and pinch-to-zoom, as well as turning any mouse into a Home-Theater PC/presentation mouse, where zooming and positioning become a breeze without a keyboard.
 
 For download of the latest version (portable application & per-user/all-users installer), please visit its homepage:
 
@@ -59,7 +59,7 @@ AeroZoom binds common keyboard controls primarily to these mouse buttons:
 
 ... where **[Left]** can mostly be substituted simply by clicking any other modifier, such as **[Ctrl]**, on the AeroZoom Panel:
 
-![](https://i1.gallery.technet.s-msft.com/aerozoom-the-smooth-wheel-e0cdf778/image/file/188398/1/5583194454_b072c89528_b-001.jpg "AeroZoom Panel and menus (from a previous version, 2.0, which does not include some new features)")
+![](https://1.bp.blogspot.com/-05uPDrjnQUY/YNiKZT5BWoI/AAAAAAAACzs/pr9bRpTToYAdFvS8UdBoJRzCm9xQiaLMwCLcBGAsYHQ/s0/5583194454_3a71e20ed9_o.png "AeroZoom Panel and menus (from a previous version, 2.0, which does not include some new features)")
 
 **Figure 1**.  AeroZoom Panel and menus (from a previous version, 2.0, which does not include some new features)
 
@@ -110,7 +110,7 @@ Alternative reviews are available via online search engines from these sites. (I
 5. Besides presentations, another usage is capturing screen videos for tutorial purpose. Where normally it would take a lot of work learning and using professional video editors such as Adobe Premiere to zoom in, with AeroZoom, however, simply zoom in with the magnifier hidden during recording and it&#39;s done. No post-production required. <br><br>
 (More tips available [here at 100+ Tips](https://github.com/wandersick/aerozoom-doc/blob/master/100%2BTips.md), or in AeroZoom via Startup Tips option)
 
-     ![](https://i1.gallery.technet.s-msft.com/aerozoom-the-smooth-wheel-e0cdf778/image/file/189141/1/aerozoom-v1-gui_1.png "Accessing Windows Magnifier functions from AeroZoom panel")
+     ![](https://1.bp.blogspot.com/-_NeTJC2TBD8/YNiKvj52v1I/AAAAAAAACz0/3BiOYcvyb3ITeyD5Ka7VA3HYbSBgfGgagCLcBGAsYHQ/s0/aerozoom-v1-gui_1.png "Accessing Windows Magnifier functions from AeroZoom panel")
 
 **Figure 2.**  Accessing Windows Magnifier functions from AeroZoom panel
 
@@ -161,7 +161,7 @@ Whereas AeroZoom improves Windows Magnifier, a sub-feature of AeroZoom, AeroSnip
 - Both installable and portable (scripted in AutoHotkey)
 - And more!
 
-![](https://i1.gallery.technet.s-msft.com/aerozoom-the-smooth-wheel-e0cdf778/image/file/188396/1/5582608335_014892905b_b-001.jpg "AeroZoom sub-menus including quick instructions") 
+![](https://live.staticflickr.com/5224/5582608335_d76c601952_o.png "AeroZoom sub-menus including quick instructions")
 
 **Figure 3.**  AeroZoom sub-menus including quick instructions
 
