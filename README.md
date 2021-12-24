@@ -199,6 +199,6 @@ The below issues have been identified and will be fixed in the upcoming AeroZoom
 
 ## False-Positive Anti-virus Detection on Unattended Installer
 
-This section is for users who use the [unattended installer](https://wandersick.blogspot.com/2019/07/how-to-create-silent-installer-with.html) downloaded [here](https://github.com/wandersick/aerozoom/releases) or [Chocolatey](https://chocolatey.org/packages/aerozoom) installation option.
+This section is for users who use the [unattended installer](https://tech.wandersick.com/2019/07/how-to-create-silent-installer-with.html) downloaded [here](https://github.com/wandersick/aerozoom/releases) or [Chocolatey](https://chocolatey.org/packages/aerozoom) installation option.
 
 Like certain AutoHotkey applications, [some anti-virus vendors may falsely identify the unattended installer created as undesirable](https://www.virustotal.com/gui/file/015da23376e29da9e7501eaaf9c501fbfd3fce87e5604cd09fbe4cd191537c27/detection). It is understandable considering the nature of the unattended installer is to perform installation and uninstallation in a silent way, which involves seemingly risky tasks such as modifying uninstallation keys in the registry. **This false-positive detection issue can be safely ignored**. It is recommended to [report the file to your anti-virus vendor as clean if possible](https://www.techsupportalert.com/content/how-report-malware-or-false-positives-multiple-antivirus-vendors.htm).

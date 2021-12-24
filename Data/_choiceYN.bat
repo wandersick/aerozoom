@@ -7,7 +7,7 @@ setlocal
 :: Last Modified: 2/11/2009
 :: Author: wanderSick@C7PE 
 :: Email: wanderSick@gmail.com
-:: Web: wanderSick.blogspot.com
+:: Web: tech.wandersick.com
 :: Supported OS: 2K/XP/Vista/7
 :: Description: Properly fall back to set /p for systems without choice.exe
 ::              Differentiate choice.exe from Win 9x and 2003/Vista/7
@@ -21,7 +21,7 @@ if "%~1"=="/?" (goto help) else if /i "%~1"=="" (goto help) else (goto _choiceYn
 :help
 
 echo.
-echo :: ChoiceYN 1.0 by wanderSick (wanderSick.blogspot.com)
+echo :: ChoiceYN 1.0 by wanderSick (tech.wandersick.com)
 echo.
 echo  [Usage]
 echo.

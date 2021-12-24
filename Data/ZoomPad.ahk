@@ -1,4 +1,4 @@
-; AeroZoom by wanderSick | http://wandersick.blogspot.com
+; AeroZoom by wanderSick | http://tech.wandersick.com
 
 #SingleInstance IGNORE ; dont set to force or ghost frames
 #NoTrayIcon
@@ -71,4 +71,4 @@ uiMove:
 PostMessage, 0xA1, 2,,, A 
 Return
 
-; AeroZoom by wanderSick | http://wandersick.blogspot.com
+; AeroZoom by wanderSick | http://tech.wandersick.com

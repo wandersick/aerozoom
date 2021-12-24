@@ -38,7 +38,7 @@
        between free-form, rectangular, window and full-screen snips.
 
      - Each snipping mode (free, rectangular, window, full screen) has
-       their own hotkeys ¡V Win+Alt+F, Win+Alt+R, Win+Alt+W, Win+Alt+S.
+       their own hotkeys ï¿½V Win+Alt+F, Win+Alt+R, Win+Alt+W, Win+Alt+S.
 
      - After snipping or pressing Print Screen, open the image with an
        external editor such as Paint, other than Snipping Tool's editor.
@@ -48,11 +48,11 @@
 
      - Press and hold Middle button for half a second to start a snip
        of the type currently selected on the AeroSnip Slider. (Button,
-       delay and the action can be customized ¡V see 'Custom Hotkeys'.)
+       delay and the action can be customized ï¿½V see 'Custom Hotkeys'.)
 
      - Streamlined procedures of starting a new snip--just use hotkeys
        or Snip button anytime a new snip is wanted, no more locating-an
-       existing-Snipping-Tool-window-from-taskbar to click ¡¥New¡¦ for a
+       existing-Snipping-Tool-window-from-taskbar to click ï¿½ï¿½Newï¿½ï¿½ for a
        new capture.
   
 
@@ -111,7 +111,7 @@
   
   #  Zoom Rate Slider adjusts how far to zoom at each scroll
 
-  #  Magnify Slider zooms in or out by dragging ¡V new way to zoom
+  #  Magnify Slider zooms in or out by dragging ï¿½V new way to zoom
 
   #  Preview Full Screen quickly jumps anywhere else while zoomed in:
 
@@ -183,8 +183,8 @@
      Zoom out             => [Modifier] + [Wheel-down]
      Reset zoom           => [Modifier] + [Middle]
      Show|hide panel      => [Left] + [Right]
-     Preview full screen  => hold [Middle]  ¡V  when zoomed
-     New snip|custom      => hold [Middle]  ¡V  when zoomed out
+     Preview full screen  => hold [Middle]  ï¿½V  when zoomed
+     New snip|custom      => hold [Middle]  ï¿½V  when zoomed out
      
      Note:    In Middle button mode, hold [Middle] + [Right] to reset
               zoom, [Middle] + [Left] to snip/preview full screen.
@@ -208,7 +208,7 @@
   #  Be sure to read the tips and tricks from the 'Startup Tips'.
      Also, see this page for a walkthrough and video:
   
-     wandersick.blogspot.com/p/aerozoom-for-windows-7-magnifier.html
+     tech.wandersick.com/p/aerozoom-for-windows-7-magnifier.html
   
 
      [ System Requirements ]
@@ -399,5 +399,5 @@
      wandersick@gmail.com or my blog (address below).
        
 
-  (c) 2009-2015 a wandersick production | http://wandersick.blogspot.com
+  (c) 2009-2021 a wandersick production | https://tech.wandersick.com
 

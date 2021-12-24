@@ -6,7 +6,7 @@
 :: Last Modified: 24/11/2009
 :: Author: wandersick
 :: Email: wandersick@gmail.com
-:: Web: wandersick.blogspot.com
+:: Web: tech.wandersick.com
 :: Supported OS: Windows 2000 or later
 :: *********************************************************
 :: Description: Used to check for new version using Google.
@@ -50,7 +50,7 @@ set searchItems="ws.az.33a" "ws.az.34" "ws.az.35" "ws.az.40"
 set pathTemp=%temp%
 
 :: web site to check update on.
-set webSite=wandersick.blogspot.com
+set webSite=tech.wandersick.com
 
 :: detect if system doesn't support "cscript"
 cscript >nul 2>&1

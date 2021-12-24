@@ -1,4 +1,4 @@
-; (c) Copyright 2009-2015 AeroZoom by a wandersick | http://wandersick.blogspot.com
+; (c) Copyright 2009-2021 AeroZoom by wandersick | https://tech.wandersick.com
 
 ; Sorry for the messy commenting in advance :D ... As the purpose is to contribute as much as possible,
 ; the source is released (GPL v2). Hope it helps! :D
@@ -104,7 +104,7 @@ if (OSver<5.1) { ; if older than xp
 	if errorlevel
 	{
 		If not profileInUse
-			Msgbox, 262144, This message will only be shown once, You're using an newer operating system AeroZoom may not totally support.`n`nPlease urge wandersick or check http://wandersick.blogspot.com for a new version.
+			Msgbox, 262144, This message will only be shown once, You're using an newer operating system AeroZoom may not totally support.`n`nPlease urge wandersick or check http://tech.wandersick.com for a new version.
 		RegWrite, REG_SZ, HKEY_CURRENT_USER, Software\wandersick\AeroZoom, newOSwarning, 1
 	}
 }
@@ -656,7 +656,7 @@ if template
 RegRead,CustomShiftWupPath,HKCU,Software\wandersick\AeroZoom,CustomShiftWupPath
 if template 
 {
-	CustomShiftWupPath=http://wandersick.blogspot.com
+	CustomShiftWupPath=http://tech.wandersick.com
 }
 RegRead,CustomShiftWdownPath,HKCU,Software\wandersick\AeroZoom,CustomShiftWdownPath
 if template 
@@ -9588,15 +9588,15 @@ Donate:
 if registered
 	MsgBox,262144,Licensed to, User: %regName%`n`nLicense: %regType%
 else
-	Run, http://wandersick.blogspot.com/p/donate.html
+	Run, http://tech.wandersick.com/p/donate.html
 return
 
 VisitWeb:
-Run, http://wandersick.blogspot.com/p/aerozoom-for-windows-7-magnifier.html
+Run, http://tech.wandersick.com/p/aerozoom-for-windows-7-magnifier.html
 return
 
 UserExperienceSurvey:
-Run, http://wandersick.blogspot.com/p/aerozoom-user-experience-survey.html
+Run, http://tech.wandersick.com/p/aerozoom-user-experience-survey.html
 return
 
 Gmail:
@@ -9675,7 +9675,7 @@ return
 2ButtonDonate:
 Gui 1:-Disabled
 Gui, Destroy
-Run, http://wandersick.blogspot.com/p/donate.html
+Run, http://tech.wandersick.com/p/donate.html
 return
 
 2ButtonContact:
@@ -9688,7 +9688,7 @@ Gui, 5:Font, norm,
 Gui, 5:Font, s10, Tahoma
 Gui, 5:Add, Text, ,(1) Blog  (2) Email 
 Gui, 5:Font, underline
-Gui, 5:Add, Text, cBlue gVisitWeb vBlogTemp, http://wandersick.blogspot.com
+Gui, 5:Add, Text, cBlue gVisitWeb vBlogTemp, http://tech.wandersick.com
 BlogTemp_TT := "Visit Wandersick's blog"
 ;Gui, 5:Add, Text, cBlue gTweet vTweetTemp, http://twitter.com/wandersick
 ;TweetTemp_TT := "Visit Wandersick's Twitter"
@@ -10719,8 +10719,8 @@ IfNotExist, %localappdata%\wandersick\AeroZoom\AeroZoom.exe
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, DisplayIcon, %localappdata%\wandersick\AeroZoom\AeroZoom.exe,0
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, DisplayName, AeroZoom %verAZ%
 	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, InstallDate, %A_YYYY%%A_MM%%A_DD%
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, HelpLink, http://wandersick.blogspot.com
-	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, URLInfoAbout, http://wandersick.blogspot.com
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, HelpLink, http://tech.wandersick.com
+	RegWrite, REG_SZ, HKEY_CURRENT_USER, %regKey%, URLInfoAbout, http://tech.wandersick.com
 	
 	; ******************************************************************************************
 	; ******************************************************************************************
@@ -16031,4 +16031,4 @@ return
 ; Run, mailto:wandersick+aerozoom@gmail.com?subject=AeroZoom %verAZ% Bug Report&body=Please describe your problem.
 ; return
 
-; (c) Copyright 2009-2015 AeroZoom by a wandersick | http://wandersick.blogspot.com
+; (c) Copyright 2009-2021 AeroZoom by wandersick | https://tech.wandersick.com
