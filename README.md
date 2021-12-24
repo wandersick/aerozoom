@@ -15,11 +15,16 @@ For users of [Chocolatey](https://chocolatey.org/packages/aerozoom) and `winget`
 
 *Note for winget users: Please ignore the [warning from SmartScreen](https://live.staticflickr.com/65535/49987155847_d781799e16_o.gif), where you may safely click 'more info' to complete installation.
 
-## Become a Beta Tester for AeroZoom 5.0
+## Windows 11
 
-See a list of upcoming AeroZoom 5.0 features [here](https://github.com/wandersick/aerozoom-doc/blob/master/AeroZoom_5.0_Features.md).
+For AeroZoom to work under Windows 11, ensure User Account Control (UAC) is disabled using the registry edit method as follows:
 
-If you are interested in being a beta tester, email <a href="mailto:wandersick@gmail.com">wandersick@gmail.com</a>. Thank you!
+1. Run Registry Editor `regedit.exe`.
+2. Go to `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`.
+3. Change `EnableLUA` registry DWORD from `1` to `0` to disable UAC.
+4. Restart the computer.
+
+Note: Snipping Tool is no longer available on Windows 11, hence related snipping functions would not work.
 
 ## Main Features
 
