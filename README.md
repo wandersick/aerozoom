@@ -24,7 +24,10 @@ For AeroZoom to work under Windows 11, ensure User Account Control (UAC) is disa
 3. Change `EnableLUA` registry DWORD from `1` to `0` to disable UAC.
 4. Restart the computer.
 
-Note: Snipping Tool is no longer available on Windows 11, hence related snipping functions would not work.
+Note:
+
+- If you notice `EnableLUA` is automatically restored to the original value, it is possibly affected by one of the processes in your system, such as some anti-virus process. This has so far been observed in one instance. If you are affected, feel free to email wandersick at gmail.com for a workaround.
+- Snipping Tool is no longer available on Windows 11, hence related snipping functions would not work.
 
 ## Main Features
 
