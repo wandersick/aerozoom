@@ -188,7 +188,7 @@ For more information, read the [README](https://github.com/wandersick/aerozoom-d
 
 ## Workarounds to Known Issues
 
-For AeroZoom to work under Windows 11, ensure User Account Control (UAC) is disabled using the registry edit method as follows:
+For AeroZoom to work under some versions of Windows 11, it may be be required to disable User Account Control (UAC) using the registry edit method as follows:
 
 1. Run Registry Editor `regedit.exe`.
 2. Go to `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`.
@@ -200,7 +200,7 @@ Note:
 - If you notice `EnableLUA` is automatically restored to the original value, it is possibly affected by one of the processes in your system, such as some anti-virus process. This has so far been observed in one instance. If you are affected, feel free to email wandersick at gmail.com for a workaround.
 - Snipping Tool is no longer available on Windows 11, hence related snipping functions would not work.
 
-Aside from the Windows 11 issue above, below minor issues have been identified. Please refer to the below workarounds:
+Aside from the possible Windows 11 issue above, below minor issues have been identified. Please refer to the below workarounds:
 
 - AeroZoom `Setup.exe` does not uninstall itself cleanly, leaving `Setup.exe` and `AeroZoom_*x64.exe` files in the installation directory
   - **Workaround**: They can be manually removed if desired
