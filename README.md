@@ -75,12 +75,12 @@ In the last decade, AeroZoom has been recommended by users including Microsoft M
 
 Below are some of the kind comments left by AeroZoom users:
 
-- "[The presentation went well and I could zoom in to the menus and graphs to help the eyes of the people coming listening. It was very good.](https://www.instagram.com/p/-wJi_WDt4m/)"
+- "The presentation went well and I could zoom in to the menus and graphs to help the eyes of the people coming listening. It was very good."
 - "I'm used to the zoom on Mac so I was looking to reproduce this on Windows and your tool is the closest I've found."
 - "Great for zooming TV screen while sitting in the sofa, much quicker and easier than the usual Windows magnifier. Exactly what I was looking for."
-- "I use it everyday so it only seems fair to [donate](https://tech.wandersick.com/p/donate.html) to you. The tool helps me so much in my day to day."
+- "I use it everyday so it only seems fair to donate to you. The tool helps me so much in my day to day."
 - "For my poor eyes it is really a great help. Thank you very much."
-- "[The must have tool for developers and other IT-guys doing presentations.](https://twitter.com/willem_meints/status/60754897573912576)"
+- "[The must have tool for developers and other IT-guys doing presentations.](https://web.archive.org/web/20200727231453/https://twitter.com/willem_meints/status/60754897573912576)"
 
 ## Media Coverage
 
@@ -188,7 +188,7 @@ For more information, read the [README](https://github.com/wandersick/aerozoom-d
 
 ## Workarounds to Known Issues
 
-For AeroZoom to work under Windows 11, ensure User Account Control (UAC) is disabled using the registry edit method as follows:
+For AeroZoom to work under some versions of Windows 11, it may be be required to disable User Account Control (UAC) using the registry edit method as follows:
 
 1. Run Registry Editor `regedit.exe`.
 2. Go to `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`.
@@ -200,7 +200,7 @@ Note:
 - If you notice `EnableLUA` is automatically restored to the original value, it is possibly affected by one of the processes in your system, such as some anti-virus process. This has so far been observed in one instance. If you are affected, feel free to email wandersick at gmail.com for a workaround.
 - Snipping Tool is no longer available on Windows 11, hence related snipping functions would not work.
 
-Aside from the Windows 11 issue above, below minor issues have been identified. Please refer to the below workarounds:
+Aside from the possible Windows 11 issue above, below minor issues have been identified. Please refer to the below workarounds:
 
 - AeroZoom `Setup.exe` does not uninstall itself cleanly, leaving `Setup.exe` and `AeroZoom_*x64.exe` files in the installation directory
   - **Workaround**: They can be manually removed if desired
