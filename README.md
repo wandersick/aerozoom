@@ -15,10 +15,6 @@ For users of [Chocolatey](https://chocolatey.org/packages/aerozoom) and `winget`
 
 *Note for winget users: Please ignore the [warning from SmartScreen](https://live.staticflickr.com/65535/49987155847_d781799e16_o.gif), where you may safely click 'more info' to complete installation.
 
-## Windows 11
-
-To use AeroZoom under Windows 11, please refer to the [Workarounds to Known Issues](#Workarounds-to-Known-Issues) section.
-
 ## Main Features
 
 1. Enables full-screen zooming via mouse wheel or pinch-to-zoom in Windows (like OS X) with multiple zoom modes: Reverse Zoom, Elastic Zoom, etc.
@@ -188,7 +184,7 @@ For more information, read the [README](https://github.com/wandersick/aerozoom-d
 
 ## Workarounds to Known Issues
 
-For AeroZoom to work under Windows 11, ensure User Account Control (UAC) is disabled using the registry edit method as follows:
+For AeroZoom to work under older versions of Windows 11 (not required in current versions), ensure User Account Control (UAC) is disabled using the registry edit method as follows:
 
 1. Run Registry Editor `regedit.exe`.
 2. Go to `HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System`.
